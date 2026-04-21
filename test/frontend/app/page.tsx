@@ -1,35 +1,47 @@
 'use client';
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Shield, Search, Handshake } from "lucide-react";
 import { PulseFitHero } from "@/components/ui/pulse-fit-hero";
 import { InfiniteSlider } from "@/components/ui/infinite-slider";
 
 export default function Home() {
+  const router = useRouter();
+
   return (
     <div className="bg-[#eef2f5]">
       {/* ===== HERO using PulseFitHero component ===== */}
       <PulseFitHero
-        logo="EligeTuPlan"
+        logo={
+          <Image
+            src="/logos/mamag.png"
+            alt="EligeTuPlan"
+            width={1568}
+            height={496}
+            priority
+            className="h-16 w-auto drop-shadow-[0_10px_24px_rgba(20,220,180,0.24)] md:h-20 lg:h-24"
+          />
+        }
         navigation={[
           { label: "Comparar Planes", href: "/comparar/isapres" },
           { label: "Plan Perfecto para Ti", href: "/tu-mejor-plan" },
-          { label: "Busca un Plan", href: "/buscar" },
+          { label: "Cotiza con un Ejecutivo", href: "/buscar" },
         ]}
         ctaButton={{
           label: "Cotizar Gratis",
-          onClick: () => {},
+          onClick: () => router.push("/tu-mejor-plan"),
         }}
         title="¿Cuál es tu Plan de Salud Ideal?"
         subtitle="Comparamos más de 500 planes vigentes de todas las Isapres para mostrarte los máximos beneficios al menor costo. 100% online y gratuito."
         primaryAction={{
           label: "Comparar Planes Ahora",
-          onClick: () => {},
+          onClick: () => router.push("/comparar/isapres"),
         }}
         secondaryAction={{
           label: "¿Cómo funciona?",
-          onClick: () => {},
+          onClick: () => router.push("/como-funciona"),
         }}
         disclaimer="*Sin costo, sin compromisos. 100% gratuito."
         socialProof={{

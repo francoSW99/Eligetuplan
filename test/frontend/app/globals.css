@@ -131,3 +131,46 @@
     @apply font-sans;
   }
 }
+
+.price-range-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+}
+
+.price-range-input::-webkit-slider-runnable-track {
+  height: 1.5rem;
+  background: transparent;
+}
+
+.price-range-input::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.1875rem;
+  border-radius: 9999px;
+  border: 3px solid #14dcb4;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 220, 180, 0.3);
+  cursor: pointer;
+}
+
+.price-range-input::-moz-range-track {
+  height: 1.5rem;
+  background: transparent;
+}
+
+.price-range-input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  border: 3px solid #14dcb4;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 220, 180, 0.3);
+  cursor: pointer;
+}

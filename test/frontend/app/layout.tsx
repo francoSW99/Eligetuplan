@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import SiteHeader from "@/components/ui/site-header";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <body className={`${poppins.className} antialiased bg-[#eef2f5] text-slate-900 min-h-screen flex flex-col`}>
+        <SiteHeader />
 
         <main className="flex-grow">
           {children}

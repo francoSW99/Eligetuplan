@@ -5,11 +5,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, User, Users, Check, Zap, MapPin, Mail, Plus, X } from 'lucide-react';
 
 type Carga = { sexo: string; edad: string };
+type MatchResult = {
+  id: string;
+  name: string;
+  isapre_name: string;
+  logo_url: string;
+  price_uf: number;
+  match_score: number;
+  hospital_coverage: number;
+  ambulatory_coverage: number;
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+
+function parseIncomeValue(value: string) {
+  return Number(value.replace(/[^\d]/g, ''));
+}
 
 export default function TuMejorPlanPage() {
   const [step, setStep] = useState(1);
   const [tipo, setTipo] = useState<'solo' | 'pareja'>('solo');
   const [cargas, setCargas] = useState<Carga[]>([]);
+  const [results, setResults] = useState<MatchResult[]>([]);
+  const [validationError, setValidationError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step 1 fields
   const [isapreActual, setIsapreActual] = useState('');
@@ -36,6 +56,78 @@ export default function TuMejorPlanPage() {
 
   const addCarga = () => setCargas([...cargas, { sexo: 'masculino', edad: '' }]);
   const removeCarga = (i: number) => setCargas(cargas.filter((_, idx) => idx !== i));
+  const recommendedPlan = results[0] ?? null;
+  const cheapestPlan = [...results].sort((a, b) => a.price_uf - b.price_uf).find((plan) => plan.id !== recommendedPlan?.id) ?? [...results].sort((a, b) => a.price_uf - b.price_uf)[0] ?? null;
+  const bestCoveragePlan = [...results]
+    .sort((a, b) => (b.hospital_coverage + b.ambulatory_coverage) - (a.hospital_coverage + a.ambulatory_coverage))
+    .find((plan) => plan.id !== recommendedPlan?.id && plan.id !== cheapestPlan?.id)
+    ?? [...results]
+      .sort((a, b) => (b.hospital_coverage + b.ambulatory_coverage) - (a.hospital_coverage + a.ambulatory_coverage))[0]
+    ?? null;
+
+  const resetFlow = () => {
+    setStep(1);
+    setResults([]);
+    setValidationError('');
+    setSubmitError('');
+    setIsSubmitting(false);
+  };
+
+  const handleCompare = async () => {
+    setValidationError('');
+    setSubmitError('');
+
+    const parsedAge = Number(edad);
+    const parsedIncome = parseIncomeValue(ingreso);
+
+    if (!Number.isFinite(parsedAge) || parsedAge < 18) {
+      setValidationError('Ingresa una edad valida de 18 anos o mas para comparar planes.');
+      return;
+    }
+
+    if (!Number.isFinite(parsedIncome) || parsedIncome <= 0) {
+      setValidationError('Ingresa un sueldo liquido valido para calcular el presupuesto del plan.');
+      return;
+    }
+
+    if (!region) {
+      setValidationError('Selecciona una region antes de comparar.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/match-plan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          age: parsedAge,
+          income_clp: parsedIncome,
+          dependents: cargas.length + (tipo === 'pareja' ? 1 : 0),
+          preferred_region: region,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('No pudimos calcular tu comparacion en este momento. Intenta nuevamente en unos minutos.');
+      }
+
+      const data = await response.json() as MatchResult[];
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('La API no devolvio planes para tu perfil.');
+      }
+
+      setResults(data);
+      setStep(3);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Ocurrio un error inesperado al comparar planes.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-[#f8fafc] min-h-screen">
@@ -356,7 +448,14 @@ export default function TuMejorPlanPage() {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8">
+              <div className="mt-8 space-y-4">
+                {(validationError || submitError) && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    {validationError || submitError}
+                  </div>
+                )}
+
+                <div className="flex justify-between">
                 <button
                   onClick={() => setStep(1)}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-bold text-[#0f514b] border-2 border-slate-200 hover:border-[#14dcb4] transition-all"
@@ -364,12 +463,14 @@ export default function TuMejorPlanPage() {
                   <ArrowLeft className="w-4 h-4" /> Atrás
                 </button>
                 <button
-                  onClick={() => setStep(3)}
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-bold text-white transition-all hover:-translate-y-0.5 shadow-lg"
+                  onClick={handleCompare}
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-bold text-white transition-all hover:-translate-y-0.5 shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
                   style={{ background: 'linear-gradient(135deg, #14dcb4, #0f9d8a)' }}
                 >
-                  <Zap className="w-4 h-4" /> Comparar Ahora
+                  <Zap className="w-4 h-4" /> {isSubmitting ? 'Comparando...' : 'Comparar Ahora'}
                 </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -394,71 +495,74 @@ export default function TuMejorPlanPage() {
               </div>
 
               {/* Result Cards */}
-              <div className="grid md:grid-cols-3 gap-4 mb-10">
-                {/* Economic Plan */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm relative">
-                  <span className="absolute -top-3 left-4 bg-[#14dcb4] text-white text-xs font-bold px-3 py-1 rounded-full">
-                    Más Económico
-                  </span>
-                  <div className="pt-4">
-                    <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Cruz Blanca</p>
-                    <h4 className="font-bold text-[#0f514b] mb-3">Plan Cerrado Red</h4>
-                    <div className="text-3xl font-extrabold text-[#0f514b] mb-4">1.9 <span className="text-base font-medium text-slate-400">UF/mes</span></div>
-                    <div className="space-y-2 text-sm text-slate-600 mb-6">
-                      <div className="flex justify-between"><span>Ambulatoria</span><span className="font-semibold">70%</span></div>
-                      <div className="flex justify-between"><span>Hospitalaria</span><span className="font-semibold">85%</span></div>
-                      <div className="flex justify-between"><span>Modalidad</span><span className="font-semibold">Cerrado</span></div>
-                    </div>
-                    <button className="w-full py-3 rounded-xl font-bold text-sm border-2 border-[#14dcb4] text-[#0f514b] hover:bg-[#14dcb4]/10 transition-all">
-                      Ver detalle
-                    </button>
-                  </div>
-                </div>
+              {results.length > 0 ? (
+                <div className="grid md:grid-cols-3 gap-4 mb-10">
+                  {[
+                    {
+                      key: 'economic',
+                      badge: 'Más Económico',
+                      badgeClassName: 'bg-[#14dcb4] text-white',
+                      cardClassName: 'bg-white rounded-2xl border border-slate-200 p-6 shadow-sm relative',
+                      buttonClassName: 'w-full py-3 rounded-xl font-bold text-sm border-2 border-[#14dcb4] text-[#0f514b] hover:bg-[#14dcb4]/10 transition-all',
+                      buttonLabel: 'Ver detalle',
+                      plan: cheapestPlan ?? recommendedPlan,
+                    },
+                    {
+                      key: 'recommended',
+                      badge: 'Recomendado',
+                      badgeClassName: 'bg-[#0f514b] text-white',
+                      cardClassName: 'bg-white rounded-2xl border-2 border-[#14dcb4] p-6 shadow-lg relative scale-105',
+                      buttonClassName: 'w-full py-3 rounded-xl font-bold text-sm bg-[#14dcb4] text-white hover:bg-[#12c9a4] transition-all shadow-md',
+                      buttonLabel: 'Seleccionar',
+                      plan: recommendedPlan,
+                    },
+                    {
+                      key: 'coverage',
+                      badge: 'Mejor Cobertura',
+                      badgeClassName: 'bg-[#0f514b]/80 text-white',
+                      cardClassName: 'bg-white rounded-2xl border border-slate-200 p-6 shadow-sm relative',
+                      buttonClassName: 'w-full py-3 rounded-xl font-bold text-sm border-2 border-[#14dcb4] text-[#0f514b] hover:bg-[#14dcb4]/10 transition-all',
+                      buttonLabel: 'Ver detalle',
+                      plan: bestCoveragePlan ?? recommendedPlan,
+                    },
+                  ].map((card) => {
+                    if (!card.plan) {
+                      return null;
+                    }
 
-                {/* Recommended Plan */}
-                <div className="bg-white rounded-2xl border-2 border-[#14dcb4] p-6 shadow-lg relative scale-105">
-                  <span className="absolute -top-3 left-4 bg-[#0f514b] text-white text-xs font-bold px-3 py-1 rounded-full">
-                    Recomendado
-                  </span>
-                  <div className="pt-4">
-                    <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Banmédica</p>
-                    <h4 className="font-bold text-[#0f514b] mb-3">Plan Máximo Plus</h4>
-                    <div className="text-3xl font-extrabold text-[#0f514b] mb-4">4.5 <span className="text-base font-medium text-slate-400">UF/mes</span></div>
-                    <div className="space-y-2 text-sm text-slate-600 mb-6">
-                      <div className="flex justify-between"><span>Ambulatoria</span><span className="font-semibold">90%</span></div>
-                      <div className="flex justify-between"><span>Hospitalaria</span><span className="font-semibold">100%</span></div>
-                      <div className="flex justify-between"><span>Modalidad</span><span className="font-semibold">Preferente</span></div>
-                    </div>
-                    <button className="w-full py-3 rounded-xl font-bold text-sm bg-[#14dcb4] text-white hover:bg-[#12c9a4] transition-all shadow-md">
-                      Seleccionar
-                    </button>
-                  </div>
+                    return (
+                      <div key={card.key} className={card.cardClassName}>
+                        <span className={`absolute -top-3 left-4 text-xs font-bold px-3 py-1 rounded-full ${card.badgeClassName}`}>
+                          {card.badge}
+                        </span>
+                        <div className="pt-4">
+                          <p className="text-xs font-semibold text-slate-400 uppercase mb-1">{card.plan.isapre_name}</p>
+                          <h4 className="font-bold text-[#0f514b] mb-3">{card.plan.name}</h4>
+                          <div className="text-3xl font-extrabold text-[#0f514b] mb-4">
+                            {card.plan.price_uf.toFixed(1)} <span className="text-base font-medium text-slate-400">UF/mes</span>
+                          </div>
+                          <div className="space-y-2 text-sm text-slate-600 mb-6">
+                            <div className="flex justify-between"><span>Ambulatoria</span><span className="font-semibold">{card.plan.ambulatory_coverage}%</span></div>
+                            <div className="flex justify-between"><span>Hospitalaria</span><span className="font-semibold">{card.plan.hospital_coverage}%</span></div>
+                            <div className="flex justify-between"><span>Match</span><span className="font-semibold">{card.plan.match_score.toFixed(1)} pts</span></div>
+                          </div>
+                          <button className={card.buttonClassName}>
+                            {card.buttonLabel}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-
-                {/* Best Coverage Plan */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm relative">
-                  <span className="absolute -top-3 left-4 bg-[#0f514b]/80 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    Mejor Cobertura
-                  </span>
-                  <div className="pt-4">
-                    <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Cruz Blanca</p>
-                    <h4 className="font-bold text-[#0f514b] mb-3">Preferente Premium</h4>
-                    <div className="text-3xl font-extrabold text-[#0f514b] mb-4">5.2 <span className="text-base font-medium text-slate-400">UF/mes</span></div>
-                    <div className="space-y-2 text-sm text-slate-600 mb-6">
-                      <div className="flex justify-between"><span>Ambulatoria</span><span className="font-semibold">95%</span></div>
-                      <div className="flex justify-between"><span>Hospitalaria</span><span className="font-semibold">100%</span></div>
-                      <div className="flex justify-between"><span>Modalidad</span><span className="font-semibold">Preferente</span></div>
-                    </div>
-                    <button className="w-full py-3 rounded-xl font-bold text-sm border-2 border-[#14dcb4] text-[#0f514b] hover:bg-[#14dcb4]/10 transition-all">
-                      Ver detalle
-                    </button>
-                  </div>
+              ) : (
+                <div className="mb-10 rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
+                  No encontramos resultados para mostrar. Vuelve atras e intenta nuevamente.
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-center">
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={resetFlow}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-[#14dcb4] hover:text-[#0f9d8a] transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" /> Volver a empezar

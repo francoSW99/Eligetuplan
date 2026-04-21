@@ -1,6 +1,7 @@
 'use client';
 
 import React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,7 @@ interface NavigationItem {
 }
 
 interface PulseFitHeroProps {
-  logo?: string;
+  logo?: React.ReactNode;
   navigation?: NavigationItem[];
   ctaButton?: {
     label: string;
@@ -60,7 +61,16 @@ const floatingVariants3 = {
 };
 
 export function PulseFitHero({
-  logo = "PulseFit",
+  logo = (
+    <Image
+      src="/logos/mamag.png"
+      alt="EligeTuPlan"
+      width={1568}
+      height={496}
+      priority
+      className="h-12 w-auto drop-shadow-[0_10px_24px_rgba(20,220,180,0.24)] lg:h-14"
+    />
+  ),
   navigation = [],
   ctaButton,
   title,
@@ -93,7 +103,7 @@ export function PulseFitHero({
         className="relative z-20 flex flex-row justify-between items-center px-8 lg:px-16"
         style={{ paddingTop: "32px", paddingBottom: "32px" }}
       >
-        <div style={{ fontFamily: "Poppins, sans-serif", fontWeight: 700, fontSize: "24px", color: "#ffffff" }}>
+        <div className="shrink-0">
           {logo}
         </div>
 
