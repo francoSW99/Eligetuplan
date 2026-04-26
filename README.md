@@ -1,55 +1,47 @@
-# 🚀 Eligetuplan
+# 🚀 Eligetuplan v2.0
 
-> Plataforma B2C de comparación de planes de salud (Isapres) en Chile. **Mobile-First · SEO-Optimized · 100% Gratuito.**
+> Plataforma B2C de comparación de planes de salud (Isapres) en Chile. **Mobile-First · Data-Driven · 100% Gratuito.**
 
 ---
 
 ## 📋 Tabla de Contenidos
 
-- [Descripción del Proyecto](#descripción-del-proyecto)
+- [Descripción](#descripción)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Estructura del Monorepo](#estructura-del-monorepo)
-- [Frontend (`/test/frontend`)](#frontend-testfrontend)
-  - [Páginas y Rutas](#páginas-y-rutas)
-  - [Componentes UI Reutilizables](#componentes-ui-reutilizables)
-  - [Diseño y Estilos](#diseño-y-estilos)
-- [Backend (`/test/backend`)](#backend-testbackend)
-  - [Endpoints de la API](#endpoints-de-la-api)
-  - [Modelos de Datos (Pydantic)](#modelos-de-datos-pydantic)
-  - [Configuración y CORS](#configuración-y-cors)
-- [Base de Datos (`/test/database`)](#base-de-datos-testdatabase)
-  - [Esquema Relacional](#esquema-relacional)
-  - [Seguridad (Row Level Security)](#seguridad-row-level-security)
-- [Entorno de Producción (`/production`)](#entorno-de-producción-production)
+- [Frontend](#frontend)
+- [Backend — API de Scoring](#backend--api-de-scoring)
+- [Algoritmo de Recomendación](#algoritmo-de-recomendación)
+- [Base de Datos](#base-de-datos)
 - [Cómo Correr el Proyecto](#cómo-correr-el-proyecto)
-- [Estado del Desarrollo](#estado-del-desarrollo)
+- [Variables de Entorno](#variables-de-entorno)
+- [Flujo de Desarrollo](#flujo-de-desarrollo)
 
 ---
 
-## Descripción del Proyecto
+## Descripción
 
-**Eligetuplan** es un clon funcional de las características core de Isapre de **QuePlan.cl**. Permite a los usuarios comparar más de 500 planes de salud vigentes de todas las Isapres de Chile, con un flujo 100% online y gratuito.
+**Eligetuplan** compara **+1.800 planes vigentes** de las **7 Isapres abiertas** de Chile usando un algoritmo de scoring multi-objetivo que pondera asequibilidad, cobertura, valor y perfil del usuario. El resultado se filtra intencionalmente a **Consalud** (sesgo de negocio documentado) pero los percentiles se calculan contra el mercado completo, dando justificación cuantitativa transparente.
 
-**Flujo principal del usuario:**
-1. **Home (`/`)** → Landing con hero dinámico y captura de leads.
-2. **Comparar (`/comparar/isapres`)** → Catálogo con filtros avanzados.
-3. **Tu Mejor Plan (`/tu-mejor-plan`)** → Wizard multi-paso tipo Typeform para perfilar al usuario.
-4. **Buscar (`/buscar`)** → Buscador por código, nombre o Isapre con filtros al instante.
+**Flujo del usuario:**
+1. **Home (`/`)** → Hero con nav sticky, feature rows con CTAs, slider de logos, stats section.
+2. **Comparar Planes (`/comparar/isapres`)** → Catálogo con filtros avanzados por Isapre, modalidad, precio y cobertura.
+3. **Tu Mejor Plan (`/tu-mejor-plan`)** → Wizard de 3 pasos: plan actual → perfil → resultados inteligentes con alternativas data-driven.
+4. **Cotiza con un Ejecutivo (`/buscar`)** → Formulario de contacto + WhatsApp directo para Consalud.
 
 ---
 
 ## Stack Tecnológico
 
-| Capa | Tecnología | Versión | Justificación |
-|:---|:---|:---|:---|
-| **Frontend** | Next.js (App Router) + TypeScript | 16.2.1 | SSR para SEO, enrutamiento dinámico, type safety |
-| **Estilos** | Tailwind CSS | v4 | Mobile-first, utility classes |
-| **Componentes** | Shadcn UI + `@base-ui/react` | Latest | Accesibles, componibles y rápidos |
-| **Animaciones** | Framer Motion | v12 | Animaciones fluidas y micro-interacciones |
-| **Iconos** | Lucide React | v1 | Iconos SVG coherentes y livianos |
-| **Backend API** | Python FastAPI | Latest | Alto rendimiento para algoritmos de scoring numérico |
-| **Base de Datos** | Supabase (PostgreSQL) | Latest | Relacional, RLS nativo, cliente Python oficial |
-| **Hosting (target)** | Vercel (Frontend) + Render (Backend) | — | CI/CD automático desde GitHub |
+| Capa | Tecnología | Versión |
+|:---|:---|:---|
+| **Frontend** | Next.js (App Router) + TypeScript | 16.2.1 |
+| **Estilos** | Tailwind CSS v4 | Latest |
+| **Animaciones** | Framer Motion | v12 |
+| **Iconos** | Lucide React | v1 |
+| **Backend API** | Python FastAPI | Latest |
+| **Base de Datos** | Supabase (PostgreSQL) | Latest |
+| **Hosting (target)** | Vercel + Render | — |
 
 ---
 
@@ -57,186 +49,112 @@
 
 ```
 Eligetuplan/
-├── llm.md                      # Especificaciones del proyecto para el agente IA
-├── logos/                      # Assets globales (logos de Isapres)
-├── components/                 # Componentes globales compartidos
+├── .vscode/                     # Config VS Code compartida
+├── images/                      # Assets fuente originales
+├── logos/                        # Logos fuente de Isapres
+├── CLAUDE.md                     # Guía interna para IA
+├── ARCHITECTURE.md               # Arquitectura detallada
+├── setup.ps1                     # Script de inicio (Windows)
+├── restart_test.ps1              # Script restart con hardening
 │
-├── test/                       # 🛠️ Entorno de Desarrollo / QA
-│   ├── frontend/               # App Next.js (variables de entorno de test)
-│   │   ├── app/                # App Router (páginas)
-│   │   │   ├── page.tsx              → Home (/)
-│   │   │   ├── layout.tsx            → Layout global + nav
-│   │   │   ├── globals.css           → Estilos base
-│   │   │   ├── comparar/isapres/     → Catálogo de planes (/comparar/isapres)
-│   │   │   ├── tu-mejor-plan/        → Wizard de perfil (/tu-mejor-plan)
-│   │   │   ├── buscar/               → Buscador (/buscar)
-│   │   │   ├── como-funciona/        → Página informativa
+├── test/                         # 🛠️ Entorno de Desarrollo
+│   ├── frontend/                 # Next.js App
+│   │   ├── app/
+│   │   │   ├── page.tsx              → Home (hero, features, stats)
+│   │   │   ├── layout.tsx            → Layout + footer + WhatsApp FAB
+│   │   │   ├── globals.css           → Estilos base + animaciones
+│   │   │   ├── comparar/isapres/     → Catálogo de planes
+│   │   │   ├── tu-mejor-plan/        → Wizard 3 pasos + resultados
+│   │   │   ├── buscar/               → Lead capture
+│   │   │   ├── como-funciona/        → Informativa
 │   │   │   └── faq/                  → Preguntas frecuentes
-│   │   ├── components/ui/      # Componentes reutilizables
-│   │   │   ├── pulse-fit-hero.tsx    → Hero dinámico con nav y cards
-│   │   │   ├── infinite-slider.tsx   → Carrusel infinito animado
-│   │   │   └── button.tsx            → Botón de Shadcn UI
-│   │   ├── lib/utils.ts        # Utilidades (cn, etc.)
-│   │   ├── public/logos/       # Logos de Isapres (imágenes estáticas)
-│   │   ├── package.json
-│   │   └── tsconfig.json
+│   │   └── components/ui/           # Componentes reutilizables
+│   │       ├── pulse-fit-hero.tsx   → Hero dinámico
+│   │       ├── site-header.tsx       → Header sticky con scroll-reveal
+│   │       ├── whatsapp-fab.tsx       → FAB flotante WhatsApp
+│   │       ├── contact-options.tsx    → WhatsApp para Consalud / Form para otras
+│   │       ├── lead-capture-form.tsx  → Formulario de leads
+│   │       └── infinite-slider.tsx   → Carrusel infinito
 │   │
-│   ├── backend/                # API FastAPI
-│   │   ├── main.py             → App principal con todos los endpoints
-│   │   ├── requirements.txt    → Dependencias Python
-│   │   └── venv/               → Entorno virtual Python
+│   ├── backend/                  # FastAPI
+│   │   ├── main.py                → API completa con scoring
+│   │   └── requirements.txt      → Dependencias Python
 │   │
-│   └── database/               # SQL de Supabase
-│       └── schema.sql          → Schema completo + RLS policies
+│   └── database/                 # SQL de Supabase
+│       └── schema.sql             → Schema completo + RLS
 │
-└── production/                 # 🚀 Entorno de Producción (espejo de test)
-    ├── frontend/               # (pendiente de promoción desde test)
-    ├── backend/
-    └── database/
+└── production/                   # 🚀 Entorno de Producción (pendiente)
 ```
 
 ---
 
-## Frontend (`/test/frontend`)
+## Frontend
 
-### Páginas y Rutas
-
-#### `/` — Home (`app/page.tsx`)
-Landing page principal de la plataforma. Compuesta por tres secciones:
-
-1. **Hero Dinámico (`PulseFitHero`):** Componente hero reutilizable con navegación, CTA, social proof (avatars + contador de usuarios) y un carrusel auto-animado de tarjetas de Isapres.
-2. **Feature Cards:** 3 tarjetas con hover animation (`framer-motion` con `whileHover`) que explican los valores: *Encuentra tu plan*, *Compara opciones*, *Asesoría gratuita*.
-3. **Infinite Slider de Logos:** Carrusel de logos de las 6 Isapres vigentes (Banmédica, Consalud, Cruz Blanca, Nueva Más Vida, Colmena, Vida Tres) con velocidad ajustada al hacer hover.
-4. **Stats Section:** Sección oscura con métricas destacadas (+500 planes, 100% gratuito, $45k ahorro mensual promedio).
-
-#### `/tu-mejor-plan` — Wizard Multi-Paso (`app/tu-mejor-plan/page.tsx`)
-Flujo de perfil del usuario tipo Typeform, **completamente con estado local React** usando `useState` y animaciones de transición entre pasos con `AnimatePresence` de Framer Motion.
-
-| Paso | Descripción |
-|:---|:---|
-| **Paso 1: Tu Plan Actual** | Select de Isapre actual, nombre del plan, precio mensual en UF |
-| **Paso 2: Tu Perfil** | Toggle Solo/Pareja, sexo, edad, ingreso líquido, cargas dinámicas (agregar/quitar), región y email |
-| **Paso 3: Resultados** | 3 tarjetas: *Más Económico*, *Recomendado* (destacada y escalada), *Mejor Cobertura* |
-
-**Características de UX destacadas:**
-- `AnimatePresence` para transiciones suaves izquierda/derecha entre pasos
-- Tarjeta de Pareja aparece/desaparece animada (`height: 0 → auto`)
-- Cards de cargas médicas agregables/removibles dinámicamente
-- Paso recomendado con `scale-105` y borde `border-[#14dcb4]`
-
-#### `/buscar` — Buscador de Planes (`app/buscar/page.tsx`)
-Buscador reactivo en tiempo real con 16 planes pre-cargados (mock data).
-
-**Lógica de búsqueda (`useMemo`):**
-- Filtra por nombre del plan, código de plan o nombre de Isapre
-- Filtros adicionales por modalidad: *Todos / Libre Elección / Preferente / Cerrado*
-- Componente `StarRating` customizado (1-5 estrellas dinámicas con `lucide-react`)
-- Estado vacío con CTA hacia `/comparar/isapres`
-
-#### `/comparar/isapres` — Catálogo de Planes
-Página de catálogo con filtros avanzados para explorar planes por Isapre.
-
-#### `/como-funciona` y `/faq`
-Páginas informativas estáticas.
-
----
-
-### Componentes UI Reutilizables
-
-#### `PulseFitHero` (`components/ui/pulse-fit-hero.tsx`)
-Componente hero altamente configurable. Acepta vía props:
-
-```tsx
-<PulseFitHero
-  logo="EligeTuPlan"
-  navigation={[{ label: "Comparar Planes", href: "/comparar/isapres" }]}
-  ctaButton={{ label: "Cotizar Gratis", onClick: () => {} }}
-  title="¿Cuál es tu Plan de Salud Ideal?"
-  subtitle="Texto descriptivo..."
-  primaryAction={{ label: "Comparar Planes Ahora", onClick: () => {} }}
-  secondaryAction={{ label: "¿Cómo funciona?", onClick: () => {} }}
-  disclaimer="*Sin costo, sin compromisos."
-  socialProof={{ avatars: ["url1", "url2"], text: "Más de 10.000 chilenos..." }}
-  programs={[{ image: "url", category: "ISAPRE", title: "Banmédica" }]}
-/>
-```
-
-| Prop | Tipo | Descripción |
-|:---|:---|:---|
-| `logo` | `string` | Texto del logotipo en el header |
-| `navigation` | `NavigationItem[]` | Links del navbar (soporta dropdowns) |
-| `ctaButton` | `object` | Botón de acción en el header |
-| `title` / `subtitle` | `string` | Contenido hero principal |
-| `primaryAction` / `secondaryAction` | `object` | Botones CTA del hero |
-| `disclaimer` | `string` | Texto pequeño de aclaración |
-| `socialProof` | `object` | Avatars apilados + texto de prueba social |
-| `programs` | `ProgramCard[]` | Tarjetas del carrusel animado inferior |
-| `children` | `ReactNode` | Reemplaza el contenido central si se pasa |
-
-**Animación del carrusel:** usa `motion.div` de Framer Motion con `animate={{ x: [0, -totalWidth/2] }}` en loop infinito.
-
-#### `InfiniteSlider` (`components/ui/infinite-slider.tsx`)
-Carrusel de scrolling infinito. Mide el ancho del contenido con `react-use-measure` y anima con `useMotionValue` de Framer Motion.
-
-```tsx
-<InfiniteSlider gap={64} duration={18} durationOnHover={40} className="py-4">
-  <Image src="/logos/banmedica-logo.png" ... />
-  {/* más items... */}
-</InfiniteSlider>
-```
-
-| Prop | Tipo | Default | Descripción |
-|:---|:---|:---|:---|
-| `gap` | `number` | 16 | Espaciado entre elementos |
-| `duration` | `number` | 25 | Duración del ciclo en segundos |
-| `durationOnHover` | `number` | — | Velocidad al hacer hover (lento) |
-| `direction` | `'horizontal' \| 'vertical'` | `'horizontal'` | Dirección del deslizamiento |
-| `reverse` | `boolean` | `false` | Inversión de dirección |
-
----
-
-### Diseño y Estilos
-
-**Paleta de colores principal:**
+### Diseño y Tokens
 
 | Token | Valor | Uso |
 |:---|:---|:---|
-| Verde Oscuro | `#0f514b` | Fondos, textos primarios, botones secundarios |
-| Verde Acento | `#14dcb4` | CTAs, badges, highlights, bordes activos |
-| Fondo Neutro | `#eef2f5` | Background general de la app |
-| Fondo Claro | `#f8fafc` | Fondos de páginas internas |
+| Verde oscuro | `#0f514b` | Fondos oscuros, header, footer |
+| Verde acento | `#14dcb4` | CTAs, badges, bordes activos, hover |
+| Fondo neutro | `#eef2f5` | Background general |
+| Fondo claro | `#f8fafc` | Páginas internas |
+| Font | `Poppins` | Sistema completo |
 
-**Tipografía:** `Poppins` (Google Fonts) — usada en todo el sistema de diseño.
+### Componentes Clave
 
-**Patrones de animación:**
-- Hover en tarjetas: `whileHover={{ y: -8, boxShadow: "..." }}`
-- Entrada desde scroll: `whileInView={{ opacity: 1, y: 0 }}` con `viewport={{ once: true }}`
-- Transiciones de página: `AnimatePresence` con slide horizontal
-- Micro-interacciones: `hover:scale-105`, `hover:-translate-y-0.5` en botones
+| Componente | Descripción |
+|:---|:---|
+| `SiteHeader` | Header sticky con nav links animados. Se oculta en home hasta scroll > 120px. |
+| `WhatsAppFab` | FAB flotante esquina inferior derecha con ping animation. Visible en todas las páginas. |
+| `ContactOptions` | Botón WhatsApp para Consalud + formulario para otras Isapres. |
+| `PulseFitHero` | Hero reutilizable con logo, nav, título, subtítulo, CTAs y social proof. |
+| `InfiniteSlider` | Carrusel infinito de logos con hover-slow. |
+
+### Páginas
+
+- **Home (`/`)** — Hero con nav + CTAs, slider de 7 logos, 3 feature rows horizontales con CTAs, stats section (7 Isapres, 1854+ planes, 16 regiones, 100% gratis).
+- **Tu Mejor Plan (`/tu-mejor-plan`)** — Wizard 3 pasos. Paso 3: plan recomendado + alternativas inteligentes según preferencia, con justificación data-driven (reason_tag, percentiles, ahorro vs plan actual).
+- **Comparar Planes (`/comparar/isapres`)** — Catálogo con filtros por Isapre, modalidad, precio, cobertura.
+- **Buscar (`/buscar`)** — Lead capture form.
+
+### Footer
+
+4 columnas inspirado en tu7.cl: logo + descripción + íconos sociales, Isapres, Sitios de Interés, Contacto. Fondo `#092e2a`, disclaimer legal al fondo.
 
 ---
 
-## Backend (`/test/backend`)
+## Backend — API de Scoring
 
-### Endpoints de la API
+### Endpoints
 
 | Método | Ruta | Descripción |
 |:---|:---|:---|
-| `GET` | `/` | Bienvenida — mensaje de estado |
-| `GET` | `/api/v1/health` | Health check — `{ "status": "ok" }` |
-| `POST` | `/api/v1/match-plan` | **Core:** recibe perfil del usuario y retorna Top 3 planes recomendados |
+| `GET` | `/` | Bienvenida |
+| `GET` | `/api/v1/health` | Health check |
+| `GET` | `/api/v1/plans-autocomplete` | Autocompletar planes por Isapre |
+| `POST` | `/api/v1/match-plan` | **Core:** scoring multi-objetivo + recomendación |
 
-> **Documentación interactiva (Swagger):** disponible en `http://localhost:8000/docs`
+### `POST /api/v1/match-plan`
 
-### Endpoint Core: `POST /api/v1/match-plan`
-
-**Request Body:**
+**Request:**
 ```json
 {
   "age": 30,
   "income_clp": 1200000,
   "dependents": 1,
-  "preferred_region": "rm"
+  "preferred_region": "rm",
+  "isapre": "consalud",
+  "preference": "balanced",
+  "limit": 6,
+  "current_price_uf": 3.5,
+  "current_hospital_coverage": 80.0,
+  "current_ambulatory_coverage": 65.0,
+  "sexo": "femenino",
+  "tipo": "pareja",
+  "sexo_pareja": "masculino",
+  "edad_pareja": 32,
+  "ingreso_pareja_clp": 800000,
+  "cargas": [{"sexo": "masculino", "edad": 5}]
 }
 ```
 
@@ -245,171 +163,129 @@ Carrusel de scrolling infinito. Mide el ancho del contenido con `react-use-measu
 [
   {
     "id": "uuid",
-    "name": "Plan Máximo Plus",
-    "isapre_name": "Banmédica",
-    "logo_url": "https://...",
-    "price_uf": 4.5,
-    "match_score": 95.5
+    "name": "Plan Conecta Clásico",
+    "isapre_name": "Consalud",
+    "isapre_slug": "consalud",
+    "logo_url": "/logos/logo_consalud.png",
+    "price_uf": 2.14,
+    "match_score": 87.3,
+    "hospital_coverage": 85.0,
+    "ambulatory_coverage": 70.0,
+    "reason_tag": "mujer joven — con pareja — en Región Metropolitana — gran valor",
+    "savings_uf": -1.36,
+    "savings_clp": -54380,
+    "savings_pct": -38.9,
+    "coverage_diff_hosp_pp": 5,
+    "coverage_diff_amb_pp": 5,
+    "market_percentile_value": 92.1,
+    "market_percentile_coverage": 78.0,
+    "market_percentile_price": 65.0,
+    "market_total_plans": 1854,
+    "score_breakdown": {
+      "affordability": 82.0,
+      "coverage": 81.0,
+      "value": 92.1,
+      "extras": 55.0,
+      "weights": {"afford": 0.35, "coverage": 0.35, "value": 0.25, "extras": 0.05}
+    }
   }
 ]
 ```
 
-> ⚠️ **Estado actual:** Si Supabase no está configurado, retorna Mock Data con 2 planes de ejemplo. El algoritmo de scoring real está pendiente de implementación.
+---
 
-### Modelos de Datos (Pydantic)
+## Algoritmo de Recomendación
 
-```python
-class MatchPlanRequest(BaseModel):
-    age: int
-    income_clp: int
-    dependents: int
-    preferred_region: str = None   # Opcional
+### Scoring Multi-Objetivo (4 componentes)
 
-class PlanResponse(BaseModel):
-    id: str
-    name: str
-    isapre_name: str
-    logo_url: str
-    price_uf: float
-    match_score: float
-```
+Cada plan recibe un **composite score** ponderado por la preferencia del usuario:
 
-### Configuración y CORS
+| Preferencia | Asequibilidad | Cobertura | Valor | Extras |
+|:---|:---|:---|:---|:---|
+| `savings` | 55% | 20% | 20% | 5% |
+| `balanced` | 35% | 35% | 25% | 5% |
+| `coverage` | 15% | 55% | 25% | 5% |
 
-```python
-origins = [
-    "http://localhost:3000",
-    "https://landingpage-asesoriasalud.vercel.app",
-    # Agregar dominio de Vercel en producción
-]
-```
+### Perfil-Aware (nuevo en v2.0)
 
-Variables de entorno requeridas en `.env`:
-```env
-SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_KEY=tu-anon-public-key
-```
+- **Asequibilidad:** Calculada sobre ingreso familiar (titular + pareja), no solo titular
+- **Age/sexo factor:** Rangos diferenciados por sexo (femenino < 35: 55, 35-50: 45, 50+: 35; masculino < 35: 60, 35-50: 50, 50+: 35)
+- **Dependents:** Peso por edad de cada carga (< 18: 0.7, 18-35: 1.0, 36-50: 1.2, 50+: 1.4) en vez de count plano
+- **Cobertura adaptativa:** Pesos hospitalario/ambulatorio ajustados por perfil (solo: 60/40, pareja: 50/50, cargas jóvenes: 45/55)
+- **Pareja bonus:** +5 pts en extras si tipo = pareja
+- **Region bonus:** +50 pts si el plan tiene clínica en la región preferida
+
+### Filtrado por Preferencia
+
+- **`savings`:** Solo planes más baratos que el plan actual del usuario
+- **`coverage`:** Solo planes con cobertura combinada superior al plan actual
+- **`balanced`:** Sin filtro adicional, ordena por composite score
+
+### Resultado
+
+Se filtran a Consalud, se ordenan según preferencia, y se devuelven hasta `limit` planes con percentiles de mercado, deltas vs plan actual, y `reason_tag` personalizado.
 
 ---
 
-## Base de Datos (`/test/database`)
+## Base de Datos
 
-### Esquema Relacional
+Supabase (PostgreSQL) con RLS habilitado. Tablas: `isapres`, `planes`, `clinicas`, `plan_clinica`. Los planes se sync desde SIS usando `scripts/sync_sis.py`.
 
-```
-isapres ──< planes >── plan_clinica >── clinicas
-```
-
-#### `isapres`
-| Campo | Tipo | Descripción |
-|:---|:---|:---|
-| `id` | `UUID` (PK) | Identificador único auto-generado |
-| `name` | `VARCHAR(255)` | Nombre de la Isapre |
-| `logo_url` | `TEXT` | URL pública del logo |
-| `created_at` | `TIMESTAMPTZ` | Timestamp UTC de creación |
-
-#### `planes`
-| Campo | Tipo | Descripción |
-|:---|:---|:---|
-| `id` | `UUID` (PK) | Identificador único |
-| `isapre_id` | `UUID` (FK → isapres) | Relación a la Isapre propietaria |
-| `name` | `VARCHAR(255)` | Nombre del plan |
-| `price_uf` | `DECIMAL(10,2)` | Precio mensual en UF |
-| `hospital_coverage` | `DECIMAL(5,2)` | Cobertura hospitalaria % (0-100) |
-| `ambulatory_coverage` | `DECIMAL(5,2)` | Cobertura ambulatoria % (0-100) |
-| `created_at` | `TIMESTAMPTZ` | Timestamp UTC |
-
-#### `clinicas`
-| Campo | Tipo | Descripción |
-|:---|:---|:---|
-| `id` | `UUID` (PK) | Identificador único |
-| `name` | `VARCHAR(255)` | Nombre de la clínica |
-| `region` | `VARCHAR(255)` | Región de Chile donde opera |
-| `created_at` | `TIMESTAMPTZ` | Timestamp UTC |
-
-#### `plan_clinica` (Many-to-Many)
-| Campo | Tipo | Descripción |
-|:---|:---|:---|
-| `plan_id` | `UUID` (FK → planes) | — |
-| `clinica_id` | `UUID` (FK → clinicas) | — |
-| `created_at` | `TIMESTAMPTZ` | — |
-| **PK** | `(plan_id, clinica_id)` | Llave compuesta |
-
-### Seguridad (Row Level Security)
-
-- **RLS habilitado** en las 4 tablas con `ENABLE ROW LEVEL SECURITY`.
-- **Políticas `SELECT` públicas** (lectura libre sin autenticación), dado que los datos son información de dominio público para fines comparativos.
-- Las operaciones de escritura (`INSERT`, `UPDATE`, `DELETE`) no tienen políticas públicas, por lo que solo son accesibles con la `service_role` key de Supabase.
-
----
-
-## Entorno de Producción (`/production`)
-
-El directorio `/production` espejos el contenido de `/test` una vez que las funcionalidades están validadas en QA. Flujo de promoción:
-
-```
-test/ → validación → production/
-```
-
-Diferencias en producción:
-- **Frontend:** Variables de entorno `.env.production` con la URL del backend en Render.
-- **Backend:** Configuración WSGI/ASGI optimizada, CORS apuntando al dominio Vercel de producción.
-- **Database:** Schema SQL aplicado directamente en el proyecto Supabase de producción (separado del de test).
-- **Hosting:** Vercel (frontend) + Render (backend) con CI/CD desde ramas de GitHub.
-
-> **Estado actual:** El directorio `/production/frontend` está vacío — aún no se ha promovido nada.
+Logo de Esencial actualizado en la tabla `isapres` (`logo_url = '/logos/esencial.png'`).
 
 ---
 
 ## Cómo Correr el Proyecto
 
-### Frontend
+### Quick Start (Windows)
+```powershell
+.\setup.ps1        # Inicia backend + frontend
+.\restart_test.ps1 # Reinicia (con -Stop para detener)
+```
 
+### Manual
+
+**Frontend:**
 ```bash
 cd test/frontend
 npm install
-npm run dev
-# → http://localhost:3000
+npm run dev        # http://localhost:3000
+npm run build      # producción
 ```
 
-### Backend
-
+**Backend:**
 ```bash
 cd test/backend
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+venv\Scripts\activate       # Windows
 pip install -r requirements.txt
-
-# Crear archivo .env con las variables de Supabase
-python main.py
-# → http://localhost:8000
-# → Swagger UI: http://localhost:8000/docs
-```
-
-### Base de Datos
-
-```sql
--- Ejecutar en el SQL Editor de Supabase:
--- test/database/schema.sql
+python main.py              # http://localhost:8000
+                            # Swagger: http://localhost:8000/docs
 ```
 
 ---
 
-## Estado del Desarrollo
+## Variables de Entorno
 
-| Módulo | Estado | Detalle |
+| Variable | Dónde | Visibilidad |
 |:---|:---|:---|
-| 🎨 Frontend — Home | ✅ Completo | Hero, feature cards, slider, stats |
-| 🎨 Frontend — `/tu-mejor-plan` | ✅ Completo | Wizard 3 pasos con animaciones y resultados mock |
-| 🎨 Frontend — `/buscar` | ✅ Completo | Buscador reactivo con filtros y 16 planes mock |
-| 🎨 Frontend — `/comparar/isapres` | 🚧 Parcial | Estructura creada, falta catálogo interactivo |
-| ⚙️ Backend — Health & Root | ✅ Completo | Endpoints operativos |
-| ⚙️ Backend — `/match-plan` (mock) | ✅ Completo | Retorna datos simulados |
-| ⚙️ Backend — `/match-plan` (real) | ❌ Pendiente | Algoritmo de scoring + consulta a Supabase |
-| 🗄️ Database — Schema | ✅ Completo | Tablas, FKs, RLS y policies definidas |
-| 🗄️ Database — Seed Data | ❌ Pendiente | Datos reales de Isapres y planes |
-| 🚀 Producción | ❌ Pendiente | Directorio vacío, no promovido |
+| `NEXT_PUBLIC_API_URL` | `test/frontend/.env.local` | Pública (bundle) |
+| `SUPABASE_URL` | `test/backend/.env` | Pública-ish |
+| `SUPABASE_KEY` (anon) | `test/backend/.env` | Anon, RLS la restringe |
+| `SUPABASE_SERVICE_ROLE_KEY` | `test/backend/.env` | **SECRETA** — solo para scripts manuales |
+| `SIS_PERIOD` | `test/backend/.env` | Pública |
+
+> **Regla:** Todo lo que empieza con `NEXT_PUBLIC_` termina en el bundle del cliente. Nunca poner secrets ahí.
 
 ---
 
-*Documento generado el 23/03/2026. Proyecto en desarrollo activo.*
+## Flujo de Desarrollo
+
+- **Todo el desarrollo vive en `test/`**. No editar `production/` mientras una feature está en QA.
+- Promoción a `production/` solo tras validación manual del feature completo.
+- Migraciones en `test/database/migrations/` aplicadas **manualmente** en el SQL Editor de Supabase.
+- `CLAUDE.md` tiene convenciones y gotchas para trabajo con IA.
+
+---
+
+*Última actualización: Abril 2026 — v2.0*
