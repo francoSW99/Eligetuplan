@@ -8,6 +8,7 @@ import type { Isapre, Zona, PlansResponse, Plan } from '@/lib/api';
 import { formatCLP } from '@/lib/api';
 import PlanCard from './plan-card';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
+import ContactOptions from '@/components/ui/contact-options';
 
 const MODALIDADES = ['Preferente', 'Libre Elección', 'Cerrado'] as const;
 const COBERTURA_STEPS = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
@@ -174,6 +175,8 @@ export default function IsapresClient({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
+  const [showContactOptions, setShowContactOptions] = useState(false);
+  const [showLeadForm, setShowLeadForm] = useState(false);
   const grossSalary = grossSalaryInput ? parseInt(grossSalaryInput, 10) : 0;
   const legalBudget = grossSalary > 0 ? Math.floor(grossSalary * 0.07) : 0;
 
@@ -263,13 +266,7 @@ export default function IsapresClient({
     });
   }
 
-  const items = useMemo(() => {
-    return [...initialData.items].sort((left, right) => {
-      const leftPriority = left.isapre_slug === 'consalud' ? 0 : 1;
-      const rightPriority = right.isapre_slug === 'consalud' ? 0 : 1;
-      return leftPriority - rightPriority;
-    });
-  }, [initialData.items]);
+  const items = initialData.items;
   const totalGlobal = initialIsapres.reduce((sum, i) => sum + i.plan_count, 0);
 
   return (
@@ -710,54 +707,87 @@ export default function IsapresClient({
           </motion.div>
         )}
 
-        {selectedPlan && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] bg-slate-950/50 backdrop-blur-sm px-4 py-6 md:px-6"
-            onClick={() => setSelectedPlan(null)}
-          >
+        {selectedPlan && (() => {
+              const isConsalud = selectedPlan.isapre_slug === 'consalud';
+              const handleClose = () => {
+                setSelectedPlan(null);
+                setShowContactOptions(false);
+                setShowLeadForm(false);
+              };
+              if (!showContactOptions && !showLeadForm) {
+                if (isConsalud) {
+                  setShowContactOptions(true);
+                } else {
+                  setShowLeadForm(true);
+                }
+                return null;
+              }
+              return (
             <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 24, scale: 0.98 }}
-              transition={{ duration: 0.22 }}
-              className="mx-auto flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[32px] border border-white/50 bg-[#f8fafc] shadow-[0_40px_120px_rgba(15,81,75,0.28)]"
-              onClick={(event) => event.stopPropagation()}
+              key="plan-modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[70] bg-slate-950/50 backdrop-blur-sm px-4 py-6 md:px-6"
+              onClick={handleClose}
             >
-              <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[linear-gradient(135deg,#0f514b,#16766d)] px-4 py-2.5 text-white md:px-5">
-                <div className="min-w-0 flex items-center gap-2 text-sm font-semibold">
-                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] text-[#14dcb4]">
-                    Cotización
-                  </span>
-                  <span className="text-white/35">|</span>
-                  <h3 className="truncate text-sm font-bold md:text-base">{selectedPlan.name}</h3>
+              <motion.div
+                initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 24, scale: 0.98 }}
+                transition={{ duration: 0.22 }}
+                className="mx-auto flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[32px] border border-white/50 bg-[#f8fafc] shadow-[0_40px_120px_rgba(15,81,75,0.28)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[linear-gradient(135deg,#0f514b,#16766d)] px-4 py-2.5 text-white md:px-5">
+                  <div className="min-w-0 flex items-center gap-2 text-sm font-semibold">
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] text-[#14dcb4]">
+                      Cotización
+                    </span>
+                    <span className="text-white/35">|</span>
+                    <h3 className="truncate text-sm font-bold md:text-base">{selectedPlan.name}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:bg-white/20"
+                    aria-label="Cerrar formulario"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlan(null)}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:bg-white/20"
-                  aria-label="Cerrar formulario"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
 
-              <div className="overflow-y-auto px-4 py-3 md:px-6 md:py-4">
-                <LeadCaptureForm
-                  compact
-                  showHeader={false}
-                  onClose={() => setSelectedPlan(null)}
-                  contextPlan={{
-                    name: selectedPlan.name,
-                    isapreName: selectedPlan.isapre_name,
-                  }}
-                />
-              </div>
+                <div className="overflow-y-auto px-4 py-3 md:px-6 md:py-4">
+                  {showContactOptions && !showLeadForm && (
+                    <div className="space-y-5">
+                      <div className="text-center">
+                        <h3 className="text-lg font-bold text-[#0f514b] mb-2">Conecta con un Ejecutivo {selectedPlan.isapre_name}</h3>
+                        <p className="text-sm text-slate-500">Elige tu forma preferida de contacto</p>
+                      </div>
+                      <ContactOptions
+                        isConsalud={isConsalud}
+                        planName={selectedPlan.name}
+                        isapreName={selectedPlan.isapre_name}
+                        onChooseForm={() => { setShowContactOptions(false); setShowLeadForm(true); }}
+                      />
+                    </div>
+                  )}
+                  {showLeadForm && (
+                    <LeadCaptureForm
+                      compact
+                      showHeader={false}
+                      onClose={handleClose}
+                      contextPlan={{
+                        name: selectedPlan.name,
+                        isapreName: selectedPlan.isapre_name,
+                      }}
+                    />
+                  )}
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+              );
+            })()}
       </AnimatePresence>
     </section>
   );

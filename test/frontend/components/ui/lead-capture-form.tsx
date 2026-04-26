@@ -219,6 +219,13 @@ export default function LeadCaptureForm({
             </div>
           )}
 
+          <div className="mb-4 rounded-xl bg-[#0f514b]/5 border border-[#0f514b]/10 px-4 py-3 flex items-center gap-3">
+            <Send className="w-4 h-4 text-[#14dcb4] shrink-0" />
+            <p className="text-sm text-[#0f514b] font-medium">
+              Rellena el formulario y te contactaremos inmediatamente.
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="grid sm:grid-cols-2 gap-5">
               <div>

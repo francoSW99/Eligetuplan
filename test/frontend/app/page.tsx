@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Shield, Search, Handshake } from "lucide-react";
+import { BarChart3, Sparkles, MessageCircle } from "lucide-react";
 import { PulseFitHero } from "@/components/ui/pulse-fit-hero";
 import { InfiniteSlider } from "@/components/ui/infinite-slider";
 
@@ -29,10 +29,6 @@ export default function Home() {
           { label: "Plan Perfecto para Ti", href: "/tu-mejor-plan" },
           { label: "Cotiza con un Ejecutivo", href: "/buscar" },
         ]}
-        ctaButton={{
-          label: "Cotizar Gratis",
-          onClick: () => router.push("/tu-mejor-plan"),
-        }}
         title="¿Cuál es tu Plan de Salud Ideal?"
         subtitle="Comparamos más de 500 planes vigentes de todas las Isapres para mostrarte los máximos beneficios al menor costo. 100% online y gratuito."
         primaryAction={{
@@ -62,12 +58,12 @@ export default function Home() {
       />
 
       {/* ===== Isapre Logos Infinite Slider ===== */}
-      <section className="py-14 bg-white">
-        <div className="max-w-6xl mx-auto px-6 mb-10">
+      <section className="py-8 bg-white">
+        <div className="max-w-6xl mx-auto px-6 mb-6">
           <h2 className="text-center text-2xl md:text-3xl font-bold text-[#0f514b]">
             Compara todas las Isapres del mercado
           </h2>
-          <p className="text-center text-slate-500 mt-3 max-w-lg mx-auto">
+          <p className="text-center text-slate-500 mt-2 max-w-lg mx-auto">
             Trabajamos con todas las Isapres vigentes en Chile para darte la comparación más completa.
           </p>
         </div>
@@ -78,82 +74,150 @@ export default function Home() {
           <Image src="/logos/Logo-NMV.png" alt="Nueva Más Vida" width={180} height={90} className="h-[70px] w-auto object-contain opacity-60 hover:opacity-100 transition-all duration-300" />
           <Image src="/logos/logos-col.png" alt="Colmena" width={180} height={90} className="h-[70px] w-auto object-contain opacity-60 hover:opacity-100 transition-all duration-300" />
           <Image src="/logos/vida-tres.png" alt="Vida Tres" width={180} height={90} className="h-[70px] w-auto object-contain opacity-60 hover:opacity-100 transition-all duration-300" />
+          <Image src="/logos/esencial.png" alt="Esencial" width={180} height={90} className="h-[70px] w-auto object-contain opacity-60 hover:opacity-100 transition-all duration-300" />
         </InfiniteSlider>
       </section>
 
-      {/* ===== Feature Cards Section ===== */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
+      {/* ===== Feature Rows Section ===== */}
+      <section className="max-w-6xl mx-auto px-6 py-14">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#0f514b] mb-3">Todo lo que necesitas en un solo lugar</h2>
+          <p className="text-slate-500 max-w-2xl mx-auto">Tres formas de encontrar tu plan ideal. Elige la que mejor se ajuste a lo que buscas.</p>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {/* Row 1 — Comparar Planes */}
           <motion.div
-            whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(15, 81, 75, 0.15)" }}
+            whileHover={{ y: -6, boxShadow: "0 20px 40px rgba(15, 81, 75, 0.12)" }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl shadow-lg p-10 text-center"
+            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10"
           >
-            <div className="flex justify-center mb-6">
-              <div className="rounded-full bg-[#14dcb4]/10 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                <Shield className="w-9 h-9 text-[#14dcb4]" />
+            <div className="flex items-center gap-5 md:min-w-[280px]">
+              <div className="relative flex-shrink-0">
+                <span className="text-6xl font-extrabold text-[#14dcb4]/15 select-none leading-none">01</span>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#14dcb4]/10 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-[#14dcb4]" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#0f514b]">Comparar Planes</h3>
+                <p className="text-sm text-slate-400 hidden md:block">Explora y compara</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-[#14dcb4] mb-3">Encuentra tu plan</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Encuentra tu plan ideal según tus necesidades de cobertura, presupuesto y cantidad de cargas médicas.
+            <p className="text-slate-500 leading-relaxed flex-1 text-sm md:text-base">
+              Explora y compara los planes de todas las Isapres. Filtra por precio, cobertura, modalidad y más para encontrar el que mejor se adapte a tu presupuesto.
             </p>
+            <button
+              onClick={() => router.push("/comparar/isapres")}
+              className="flex-shrink-0 px-7 py-3 rounded-full font-bold text-white text-sm transition-all hover:-translate-y-0.5 shadow-md no-underline"
+              style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
+            >
+              Ver todos los planes
+            </button>
           </motion.div>
 
+          {/* Row 2 — Plan Perfecto para Ti */}
           <motion.div
-            whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(15, 81, 75, 0.15)" }}
+            whileHover={{ y: -6, boxShadow: "0 20px 40px rgba(15, 81, 75, 0.12)" }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl shadow-lg p-10 text-center"
+            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10"
           >
-            <div className="flex justify-center mb-6">
-              <div className="rounded-full bg-[#14dcb4]/10 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                <Search className="w-9 h-9 text-[#14dcb4]" />
+            <div className="flex items-center gap-5 md:min-w-[280px]">
+              <div className="relative flex-shrink-0">
+                <span className="text-6xl font-extrabold text-[#14dcb4]/15 select-none leading-none">02</span>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#14dcb4]/10 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-[#14dcb4]" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#0f514b]">Plan Perfecto para Ti</h3>
+                <p className="text-sm text-slate-400 hidden md:block">Recomendación inteligente</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-[#14dcb4] mb-3">Compara opciones</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Compara los diferentes tipos de planes, beneficios y precios de todas las Isapres del mercado en un solo lugar.
+            <p className="text-slate-500 leading-relaxed flex-1 text-sm md:text-base">
+              Cuéntanos sobre tu plan actual y evaluaremos con IA cuál es el mejor plan para ti, personalizado según tus necesidades y presupuesto.
             </p>
+            <button
+              onClick={() => router.push("/tu-mejor-plan")}
+              className="flex-shrink-0 px-7 py-3 rounded-full font-bold text-white text-sm transition-all hover:-translate-y-0.5 shadow-md no-underline"
+              style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
+            >
+              Encontrar mi plan
+            </button>
           </motion.div>
 
+          {/* Row 3 — Cotiza con un Ejecutivo */}
           <motion.div
-            whileHover={{ y: -8, boxShadow: "0 20px 40px rgba(15, 81, 75, 0.15)" }}
+            whileHover={{ y: -6, boxShadow: "0 20px 40px rgba(15, 81, 75, 0.12)" }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl shadow-lg p-10 text-center"
+            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10"
           >
-            <div className="flex justify-center mb-6">
-              <div className="rounded-full bg-[#14dcb4]/10 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                <Handshake className="w-9 h-9 text-[#14dcb4]" />
+            <div className="flex items-center gap-5 md:min-w-[280px]">
+              <div className="relative flex-shrink-0">
+                <span className="text-6xl font-extrabold text-[#14dcb4]/15 select-none leading-none">03</span>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#14dcb4]/10 flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-[#14dcb4]" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#0f514b]">Cotiza con un Ejecutivo</h3>
+                <p className="text-sm text-slate-400 hidden md:block">Asesoría personalizada</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-[#14dcb4] mb-3">Asesoría gratuita</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Recibe asesoría personalizada de nuestros expertos certificados sin ningún costo para ti.
+            <p className="text-slate-500 leading-relaxed flex-1 text-sm md:text-base">
+              Rellena un formulario para que un asesor certificado te contacte lo antes posible. O si prefieres, contacta directamente por WhatsApp.
             </p>
+            <button
+              onClick={() => router.push("/buscar")}
+              className="flex-shrink-0 px-7 py-3 rounded-full font-bold text-white text-sm transition-all hover:-translate-y-0.5 shadow-md no-underline"
+              style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
+            >
+              Hablar con un asesor
+            </button>
           </motion.div>
         </div>
       </section>
 
       {/* ===== Stats Section ===== */}
-      <section className="bg-[#0f514b] py-20">
+      <section className="bg-[#0f514b] py-16 md:py-20">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-10 text-center text-white"
+          className="max-w-6xl mx-auto px-6"
         >
-          <div>
-            <div className="text-5xl font-extrabold text-[#14dcb4] mb-3">+500</div>
-            <p className="text-slate-300 font-medium">Planes de Isapre actualizados</p>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Los números que nos respaldan</h2>
+            <p className="text-slate-300 max-w-xl mx-auto">Datos actualizados mes a mes desde la Superintendencia de Salud.</p>
           </div>
-          <div>
-            <div className="text-5xl font-extrabold text-[#14dcb4] mb-3">100%</div>
-            <p className="text-slate-300 font-medium">Gratuito y objetivo para usuarios</p>
-          </div>
-          <div>
-            <div className="text-5xl font-extrabold text-[#14dcb4] mb-3">$45k</div>
-            <p className="text-slate-300 font-medium">Ahorro mensual promedio</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {[
+              { value: "7", label: "Isapres disponibles", suffix: "" },
+              { value: "1.854", label: "Planes activos", suffix: "+" },
+              { value: "16", label: "Regiones del país", suffix: "" },
+              { value: "100", label: "En línea y gratis", suffix: "%" },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors"
+              >
+                <div className="text-4xl md:text-5xl font-extrabold text-[#14dcb4] mb-2">
+                  {stat.value}<span className="text-[#14dcb4]/70">{stat.suffix}</span>
+                </div>
+                <p className="text-slate-300 font-medium text-sm md:text-base">{stat.label}</p>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
       </section>

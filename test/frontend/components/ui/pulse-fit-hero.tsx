@@ -12,13 +12,16 @@ interface NavigationItem {
   onClick?: () => void;
 }
 
+interface CtaButtonConfig {
+  label: string;
+  onClick?: () => void;
+  href?: string;
+}
+
 interface PulseFitHeroProps {
   logo?: React.ReactNode;
   navigation?: NavigationItem[];
-  ctaButton?: {
-    label: string;
-    onClick: () => void;
-  };
+  ctaButton?: CtaButtonConfig;
   title: string;
   subtitle: string;
   primaryAction?: {
@@ -95,46 +98,58 @@ export function PulseFitHero({
       style={{
         background: "linear-gradient(180deg, #0f514b 0%, #14dcb4 60%, #eef2f5 100%)",
       }}
-      role="banner"
+role="banner"
       aria-label="Hero section"
     >
-      {/* Header */}
-      <header
-        className="relative z-20 flex flex-row justify-between items-center px-8 lg:px-16"
-        style={{ paddingTop: "32px", paddingBottom: "32px" }}
-      >
-        <div className="shrink-0">
-          {logo}
+{/* Header */}
+      <header className="relative z-20 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
+          <div className="shrink-0">
+            {logo}
+          </div>
+
+          <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+            {navigation.map((item, index) => (
+              <a
+                key={index}
+                href={item.href || "#"}
+                onClick={item.onClick}
+                className="nav-link text-base font-medium text-white/60 hover:text-white"
+              >
+                {item.label}
+                {item.hasDropdown && (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "inline", marginLeft: 4, verticalAlign: "middle" }}>
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </a>
+            ))}
+          </nav>
+
+          {ctaButton && (
+            ctaButton.onClick ? (
+              <button
+                onClick={ctaButton.onClick}
+                className="px-6 py-3 rounded-full transition-all hover:scale-105"
+                style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontSize: "16px", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
+              >
+                {ctaButton.label}
+              </button>
+            ) : ctaButton.href ? (
+              <a
+                href={ctaButton.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full transition-all hover:scale-105 no-underline"
+                style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontSize: "16px", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
+              >
+                {ctaButton.label}
+              </a>
+            ) : null
+          )}
+
+          {!ctaButton && <div className="hidden md:block w-[120px]" />}
         </div>
-
-        <nav className="hidden lg:flex flex-row items-center gap-8" aria-label="Main navigation">
-          {navigation.map((item, index) => (
-            <a
-              key={index}
-              href={item.href || "#"}
-              onClick={item.onClick}
-              className="flex flex-row items-center gap-1 hover:opacity-70 transition-opacity"
-              style={{ fontFamily: "Poppins, sans-serif", fontSize: "16px", fontWeight: 500, color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
-            >
-              {item.label}
-              {item.hasDropdown && (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </a>
-          ))}
-        </nav>
-
-        {ctaButton && (
-          <button
-            onClick={ctaButton.onClick}
-            className="px-6 py-3 rounded-full transition-all hover:scale-105"
-            style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontSize: "16px", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
-          >
-            {ctaButton.label}
-          </button>
-        )}
       </header>
 
       {/* Main Content */}

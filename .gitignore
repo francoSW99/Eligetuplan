@@ -16,3 +16,7 @@ __pycache__/
 
 # Local caches and generated files
 test/backend/.cache/
+
+logs/
+.vscode/
+images/
