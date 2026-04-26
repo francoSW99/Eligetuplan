@@ -18,5 +18,4 @@ __pycache__/
 test/backend/.cache/
 
 logs/
-.vscode/
 images/
