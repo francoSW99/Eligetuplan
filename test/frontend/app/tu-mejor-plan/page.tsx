@@ -428,20 +428,20 @@ export default function TuMejorPlanPage() {
 
   return (
     <div className="bg-[#f8fafc] min-h-screen">
-      <div className="max-w-[720px] mx-auto px-6 py-10">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
         {/* Stepper */}
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8 sm:mb-10">
           {steps.map((s, i) => (
-            <div key={s.num} className="flex items-center gap-2">
+            <div key={s.num} className="flex items-center gap-1 sm:gap-2">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= s.num ? 'bg-[#14dcb4] text-white' : 'bg-slate-200 text-slate-400'}`}>
                 {step > s.num ? <Check className="w-4 h-4" /> : s.num}
               </div>
-              <span className={`hidden sm:inline text-sm font-medium ${step >= s.num ? 'text-[#0f514b]' : 'text-slate-400'}`}>
+              <span className={`text-xs sm:text-sm font-medium ${step >= s.num ? 'text-[#0f514b]' : 'text-slate-400'}`}>
                 {s.label}
               </span>
               {i < steps.length - 1 && (
-                <div className={`w-12 h-0.5 mx-2 ${step > s.num ? 'bg-[#14dcb4]' : 'bg-slate-200'}`} />
+                <div className={`w-4 sm:w-12 h-0.5 mx-1 sm:mx-2 ${step > s.num ? 'bg-[#14dcb4]' : 'bg-slate-200'}`} />
               )}
             </div>
           ))}
@@ -776,7 +776,7 @@ export default function TuMejorPlanPage() {
 
               {/* Comparison: Current Plan vs Recommended */}
               {parsedPrecioUF != null && parsedPrecioUF > 0 && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.4 }} className="grid md:grid-cols-2 gap-4 mb-6">
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.4 }} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {/* Current plan card */}
                   <div className="bg-white rounded-2xl border-2 border-slate-200 p-6">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-3">Tu Plan Actual</div>
@@ -874,24 +874,24 @@ export default function TuMejorPlanPage() {
                           <TrendingDown className="w-5 h-5 text-[#14dcb4]" />
                           <h3 className="text-lg font-bold text-[#0f514b]">¡Ahorras con {recommendedPlan.isapre_name}!</h3>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center">
-                            <motion.div className="text-2xl md:text-3xl font-extrabold text-[#14dcb4]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                              {formatCLP(recommendedPlan.savings_clp)}
-                            </motion.div>
-                            <div className="text-xs text-slate-500 mt-1">ahorro mensual</div>
+<div className="grid grid-cols-3 gap-2 sm:gap-4">
+                            <div className="text-center">
+                              <motion.div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#14dcb4]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                                {formatCLP(recommendedPlan.savings_clp)}
+                              </motion.div>
+                              <div className="text-[10px] sm:text-xs text-slate-500 mt-1">ahorro mensual</div>
                           </div>
                           <div className="text-center">
-                            <motion.div className="text-2xl md:text-3xl font-extrabold text-[#14dcb4]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+                            <motion.div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#14dcb4]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
                               {formatCLP(recommendedPlan.savings_clp * 12)}
                             </motion.div>
-                            <div className="text-xs text-slate-500 mt-1">ahorro anual</div>
+                            <div className="text-[10px] sm:text-xs text-slate-500 mt-1">ahorro anual</div>
                           </div>
                           <div className="text-center">
-                            <motion.div className="text-2xl md:text-3xl font-extrabold text-[#0f514b]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+                            <motion.div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0f514b]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
                               {recommendedPlan.hospital_coverage.toFixed(0)}%
                             </motion.div>
-                            <div className="text-xs text-slate-500 mt-1">cobertura hospitalaria</div>
+                            <div className="text-[10px] sm:text-xs text-slate-500 mt-1">cobertura hospitalaria</div>
                           </div>
                         </div>
                       </div>
@@ -901,12 +901,12 @@ export default function TuMejorPlanPage() {
                           <TrendingUp className="w-5 h-5 text-[#0f9d8a]" />
                           <h3 className="text-lg font-bold text-[#0f514b]">Mejor cobertura por una pequeña diferencia</h3>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-4">
                           <div className="text-center">
-                            <motion.div className="text-2xl md:text-3xl font-extrabold text-[#0f9d8a]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                            <motion.div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0f9d8a]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                               {formatCLP(Math.abs(recommendedPlan.savings_clp))}
                             </motion.div>
-                            <div className="text-xs text-slate-500 mt-1">inversión adicional/mes</div>
+                            <div className="text-[10px] sm:text-xs text-slate-500 mt-1">inversión adicional/mes</div>
                           </div>
                           <div className="text-center">
                             <motion.div className="text-2xl md:text-3xl font-extrabold text-[#14dcb4]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
@@ -935,10 +935,10 @@ export default function TuMejorPlanPage() {
                       <Shield className="w-5 h-5 text-[#14dcb4]" />
                       <h3 className="text-lg font-bold text-[#0f514b]">Plan recomendado para ti</h3>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <motion.div className="text-2xl md:text-3xl font-extrabold text-[#0f514b]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                          {recommendedPlan.price_uf.toFixed(2)} UF
+<div className="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div className="text-center">
+                      <motion.div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0f514b]" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                        {recommendedPlan.price_uf.toFixed(2)} UF
                         </motion.div>
                         <div className="text-xs text-slate-500 mt-1">precio mensual</div>
                       </div>
@@ -1031,7 +1031,7 @@ export default function TuMejorPlanPage() {
                   {(recommendedPlan.coverage_diff_hosp_pp != null || recommendedPlan.coverage_diff_amb_pp != null || recommendedPlan.savings_clp != null) && (
                     <div className="border-t border-slate-100 pt-5 mb-5">
                       <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Cambios vs tu plan actual</div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                         {recommendedPlan.savings_clp != null && (
                           <div className="rounded-xl border border-slate-200 p-3 text-center">
                             <div className={`text-xl font-extrabold ${recommendedPlan.savings_clp >= 0 ? 'text-[#14dcb4]' : 'text-[#0f9d8a]'}`}>
@@ -1069,7 +1069,7 @@ export default function TuMejorPlanPage() {
                           {recommendedPlan.match_score.toFixed(1)}<span className="text-sm font-medium text-slate-400">/100</span>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                         {[
                           { label: 'Asequibilidad', value: recommendedPlan.score_breakdown.affordability, weight: recommendedPlan.score_breakdown.weights.afford },
                           { label: 'Cobertura',     value: recommendedPlan.score_breakdown.coverage,      weight: recommendedPlan.score_breakdown.weights.coverage },
@@ -1092,7 +1092,7 @@ export default function TuMejorPlanPage() {
               )}
 
               {/* Plan Cards — Recommended + smart alternatives */}
-              <div className={`grid gap-4 mb-8 ${altCards.length === 0 ? 'grid-cols-1 max-w-md mx-auto' : altCards.length === 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
+              <div className={`grid gap-4 mb-8 ${altCards.length === 0 ? 'grid-cols-1 max-w-md mx-auto' : altCards.length === 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'}`}>
                 {planCards.map(({ key, badge, badgeColor, plan, reason }) => {
                   if (!plan) return null;
                   const isRecommended = key === 'recommended';

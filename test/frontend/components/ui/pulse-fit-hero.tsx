@@ -1,8 +1,18 @@
 'use client';
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { Menu } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 interface NavigationItem {
@@ -63,6 +73,57 @@ const floatingVariants3 = {
   },
 };
 
+function HeroMobileMenu({ navigation }: { navigation: NavigationItem[] }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <button
+        onClick={() => setOpen(true)}
+        className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Abrir menú"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+      <SheetContent side="right" className="bg-[#0f514b] text-white w-[280px] p-0">
+        <SheetHeader className="border-b border-white/10 px-5 py-4">
+          <SheetTitle className="text-white text-left">Menú</SheetTitle>
+          <SheetDescription className="sr-only">Navegación principal</SheetDescription>
+        </SheetHeader>
+        <nav className="flex flex-col gap-1 px-3 py-4">
+          {navigation.map((item, index) => {
+            const href = item.href || "#";
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={index}
+                href={href}
+                onClick={() => setOpen(false)}
+                className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors no-underline ${
+                  active ? 'bg-[#14dcb4]/15 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="px-5 pt-2">
+          <Link
+            href="/comparar/isapres"
+            onClick={() => setOpen(false)}
+            className="block w-full px-6 py-3 rounded-full text-center font-bold text-white text-sm transition-all hover:scale-105 no-underline"
+            style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
+          >
+            Comparar Planes Ahora
+          </Link>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function PulseFitHero({
   logo = (
     <Image
@@ -71,7 +132,7 @@ export function PulseFitHero({
       width={1568}
       height={496}
       priority
-      className="h-12 w-auto drop-shadow-[0_10px_24px_rgba(20,220,180,0.24)] lg:h-14"
+      className="h-10 w-auto drop-shadow-[0_10px_24px_rgba(20,220,180,0.24)] sm:h-12 lg:h-14"
     />
   ),
   navigation = [],
@@ -98,12 +159,12 @@ export function PulseFitHero({
       style={{
         background: "linear-gradient(180deg, #0f514b 0%, #14dcb4 60%, #eef2f5 100%)",
       }}
-role="banner"
+ role="banner"
       aria-label="Hero section"
     >
 {/* Header */}
-      <header className="relative z-20 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
+      <header className="relative z-20 py-3 sm:py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="shrink-0">
             {logo}
           </div>
@@ -126,29 +187,31 @@ role="banner"
             ))}
           </nav>
 
-          {ctaButton && (
-            ctaButton.onClick ? (
-              <button
-                onClick={ctaButton.onClick}
-                className="px-6 py-3 rounded-full transition-all hover:scale-105"
-                style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontSize: "16px", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
-              >
-                {ctaButton.label}
-              </button>
-            ) : ctaButton.href ? (
-              <a
-                href={ctaButton.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 rounded-full transition-all hover:scale-105 no-underline"
-                style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontSize: "16px", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
-              >
-                {ctaButton.label}
-              </a>
-            ) : null
-          )}
+          <div className="flex items-center gap-3">
+            {ctaButton && (
+              ctaButton.onClick ? (
+                <button
+                  onClick={ctaButton.onClick}
+                  className="hidden sm:inline-flex px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 text-sm sm:text-base"
+                  style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
+                >
+                  {ctaButton.label}
+                </button>
+              ) : ctaButton.href ? (
+                <a
+                  href={ctaButton.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 no-underline text-sm sm:text-base"
+                  style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
+                >
+                  {ctaButton.label}
+                </a>
+              ) : null
+            )}
 
-          {!ctaButton && <div className="hidden md:block w-[120px]" />}
+            <HeroMobileMenu navigation={navigation} />
+          </div>
         </div>
       </header>
 
@@ -217,47 +280,68 @@ role="banner"
               )}
             </div>
 
-            {/* Right: Image Collage — exact classes from hero-section-9 */}
-            <div className="relative h-[400px] w-full sm:h-[500px] hidden lg:block">
+            {/* Right: Image Collage — responsive mobile + desktop */}
+            <div className="relative w-full h-[280px] sm:h-[400px] lg:h-[500px]">
               {/* Decorative Shapes */}
               <motion.div
-                className="absolute -top-4 left-1/4 h-16 w-16 rounded-full bg-white/20"
+                className="absolute -top-4 left-1/4 h-16 w-16 rounded-full bg-white/20 hidden sm:block"
                 variants={floatingVariants}
                 animate="animate"
               />
               <motion.div
-                className="absolute bottom-0 right-1/4 h-12 w-12 rounded-lg bg-white/15"
+                className="absolute bottom-0 right-1/4 h-12 w-12 rounded-lg bg-white/15 hidden sm:block"
                 variants={floatingVariants2}
                 animate="animate"
               />
               <motion.div
-                className="absolute bottom-1/4 left-4 h-6 w-6 rounded-full bg-white/20"
+                className="absolute bottom-1/4 left-4 h-6 w-6 rounded-full bg-white/20 hidden sm:block"
                 variants={floatingVariants3}
                 animate="animate"
               />
 
-              {/* Image 1 — top center */}
-              <div
-                className="absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-64 sm:w-64"
-                style={{ transformOrigin: "bottom center" }}
-              >
-                <img src={images[0]} alt="Cirugía" className="h-full w-full rounded-xl object-cover" />
+              {/* Mobile: horizontal row of 3 small cards */}
+              <div className="flex lg:hidden justify-center gap-3 h-full items-center px-2">
+                {images.slice(0, 3).map((img, i) => {
+                  const labels = ["Cirugía", "Kinesiología", "Familia"];
+                  return (
+                    <motion.div
+                      key={i}
+                      className="w-[30%] h-[75%] rounded-2xl bg-white/10 p-1.5 shadow-lg"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 + i * 0.15, duration: 0.5 }}
+                    >
+                      <img src={img} alt={labels[i]} className="h-full w-full rounded-xl object-cover" />
+                    </motion.div>
+                  );
+                })}
               </div>
 
-              {/* Image 2 — right middle */}
-              <div
-                className="absolute right-0 top-1/3 h-40 w-40 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-56 sm:w-56"
-                style={{ transformOrigin: "left center" }}
-              >
-                <img src={images[1]} alt="Kinesiología" className="h-full w-full rounded-xl object-cover" />
-              </div>
+              {/* Desktop: overlapping collage */}
+              <div className="hidden lg:block absolute inset-0">
+                {/* Image 1 — top center */}
+                <div
+                  className="absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-64 sm:w-64"
+                  style={{ transformOrigin: "bottom center" }}
+                >
+                  <img src={images[0]} alt="Cirugía" className="h-full w-full rounded-xl object-cover" />
+                </div>
 
-              {/* Image 3 — bottom left */}
-              <div
-                className="absolute bottom-0 left-8 h-44 w-44 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-56 sm:w-56"
-                style={{ transformOrigin: "top right" }}
-              >
-                <img src={images[2]} alt="Familia" className="h-full w-full rounded-xl object-cover" />
+                {/* Image 2 — right middle */}
+                <div
+                  className="absolute right-0 top-1/3 h-40 w-40 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-56 sm:w-56"
+                  style={{ transformOrigin: "left center" }}
+                >
+                  <img src={images[1]} alt="Kinesiología" className="h-full w-full rounded-xl object-cover" />
+                </div>
+
+                {/* Image 3 — bottom left */}
+                <div
+                  className="absolute bottom-0 left-8 h-44 w-44 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-56 sm:w-56"
+                  style={{ transformOrigin: "top right" }}
+                >
+                  <img src={images[2]} alt="Familia" className="h-full w-full rounded-xl object-cover" />
+                </div>
               </div>
             </div>
 

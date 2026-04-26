@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   description: "Encuentra y compara tu plan de salud ideal entre todas las Isapres de Chile. 100% gratuito.",
 };
 
+export const viewport = {
+  themeColor: "#0f514b",
+};
+
 const ISAPRES = [
   { name: "Banmédica", href: "/comparar/isapres?isapre=banmedica" },
   { name: "Consalud", href: "/comparar/isapres?isapre=consalud" },
@@ -40,6 +44,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="scroll-smooth">
+      <head>
+        <meta name="theme-color" content="#0f514b" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body className={`${poppins.className} antialiased bg-[#eef2f5] text-slate-900 min-h-screen flex flex-col`}>
         <SiteHeader />
 

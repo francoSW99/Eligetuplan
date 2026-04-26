@@ -40,15 +40,7 @@ export default function Home() {
           onClick: () => router.push("/como-funciona"),
         }}
         disclaimer="*Sin costo, sin compromisos. 100% gratuito."
-        socialProof={{
-          avatars: [
-            "https://i.pravatar.cc/150?img=32",
-            "https://i.pravatar.cc/150?img=44",
-            "https://i.pravatar.cc/150?img=47",
-            "https://i.pravatar.cc/150?img=12",
-          ],
-          text: "Más de 10.000 chilenos ya compararon con nosotros",
-        }}
+        
         images={[
           "/cirugia.png",
           "/kine.jpeg",

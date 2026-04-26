@@ -9,6 +9,7 @@ import { formatCLP } from '@/lib/api';
 import PlanCard from './plan-card';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
 import ContactOptions from '@/components/ui/contact-options';
+import MobileFilterSheet from '@/components/ui/mobile-filter-sheet';
 
 const MODALIDADES = ['Preferente', 'Libre Elección', 'Cerrado'] as const;
 const COBERTURA_STEPS = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
@@ -269,11 +270,18 @@ export default function IsapresClient({
   const items = initialData.items;
   const totalGlobal = initialIsapres.reduce((sum, i) => sum + i.plan_count, 0);
 
-  return (
-    <section className="max-w-7xl mx-auto px-6 pt-4 pb-10 md:pt-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-        {/* ─── Sidebar filtros ───────────────────────────────────────── */}
-        <aside className="space-y-4">
+  const activeFilterCount = [
+    currentIsapres.length > 0,
+    currentZonas.length > 0,
+    currentModalidad !== '',
+    currentCobHosp !== null,
+    currentCobAmb !== null,
+    currentLegalBudgetActive,
+    localPriceMin > priceFloor || localPriceMax < priceCeiling,
+  ].filter(Boolean).length;
+
+  const sidebarContent = (
+    <>
           <FilterSection
             title="Filtro por 7% legal"
             accent="blue"
@@ -567,7 +575,20 @@ export default function IsapresClient({
                 </label>
               ))}
             </div>
-          </FilterSection>
+</FilterSection>
+    </>
+  );
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-24 lg:pb-10 md:pt-4">
+      <MobileFilterSheet activeFilterCount={activeFilterCount}>
+        {sidebarContent}
+      </MobileFilterSheet>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* ─── Desktop Sidebar ─── */}
+        <aside className="hidden lg:block space-y-4">
+          {sidebarContent}
         </aside>
 
         {/* ─── Resultados ──────────────────────────────────────────── */}

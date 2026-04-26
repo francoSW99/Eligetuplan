@@ -7,6 +7,8 @@
 .env.*
 test/backend/.env
 test/frontend/.env.local
+production/backend/.env
+production/frontend/.env.local
 
 # Python artifacts
 __pycache__/
@@ -14,7 +16,13 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Node artifacts
+node_modules/
+.next/
+out/
+
 # Local caches and generated files
 test/backend/.cache/
+production/backend/.cache/
 
 logs/

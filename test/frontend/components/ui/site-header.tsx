@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import MobileNav from './mobile-nav';
 
 const NAV_ITEMS = [
   { label: 'Comparar Planes', href: '/comparar/isapres' },
@@ -37,7 +38,7 @@ export default function SiteHeader() {
 
   return (
     <header className={`sticky top-0 z-50 backdrop-blur transition-all duration-300 ${isHome ? 'bg-[#0f514b]/95 border-b border-white/10 shadow-lg' : 'bg-[#0f514b]/95 border-b border-white/10'}`}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
         {!isHome ? (
           <div className="flex items-center gap-3">
             <Link
@@ -51,7 +52,7 @@ export default function SiteHeader() {
                 width={1568}
                 height={496}
                 priority
-                className="h-10 w-auto drop-shadow-[0_8px_22px_rgba(20,220,180,0.2)] md:h-12"
+                className="h-8 w-auto drop-shadow-[0_8px_22px_rgba(20,220,180,0.2)] sm:h-10 md:h-12"
               />
             </Link>
             <Link
@@ -61,7 +62,18 @@ export default function SiteHeader() {
               <ArrowLeft className="h-4 w-4" /> Volver al inicio
             </Link>
           </div>
-        ) : null}
+        ) : (
+          <Link href="/" className="shrink-0" aria-label="EligeTuPlan - Inicio">
+            <Image
+              src="/logos/mamag.png"
+              alt="EligeTuPlan"
+              width={1568}
+              height={496}
+              priority
+              className="h-8 w-auto drop-shadow-[0_8px_22px_rgba(20,220,180,0.2)] sm:h-10 md:h-12"
+            />
+          </Link>
+        )}
 
         <nav className={`${isHome ? 'mx-auto' : ''} hidden md:flex items-center gap-8`} aria-label="Navegación principal">
           {NAV_ITEMS.map((item) => {
@@ -83,7 +95,9 @@ export default function SiteHeader() {
           })}
         </nav>
 
-        {!isHome && <div className="w-[120px]" />}
+        {!isHome && <div className="hidden md:block w-[120px]" />}
+
+        <MobileNav />
       </div>
     </header>
   );
