@@ -14,6 +14,9 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "EligeTuPlan - Compara Planes de Salud en Chile",
   description: "Encuentra y compara tu plan de salud ideal entre todas las Isapres de Chile. 100% gratuito.",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export const viewport = {
