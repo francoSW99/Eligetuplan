@@ -2,8 +2,8 @@
 # Eligetuplan — Guía de Deploy a Producción
 # ============================================================
 # Arquitectura:
-#   - Frontend:  Vercel      → eligetuplan.cl
-#   - Backend:   Tu PC       → api.eligetuplan.cl (via Cloudflare Tunnel)
+#   - Frontend:  Vercel      → elige-tuplan.cl
+#   - Backend:   Tu PC       → api.elige-tuplan.cl (via Cloudflare Tunnel)
 #   - Database:  Supabase    → ya en la nube
 #
 # Costo mensual: ~$1.250 CLP (solo dominio .cl)
@@ -19,7 +19,7 @@
 
 1. Ir a https://dash.cloudflare.com/sign-up
 2. Crear cuenta gratuita
-3. Click "Add a site" → escribir "eligetuplan.cl"
+3. Click "Add a site" → escribir "elige-tuplan.cl"
 4. Seleccionar plan FREE
 5. Cloudflare te dará 2 nameservers del tipo:
    - xxx.ns.cloudflare.com
@@ -47,8 +47,8 @@ cloudflared tunnel create eligetuplan
 # El archivo se crea en %USERPROFILE%\.cloudflared\ elegetuplan.json
 # Anotar el TUNNEL_ID que aparece en la consola
 
-# Apuntar DNS: api.eligetuplan.cl → túnel
-cloudflared tunnel route dns eligetuplan api.eligetuplan.cl
+# Apuntar DNS: api.elige-tuplan.cl → túnel
+cloudflared tunnel route dns eligetuplan api.elige-tuplan.cl
 ```
 
 ## PASO 5 — Configurar DNS en Cloudflare
@@ -72,9 +72,9 @@ El tercero se creó automáticamente en el paso 4.
 4. Root Directory: production/frontend
 5. Framework Preset: Next.js (auto-detectado)
 6. Environment Variables:
-   - NEXT_PUBLIC_API_URL = https://api.eligetuplan.cl
+   - NEXT_PUBLIC_API_URL = https://api.elige-tuplan.cl
 7. Click "Deploy"
-8. Ir a Settings → Domains → agregar: eligetuplan.cl y www.eligetuplan.cl
+8. Ir a Settings → Domains → agregar: elige-tuplan.cl y www.elige-tuplan.cl
 
 ## PASO 7 — Iniciar backend local + túnel
 
@@ -97,10 +97,10 @@ cloudflared tunnel --config production\tunnel\config.yml run eligetuplan
 
 ## PASO 8 — Verificar end-to-end
 
-- https://eligetuplan.cl → Frontend (Vercel)
-- https://api.eligetuplan.cl/api/v1/health → {"status":"ok"}
-- https://eligetuplan.cl/comparar/isapres → Lista planes de Supabase
-- https://eligetuplan.cl/tu-mejor-plan → Wizard funcional
+- https://elige-tuplan.cl → Frontend (Vercel)
+- https://api.elige-tuplan.cl/api/v1/health → {"status":"ok"}
+- https://elige-tuplan.cl/comparar/isapres → Lista planes de Supabase
+- https://elige-tuplan.cl/tu-mejor-plan → Wizard funcional
 
 ## NOTAS IMPORTANTES
 

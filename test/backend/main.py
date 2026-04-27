@@ -23,9 +23,9 @@ app = FastAPI(
 # CORS Configuration — development + production origins
 CORS_DEFAULTS = (
     "http://localhost:3000,"
-    "https://eligetuplan.cl,"
-    "https://www.eligetuplan.cl,"
-    "https://eligetuplan.vercel.app,"
+    "https://elige-tuplan.cl,"
+    "https://www.elige-tuplan.cl,"
+    "https://elige-tuplan.vercel.app,"
     "https://landingpage-asesoriasalud.vercel.app"
 )
 origins = [
