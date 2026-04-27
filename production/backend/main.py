@@ -11,7 +11,8 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# Load environment variables
+# In production, env vars come from Cloud Run or .env file.
+# load_dotenv() is safe to call — it only reads .env if it exists.
 load_dotenv()
 
 app = FastAPI(
@@ -20,13 +21,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Configuration - restrict to frontend in production
+# CORS Configuration — production origins + localhost for development
+CORS_DEFAULTS = (
+    "http://localhost:3000,"
+    "https://eligetuplan.cl,"
+    "https://www.eligetuplan.cl,"
+    "https://eligetuplan.vercel.app,"
+    "https://landingpage-asesoriasalud.vercel.app"
+)
 origins = [
     origin.strip()
-    for origin in os.getenv(
-        "ALLOWED_ORIGINS",
-        "http://localhost:3000,https://landingpage-asesoriasalud.vercel.app"
-    ).split(",")
+    for origin in os.getenv("ALLOWED_ORIGINS", CORS_DEFAULTS).split(",")
     if origin.strip()
 ]
 

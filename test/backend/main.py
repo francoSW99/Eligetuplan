@@ -20,13 +20,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Configuration - restrict to frontend in production
+# CORS Configuration — development + production origins
+CORS_DEFAULTS = (
+    "http://localhost:3000,"
+    "https://eligetuplan.cl,"
+    "https://www.eligetuplan.cl,"
+    "https://eligetuplan.vercel.app,"
+    "https://landingpage-asesoriasalud.vercel.app"
+)
 origins = [
     origin.strip()
-    for origin in os.getenv(
-        "ALLOWED_ORIGINS",
-        "http://localhost:3000,https://landingpage-asesoriasalud.vercel.app"
-    ).split(",")
+    for origin in os.getenv("ALLOWED_ORIGINS", CORS_DEFAULTS).split(",")
     if origin.strip()
 ]
 

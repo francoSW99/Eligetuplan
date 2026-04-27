@@ -1,0 +1,7 @@
+tunnel: eligetuplan
+credentials-file: /etc/cloudflared/eligetuplan.json
+
+ingress:
+  - hostname: api.eligetuplan.cl
+    service: http://localhost:8000
+  - service: http_status:404
