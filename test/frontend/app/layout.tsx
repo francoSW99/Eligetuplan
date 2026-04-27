@@ -15,7 +15,19 @@ export const metadata: Metadata = {
   title: "EligeTuPlan - Compara Planes de Salud en Chile",
   description: "Encuentra y compara tu plan de salud ideal entre todas las Isapres de Chile. 100% gratuito.",
   icons: {
-    icon: "/icon.png",
+    icon: [
+      { url: "/icon.png", sizes: "32x32" },
+      { url: "/icon.png", sizes: "192x192" },
+    ],
+    apple: "/icon.png",
+  },
+  openGraph: {
+    title: "EligeTuPlan - Compara Planes de Salud en Chile",
+    description: "Encuentra y compara tu plan de salud ideal entre todas las Isapres de Chile. 100% gratuito.",
+    url: "https://elige-tuplan.cl",
+    siteName: "EligeTuPlan",
+    images: [{ url: "/icon.png", width: 512, height: 512 }],
+    type: "website",
   },
 };
 

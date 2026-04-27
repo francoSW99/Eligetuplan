@@ -1,7 +1,9 @@
-tunnel: eligetuplan
-credentials-file: /etc/cloudflared/eligetuplan.json
+tunnel: 9789247e-b37a-403d-99b3-8e351738c411
+credentials-file: C:\Users\Hp\.cloudflared\9789247e-b37a-403d-99b3-8e351738c411.json
 
 ingress:
   - hostname: api.elige-tuplan.cl
     service: http://localhost:8000
+    originRequest:
+      noTLSVerify: true
   - service: http_status:404
