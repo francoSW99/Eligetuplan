@@ -352,4 +352,108 @@ python scripts/download_tu7_pdfs.py           # PDFs
 
 ---
 
+## Migración a Google Cloud Run (Backend 24/7)
+
+### Error del primer intento
+
+El primer deploy a Cloud Run falló con:
+```
+Error response from daemon: unexpected error reading Dockerfile: 
+read /var/lib/docker/tmp/docker-builder1264438167/backend: is a directory
+```
+
+**Causa**: Cloud Build buscaba un archivo `Dockerfile` pero encontró un directorio `backend/`.
+
+**Solución**: Especificar correctamente el Dockerfile path y el build context al configurar el servicio.
+
+---
+
+### Configuración correcta en GCP Console
+
+Al crear el servicio Cloud Run:
+
+| Campo | Valor |
+|---|---|
+| **Dockerfile path** | `production/backend/Dockerfile` |
+| **Build context** | `production/backend` |
+| **Region** | `southamerica-west1` (Santiago) |
+| **CPU** | 1 |
+| **Memory** | 512 MiB |
+| **Min instances** | 0 |
+| **Max instances** | 3 |
+| **Port** | 8080 |
+| **Authentication** | Allow unauthenticated invocations |
+
+---
+
+### Secrets de GitHub (6 en total)
+
+En el repositorio GitHub → Settings → Secrets and variables → Actions, agregar:
+
+| Secret | Descripción | Ejemplo |
+|---|---|---|
+| `GCP_PROJECT_ID` | ID del proyecto GCP | `eligetuplan-prod` |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Provider de Workload Identity | `projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
+| `GCP_SERVICE_ACCOUNT` | Service Account para Cloud Run | `github-actions@eligetuplan-prod.iam.gserviceaccount.com` |
+| `SUPABASE_URL` | URL del proyecto Supabase | `https://xxxxx.supabase.co` |
+| `SUPABASE_KEY` | Anon key pública de Supabase | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
+| `ALLOWED_ORIGINS` | Orígenes CORS | `https://elige-tuplan.cl,https://www.elige-tuplan.cl` |
+
+---
+
+### Pasos para configurar Workload Identity (requerido)
+
+1. **Crear Service Account** en GCP:
+   - IAM → Service Accounts → Create
+   - Name: `github-actions`
+   - Role: `Cloud Run Admin` + `Artifact Registry Writer`
+
+2. **Crear Workload Identity Pool**:
+   - IAM → Workload Identity Pools → Create Pool
+   - Name: `github-pool`
+   - Provider: GitHub (seleccionar tu repo `francoSW99/Eligetuplan`)
+
+3. **Agregar Service Account al Provider**:
+   - Grant access to: `serviceAccount:github-actions@PROJECT_ID.iam.gserviceaccount.com`
+   - Attributes: `attribute.repository=fran-coSW99/Eligetuplan`
+
+4. **Copiar el Workload Identity Provider ID** (para el secret de GitHub)
+
+---
+
+### Workflow de GitHub Actions
+
+El archivo `.github/workflows/deploy-backend.yml` ya está configurado para:
+- Build de la imagen Docker desde `production/backend/`
+- Push a Artifact Registry
+- Deploy a Cloud Run con las environment variables
+- Autenticación via Workload Identity
+
+El workflow se dispara automáticamente con cada push a `main` que modifique `production/backend/**`.
+
+---
+
+### Checklist post-deploy
+
+Después de que el deploy termine, verificar:
+
+- [ ] `https://[SERVICE_URL]/api/v1/health` responde `{"status":"ok"}`
+- [ ] `https://api.elige-tuplan.cl/api/v1/health` responde correctamente (si ya mapeaste el dominio)
+- [ ] Los planes se cargan en `/comparar/isapres`
+- [ ] El wizard `/tu-mejor-plan` devuelve resultados
+- [ ] No hay errores en Cloud Run Logs
+- [ ] Los logs de GitHub Actions muestran "Build successful"
+
+---
+
+### Desconectar Cloudflare Tunnel (opcional)
+
+Una vez que Cloud Run esté funcionando:
+
+1. Eliminar el CNAME `api` en Cloudflare DNS
+2. O crear un nuevo CNAME `api` apuntando al URL de Cloud Run: `[SERVICE-NAME]-[HASH].southamerica-west1.run.app`
+3. El backend stayá 24/7 sin necesidad de tu PC
+
+---
+
 _Last updated: Abril 2026 — v2.0 Production_
