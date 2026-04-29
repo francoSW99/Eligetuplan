@@ -9,9 +9,9 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: southamerica-west1
+  REGION: us-central1
   SERVICE_NAME: eligetuplan-backend
-  REPOSITORY: eligetuplan-backend
+  REPOSITORY: eligetuplan-repo
 
 jobs:
   deploy:
