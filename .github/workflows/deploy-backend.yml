@@ -50,7 +50,7 @@ jobs:
             --region=${{ env.REGION }} \
             --platform=managed \
             --allow-unauthenticated \
-            --set-env-vars="SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_KEY=${{ secrets.SUPABASE_KEY }},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}" \
+            --set-env-vars="^|^SUPABASE_URL=${{ secrets.SUPABASE_URL }}|SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}|ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}" \
             --cpu=1 \
             --memory=512Mi \
             --min-instances=0 \
