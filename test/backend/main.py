@@ -2,6 +2,9 @@ import math
 import os
 import pathlib
 import re
+import sys
+import threading
+import time
 from typing import Any, Optional
 
 from fastapi import FastAPI, Query
@@ -10,6 +13,43 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+
+# ── TTL Cache ──────────────────────────────────────────────────────────────────
+
+class _TTLCache:
+    """Simple in-memory TTL cache. Thread-safe for read-heavy workloads."""
+    def __init__(self, ttl: int = 300):
+        self.ttl = ttl
+        self._data: dict[str, Any] = {}
+        self._times: dict[str, float] = {}
+
+    def get(self, key: str):
+        row = self._data.get(key)
+        if row is not None and time.time() - self._times.get(key, 0) < self.ttl:
+            return row
+        if row is not None:
+            del self._data[key]
+            del self._times[key]
+        return None
+
+    def set(self, key: str, value: Any):
+        self._data[key] = value
+        self._times[key] = time.time()
+
+    def invalidate(self, key: str):
+        self._data.pop(key, None)
+        self._times.pop(key, None)
+
+
+_LIST_PLANS_CACHE = _TTLCache(ttl=300)     # 5 min — plan list for /api/v1/planes
+_PRICES_CACHE = _TTLCache(ttl=300)         # 5 min — price histogram
+_ISAPRES_CACHE = _TTLCache(ttl=3600)       # 1 h  — isapres + counts
+_ZONAS_CACHE = _TTLCache(ttl=3600)         # 1 h  — zonas + counts
+_PRESTADORES_CACHE = _TTLCache(ttl=3600)   # 1 h  — prestadores list
+_MATCH_PLANS_CACHE = _TTLCache(ttl=300)    # 5 min — plan list for match-plan
+_PLAN_ITEMS_CACHE = _TTLCache(ttl=300)     # 5 min — built PlanListItem list
+
 
 # Load environment variables
 load_dotenv()
@@ -531,16 +571,8 @@ def match_plan(payload: MatchPlanRequest):
     if not supabase:
         return _build_mock_plans()
 
-    select_cols = (
-        "id,name,price_uf,hospital_coverage,ambulatory_coverage,"
-        "base_plan_uf,ges_isapre_uf,modalidad,isapre_id,"
-        "isapres(id,name,slug,logo_url),plan_clinica(clinicas(region))"
-    )
-
     try:
-        # tu7_activo = TRUE: solo planes vivos en el mercado actual
-        query = supabase.table("planes").select(select_cols).eq("tu7_activo", True)
-        plans = _fetch_filtered_plan_rows(query)
+        plans = _get_cached_match_plan_rows()
     except Exception as e:
         print(f"Warning: Database query failed, using mock plans. {e}")
         return _build_mock_plans()
@@ -822,7 +854,26 @@ def _parse_coberturas(text: Optional[str]) -> list[Cobertura]:
         segment = text[start:end].strip().strip(",").strip()
         if not segment:
             continue
-        clinicas = [c.strip() for c in segment.split(",") if c.strip()]
+        # Strip bracket/UF annotations BEFORE comma-split
+        # "[0,30 UF]" → " "  (comma inside brackets would break split)
+        segment = re.sub(r"\s*\[[^\]]*\]\s*", " ", segment)
+        segment = re.sub(r"\s*\([^\)]*\)\s*", " ", segment)
+        segment = segment.strip()
+        if not segment:
+            continue
+        raw = [c.strip() for c in segment.split(",") if c.strip()]
+        clinicas: list[str] = []
+        for c in raw:
+            c = c.strip().strip(",").strip()
+            if not c:
+                continue
+            if c.isdigit():
+                continue
+            if re.match(r"^[\d.,]+\s*UF$", c, re.IGNORECASE):
+                continue
+            if len(c) < 3:
+                continue
+            clinicas.append(c)
         if clinicas:
             out.append(Cobertura(pct=pct, clinicas=clinicas))
     return out
@@ -919,9 +970,9 @@ def _interleaved_plan_list(plans: list["PlanListItem"], sort: str, page_size: in
     total = len(priority_plans) + len(other_plans)
     result: list[Optional["PlanListItem"]] = [None] * total  # type: ignore[name-defined]
 
-    # Base positions for page_size = 21
-    _BASE = 21
-    _BASE_POS = [0, 1, 2, 5, 8, 11, 13, 16, 20]
+    # Base positions for page_size = 15
+    _BASE = 15
+    _BASE_POS = [0, 1, 2, 4, 6, 8, 10, 12, 14]
     prio_positions = sorted({int(p * page_size / _BASE) for p in _BASE_POS})
 
     num_pages = (total + page_size - 1) // page_size
@@ -972,12 +1023,205 @@ def _fetch_filtered_plan_rows(query) -> list[dict]:
 
     return rows
 
+
+# ── Cache helpers ──────────────────────────────────────────────────────────────
+
+def _get_cached_plan_rows_for_list() -> list[dict]:
+    """All tu7_activo plans with _PLAN_COLUMNS, cached 5 min."""
+    cached = _LIST_PLANS_CACHE.get("all")
+    if cached is not None:
+        return cached
+    if not supabase:
+        return []
+    query = supabase.table("planes").select(_PLAN_COLUMNS).eq("tu7_activo", True)
+    rows = _fetch_filtered_plan_rows(query)
+    _LIST_PLANS_CACHE.set("all", rows)
+    return rows
+
+
+def _filter_plans_in_python(
+    rows: list[dict],
+    tu7_activo: bool = True,
+    modalidad: Optional[str] = None,
+    con_parto: Optional[bool] = None,
+    precio_min_uf: Optional[float] = None,
+    precio_max_uf: Optional[float] = None,
+    zona_ids: Optional[list[int]] = None,
+    cobertura_hosp_min: Optional[float] = None,
+    cobertura_amb_min: Optional[float] = None,
+    prestador_q: Optional[str] = None,
+    isapre_ids: Optional[list[str]] = None,
+    search: Optional[str] = None,
+) -> list[dict]:
+    """Replicate Supabase WHERE filters in Python on cached rows."""
+    out = []
+
+    for r in rows:
+        # tu7_activo — default True, skip false rows
+        if tu7_activo and not r.get("tu7_activo"):
+            continue
+
+        if modalidad and r.get("modalidad") != modalidad:
+            continue
+
+        if con_parto is not None and r.get("con_parto") != con_parto:
+            continue
+
+        if isapre_ids and r.get("isapre_id") not in isapre_ids:
+            continue
+
+        if zona_ids:
+            zid = r.get("id_zona")
+            if zid is None or zid not in zona_ids:
+                continue
+
+        if precio_min_uf is not None:
+            bp = r.get("base_plan_uf")
+            if bp is None or _safe_float(bp, 0) < precio_min_uf:
+                continue
+
+        if precio_max_uf is not None:
+            bp = r.get("base_plan_uf")
+            if bp is not None and _safe_float(bp, 999999) > precio_max_uf:
+                continue
+
+        if cobertura_hosp_min is not None:
+            v = r.get("cobertura_hosp_max")
+            if v is None or int(v) < cobertura_hosp_min:
+                continue
+
+        if cobertura_amb_min is not None:
+            v = r.get("cobertura_amb_max")
+            if v is None or int(v) < cobertura_amb_min:
+                continue
+
+        if prestador_q:
+            ht = (r.get("hospitalaria_texto") or "")
+            at = (r.get("ambulatoria_texto") or "")
+            if prestador_q.lower() not in ht.lower() and prestador_q.lower() not in at.lower():
+                continue
+
+        if search:
+            name = (r.get("name") or "").lower()
+            code = (r.get("codigo_plan") or "").lower()
+            sl = search.lower()
+            if sl not in name and sl not in code:
+                continue
+
+        out.append(r)
+
+    return out
+
+
+def _get_cached_prices() -> list[float]:
+    """Prices cache wrapper for _fetch_all_prices."""
+    cached = _PRICES_CACHE.get("all")
+    if cached is not None:
+        return cached
+    prices = _fetch_all_prices()
+    _PRICES_CACHE.set("all", prices)
+    return prices
+
+
+def _get_cached_match_plan_rows() -> list[dict]:
+    """Plans for match-plan (includes plan_clinica relation), cached 5 min."""
+    cached = _MATCH_PLANS_CACHE.get("all")
+    if cached is not None:
+        return cached
+    if not supabase:
+        _MATCH_PLANS_CACHE.set("all", [])
+        return []
+    select_cols = (
+        "id,name,price_uf,hospital_coverage,ambulatory_coverage,"
+        "base_plan_uf,ges_isapre_uf,modalidad,isapre_id,"
+        "isapres(id,name,slug,logo_url),plan_clinica(clinicas(region))"
+    )
+    query = supabase.table("planes").select(select_cols).eq("tu7_activo", True)
+    rows = _fetch_filtered_plan_rows(query)
+    _MATCH_PLANS_CACHE.set("all", rows)
+    return rows
+
+
+def _get_cached_plan_items() -> list[PlanListItem]:
+    """Built PlanListItem list from cached raw rows, cached 5 min."""
+    cached = _PLAN_ITEMS_CACHE.get("all")
+    if cached is not None:
+        return cached
+    rows = _get_cached_plan_rows_for_list()
+    items = [_build_plan_item(r) for r in rows]
+    _PLAN_ITEMS_CACHE.set("all", items)
+    return items
+
+
+def _filter_plan_items(
+    items: list[PlanListItem],
+    tu7_activo: bool = True,
+    slugs_filter: Optional[list[str]] = None,
+    modalidad: Optional[str] = None,
+    con_parto: Optional[bool] = None,
+    precio_min_uf: Optional[float] = None,
+    precio_max_uf: Optional[float] = None,
+    zona_ids: Optional[list[int]] = None,
+    cobertura_hosp_min: Optional[int] = None,
+    cobertura_amb_min: Optional[int] = None,
+    prestador_q: Optional[str] = None,
+    search: Optional[str] = None,
+) -> list[PlanListItem]:
+    """Filter pre-built PlanListItem objects by user-facing attributes."""
+    out: list[PlanListItem] = []
+    for p in items:
+        if tu7_activo and not p.tu7_activo:
+            continue
+        if slugs_filter and (p.isapre_slug or "") not in slugs_filter:
+            continue
+        if modalidad and p.modalidad != modalidad:
+            continue
+        if con_parto is not None and p.con_parto != con_parto:
+            continue
+        if zona_ids and (p.id_zona is None or p.id_zona not in zona_ids):
+            continue
+        bp = p.base_plan_uf if p.base_plan_uf is not None else p.price_uf
+        if precio_min_uf is not None and bp < precio_min_uf:
+            continue
+        if precio_max_uf is not None and bp > precio_max_uf:
+            continue
+        if cobertura_hosp_min is not None and (p.hospital_coverage is None or p.hospital_coverage < cobertura_hosp_min):
+            continue
+        if cobertura_amb_min is not None and (p.ambulatory_coverage is None or p.ambulatory_coverage < cobertura_amb_min):
+            continue
+        if prestador_q:
+            q = prestador_q.lower()
+            found = False
+            for cobs in (p.hospitalaria, p.ambulatoria):
+                for cob in cobs:
+                    if any(q in c.lower() for c in cob.clinicas):
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                continue
+        if search:
+            sl = search.lower()
+            name = (p.name or "").lower()
+            code = (p.codigo_plan or "").lower()
+            if sl not in name and sl not in code:
+                continue
+        out.append(p)
+    return out
+
+
 @app.get("/api/v1/isapres", response_model=list[IsapreListItem])
 def list_isapres():
     """Lista Isapres activas con conteo de planes y factor GES."""
+    cached = _ISAPRES_CACHE.get("all")
+    if cached is not None:
+        return cached
+
     if not supabase:
         return []
 
+    # 1) Fetch isapres
     isapres_resp = (
         supabase.table("isapres")
         .select("id,name,slug,logo_url")
@@ -985,35 +1229,45 @@ def list_isapres():
         .execute()
     )
     isapres = isapres_resp.data or []
+    if not isapres:
+        return []
 
+    isapre_ids = [i["id"] for i in isapres]
+
+    # 2) Batch: fetch ALL active plans' isapre_id + ges_isapre_uf in one paginated query
     count_map: dict[str, int] = {}
     ges_map: dict[str, Optional[float]] = {}
-    for i in isapres:
-        cnt_resp = (
+    for iid in isapre_ids:
+        count_map[iid] = 0
+        ges_map[iid] = None
+
+    offset = 0
+    page_size = 1000
+    while True:
+        r = (
             supabase.table("planes")
-            .select("id", count="exact")
+            .select("isapre_id,ges_isapre_uf")
             .eq("tu7_activo", True)
-            .eq("isapre_id", i["id"])
-            .limit(1)
+            .in_("isapre_id", isapre_ids)
+            .range(offset, offset + page_size - 1)
             .execute()
         )
-        count_map[i["id"]] = cnt_resp.count or 0
+        batch = r.data or []
+        if not batch:
+            break
 
-        ges_resp = (
-            supabase.table("planes")
-            .select("ges_isapre_uf")
-            .eq("tu7_activo", True)
-            .eq("isapre_id", i["id"])
-            .not_.is_("ges_isapre_uf", "null")
-            .limit(1)
-            .execute()
-        )
-        if ges_resp.data:
-            ges_map[i["id"]] = _safe_float(ges_resp.data[0].get("ges_isapre_uf"), None)
-        else:
-            ges_map[i["id"]] = None
+        for row in batch:
+            iid = row.get("isapre_id")
+            if iid:
+                count_map[iid] = count_map.get(iid, 0) + 1
+            if row.get("ges_isapre_uf") is not None:
+                ges_map[iid] = _safe_float(row["ges_isapre_uf"], None)
 
-    return [
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    result = [
         IsapreListItem(
             id=i["id"],
             name=i["name"],
@@ -1024,6 +1278,8 @@ def list_isapres():
         )
         for i in isapres
     ]
+    _ISAPRES_CACHE.set("all", result)
+    return result
 
 
 # ── GET /api/v1/prestadores ───────────────────────────────────────────────────
@@ -1031,6 +1287,10 @@ def list_isapres():
 @app.get("/api/v1/prestadores", response_model=list[str])
 def list_prestadores():
     """Lista única de clínicas mencionadas en coberturas hospitalaria/ambulatoria."""
+    cached = _PRESTADORES_CACHE.get("all")
+    if cached is not None:
+        return cached
+
     if not supabase:
         return []
 
@@ -1057,7 +1317,48 @@ def list_prestadores():
             break
         offset += page
 
-    return sorted(prestadores, key=lambda s: s.lower())
+    result = sorted(prestadores, key=lambda s: s.lower())
+    _PRESTADORES_CACHE.set("all", result)
+    return result
+
+
+
+@app.get("/api/v1/prestadores", response_model=list[str])
+def list_prestadores():
+    """Lista única de clínicas mencionadas en coberturas hospitalaria/ambulatoria."""
+    cached = _PRESTADORES_CACHE.get("all")
+    if cached is not None:
+        return cached
+
+    if not supabase:
+        return []
+
+    prestadores: set[str] = set()
+    offset = 0
+    page = 1000
+    while True:
+        r = (
+            supabase.table("planes")
+            .select("hospitalaria_texto,ambulatoria_texto")
+            .eq("tu7_activo", True)
+            .range(offset, offset + page - 1)
+            .execute()
+        )
+        if not r.data:
+            break
+        for row in r.data:
+            for txt in (row.get("hospitalaria_texto"), row.get("ambulatoria_texto")):
+                if not txt:
+                    continue
+                for cov in _parse_coberturas(txt):
+                    prestadores.update(cov.clinicas)
+        if len(r.data) < page:
+            break
+        offset += page
+
+    result = sorted(prestadores, key=lambda s: s.lower())
+    _PRESTADORES_CACHE.set("all", result)
+    return result
 
 
 # ── GET /api/v1/zonas ─────────────────────────────────────────────────────────
@@ -1065,20 +1366,41 @@ def list_prestadores():
 @app.get("/api/v1/zonas", response_model=list[ZonaItem])
 def list_zonas():
     """Lista zonas geográficas con conteo de planes tu7_activo."""
+    cached = _ZONAS_CACHE.get("all")
+    if cached is not None:
+        return cached
+
     if not supabase:
         return []
 
-    result: list[ZonaItem] = []
-    for zid, nombre in ZONA_MAP.items():
-        cnt = (
+    # Batch: fetch ALL tu7_activo id_zona values in one paginated query
+    zone_counts: dict[int, int] = {zid: 0 for zid in ZONA_MAP}
+    offset = 0
+    page_size = 1000
+    while True:
+        r = (
             supabase.table("planes")
-            .select("id", count="exact")
+            .select("id_zona")
             .eq("tu7_activo", True)
-            .eq("id_zona", zid)
-            .limit(1)
+            .range(offset, offset + page_size - 1)
             .execute()
         )
-        result.append(ZonaItem(id=zid, nombre=nombre, plan_count=cnt.count or 0))
+        batch = r.data or []
+        if not batch:
+            break
+        for row in batch:
+            zid = row.get("id_zona")
+            if zid is not None and zid in zone_counts:
+                zone_counts[zid] += 1
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    result = [
+        ZonaItem(id=zid, nombre=nombre, plan_count=zone_counts.get(zid, 0))
+        for zid, nombre in ZONA_MAP.items()
+    ]
+    _ZONAS_CACHE.set("all", result)
     return result
 
 
@@ -1115,71 +1437,52 @@ def list_planes(
     if not supabase:
         return PlanListResponse(items=[], total=0, page=page, limit=limit, total_pages=0)
 
-    query = supabase.table("planes").select(_PLAN_COLUMNS, count="exact")
+    # ── 1. Get ALL cached PlanListItem objects ────────────────────────────
+    all_items = _get_cached_plan_items()
+    if not all_items:
+        return PlanListResponse(items=[], total=0, page=page, limit=limit, total_pages=0)
 
-    if tu7_activo:
-        query = query.eq("tu7_activo", True)
-
-    if modalidad:
-        query = query.eq("modalidad", modalidad)
-
-    if con_parto is not None:
-        query = query.eq("con_parto", con_parto)
-
-    # Precio en CLP → convertir a UF para filtro server-side sobre base_plan_uf
-    if precio_min_clp is not None:
-        query = query.gte("base_plan_uf", precio_min_clp / UF_VALUE_CLP)
-    if precio_max_clp is not None:
-        query = query.lte("base_plan_uf", precio_max_clp / UF_VALUE_CLP)
-
-    if zona:
-        zona_ids = [int(z.strip()) for z in zona.split(",") if z.strip().isdigit()]
-        if zona_ids:
-            query = query.in_("id_zona", zona_ids)
-
-    if cobertura_hosp_min is not None:
-        query = query.gte("cobertura_hosp_max", cobertura_hosp_min)
-
-    if cobertura_amb_min is not None:
-        query = query.gte("cobertura_amb_max", cobertura_amb_min)
-
-    if prestador:
-        # Prestador matchea texto de coberturas hospitalarias O ambulatorias
-        q = prestador.replace(",", "").strip()
-        query = query.or_(
-            f"hospitalaria_texto.ilike.%{q}%,ambulatoria_texto.ilike.%{q}%"
-        )
-
-    # Filtro por isapre slug → resolver IDs
+    # ── 2. Resolve isapre slugs ──────────────────────────────────────────
     slugs_filter = (
         [s.strip() for s in isapre.split(",") if s.strip()]
         if isapre else list(ISAPRES_ACTIVAS)
     )
-    isapre_resp = supabase.table("isapres").select("id").in_("slug", slugs_filter).execute()
-    isapre_ids = [r["id"] for r in (isapre_resp.data or [])]
-    if isapre_ids:
-        query = query.in_("isapre_id", isapre_ids)
-    else:
-        return PlanListResponse(items=[], total=0, page=page, limit=limit, total_pages=0)
 
-    if search:
-        query = query.or_(f"name.ilike.%{search}%,codigo_plan.ilike.%{search}%")
+    # ── 3. Apply filters on cached PlanListItem objects ───────────────────
+    precio_min_uf = (precio_min_clp / UF_VALUE_CLP) if precio_min_clp is not None else None
+    precio_max_uf = (precio_max_clp / UF_VALUE_CLP) if precio_max_clp is not None else None
+    zona_ids = [int(z.strip()) for z in zona.split(",") if z.strip().isdigit()] if zona else None
+    prestador_q = prestador.replace(",", "").strip() if prestador else None
 
-    filtered_rows = _fetch_filtered_plan_rows(query)
-    all_items = [_build_plan_item(row) for row in filtered_rows]
-    interleaved = _interleaved_plan_list(all_items, sort, limit)
+    filtered = _filter_plan_items(
+        all_items,
+        tu7_activo=tu7_activo,
+        slugs_filter=slugs_filter,
+        modalidad=modalidad,
+        con_parto=con_parto,
+        precio_min_uf=precio_min_uf,
+        precio_max_uf=precio_max_uf,
+        zona_ids=zona_ids,
+        cobertura_hosp_min=cobertura_hosp_min,
+        cobertura_amb_min=cobertura_amb_min,
+        prestador_q=prestador_q,
+        search=search,
+    )
+
+    # ── 4. Interleave, slice ─────────────────────────────────────────────
+    interleaved = _interleaved_plan_list(filtered, sort, limit)
 
     total = len(interleaved)
     total_pages = math.ceil(total / limit) if limit > 0 else 0
     offset = (page - 1) * limit
     items = interleaved[offset:offset + limit]
 
-    # Rango global + histograma de precios (sobre tu7_activo completo)
+    # ── 5. Price histogram from cached prices ────────────────────────────
     price_min_clp: Optional[int] = None
     price_max_clp: Optional[int] = None
     histogram: list[PriceBucket] = []
     if tu7_activo:
-        all_prices = _fetch_all_prices()
+        all_prices = _get_cached_prices()
         if all_prices:
             price_min_clp = _uf_to_clp(min(all_prices))
             price_max_clp = _uf_to_clp(max(all_prices))
@@ -1199,6 +1502,9 @@ def list_planes(
 
 def _fetch_all_prices() -> list[float]:
     """Devuelve todos los base_plan_uf de planes tu7_activo (paginado)."""
+    cached = _PRICES_CACHE.get("all")
+    if cached is not None:
+        return cached
     if not supabase:
         return []
     prices: list[float] = []
@@ -1223,6 +1529,7 @@ def _fetch_all_prices() -> list[float]:
         if len(r.data) < page:
             break
         offset += page
+    _PRICES_CACHE.set("all", prices)
     return prices
 
 
@@ -1335,6 +1642,59 @@ def get_plan(plan_id: str):
 
 
 
+
+
+# ── Startup: pre-warm caches in background ────────────────────────────────────
+@app.on_event("startup")
+def _start_warm():
+    """Fire background thread so server starts immediately."""
+    if not supabase:
+        return
+    def _warm():
+        sys.stdout.write("INFO [cache] Pre-warming caches...\n")
+        sys.stdout.flush()
+        try:
+            _get_cached_plan_rows_for_list()
+            n = len(_LIST_PLANS_CACHE._data.get("all", []) or [])
+            sys.stdout.write(f"  [OK] _LIST_PLANS_CACHE ({n} planes)\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _LIST_PLANS_CACHE: {e}\n")
+        try:
+            _get_cached_plan_items()
+            n = len(_PLAN_ITEMS_CACHE._data.get("all", []) or [])
+            sys.stdout.write(f"  [OK] _PLAN_ITEMS_CACHE ({n} items)\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _PLAN_ITEMS_CACHE: {e}\n")
+        try:
+            _get_cached_prices()
+            n = len(_PRICES_CACHE._data.get("all", []) or [])
+            sys.stdout.write(f"  [OK] _PRICES_CACHE ({n} prices)\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _PRICES_CACHE: {e}\n")
+        try:
+            _get_cached_match_plan_rows()
+            n = len(_MATCH_PLANS_CACHE._data.get("all", []) or [])
+            sys.stdout.write(f"  [OK] _MATCH_PLANS_CACHE ({n} plans)\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _MATCH_PLANS_CACHE: {e}\n")
+        try:
+            list_isapres()
+            sys.stdout.write("  [OK] _ISAPRES_CACHE\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _ISAPRES_CACHE: {e}\n")
+        try:
+            list_zonas()
+            sys.stdout.write("  [OK] _ZONAS_CACHE\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _ZONAS_CACHE: {e}\n")
+        try:
+            list_prestadores()
+            sys.stdout.write("  [OK] _PRESTADORES_CACHE\n")
+        except Exception as e:
+            sys.stdout.write(f"  [FAIL] _PRESTADORES_CACHE: {e}\n")
+        sys.stdout.write("INFO [cache] Pre-warming complete.\n")
+        sys.stdout.flush()
+    threading.Thread(target=_warm, daemon=True).start()
 
 
 # ── Static: servir PDFs descargados ───────────────────────────────────────────

@@ -8,6 +8,12 @@
   --color-brand-primary: #14dcb4;
   --color-brand-secondary: #0f514b; /* Soothing Deep Teal (easy on eyes, great for white text) */
   --color-brand-accent: #50f078;
+  --color-brand-mid: #0f9d8a;
+  --color-brand-accent-soft: #a8f0e0;
+  --color-brand-deep-dark: #092e2a;
+  --color-brand-deep-deeper: #06201d;
+  --color-brand-cream: #f5f0e8;
+  --color-brand-paper: #fbf8f3;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);

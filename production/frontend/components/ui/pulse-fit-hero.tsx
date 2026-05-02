@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
 import {
   Sheet,
@@ -52,26 +51,7 @@ interface PulseFitHeroProps {
   children?: React.ReactNode;
 }
 
-const floatingVariants = {
-  animate: {
-    y: [0, -10, 0],
-    transition: { duration: 3, repeat: Infinity, ease: "easeInOut" as const },
-  },
-};
-
-const floatingVariants2 = {
-  animate: {
-    y: [0, -8, 0],
-    transition: { duration: 4, repeat: Infinity, ease: "easeInOut" as const, delay: 0.5 },
-  },
-};
-
-const floatingVariants3 = {
-  animate: {
-    y: [0, -6, 0],
-    transition: { duration: 5, repeat: Infinity, ease: "easeInOut" as const, delay: 1 },
-  },
-};
+const SLIDE_DURATION = 5500;
 
 function HeroMobileMenu({ navigation }: { navigation: NavigationItem[] }) {
   const pathname = usePathname();
@@ -147,42 +127,78 @@ export function PulseFitHero({
   className,
   children,
 }: PulseFitHeroProps) {
-  const hasImages = images.length >= 3;
+  const slides = images.length > 0 ? images : ["/cirugia.png", "/kine.jpeg", "/familia.jpeg"];
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const id = setInterval(() => setActive((v) => (v + 1) % slides.length), SLIDE_DURATION);
+    return () => clearInterval(id);
+  }, [slides.length]);
 
   return (
     <section
-      className={cn(
-        "relative w-full flex flex-col overflow-hidden",
-        hasImages ? "min-h-screen" : "min-h-screen",
-        className
-      )}
-      style={{
-        background: "linear-gradient(180deg, #0f514b 0%, #14dcb4 60%, #eef2f5 100%)",
-      }}
- role="banner"
+      className={cn("relative w-full overflow-hidden", className)}
+      style={{ background: "#0f514b", minHeight: "min(720px, 100vh)" }}
+      role="banner"
       aria-label="Hero section"
     >
-{/* Header */}
-      <header className="relative z-20 py-3 sm:py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6">
-          <div className="shrink-0">
-            {logo}
-          </div>
+      {/* Rotating background slideshow */}
+      <div className="absolute inset-0">
+        {slides.map((img, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 transition-opacity"
+            style={{
+              backgroundImage: `url(${img})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              opacity: i === active ? 1 : 0,
+              transform: i === active ? "scale(1.05)" : "scale(1)",
+              transition: "opacity 1.2s ease, transform 6.5s linear",
+            }}
+          />
+        ))}
+        {/* Lateral overlay: deep teal → softer */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(110deg, rgba(15,81,75,.88) 0%, rgba(15,81,75,.55) 50%, rgba(15,81,75,.25) 100%)",
+          }}
+        />
+        {/* Bottom fade to deepDark for connection with cream section */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 60%, rgba(9,46,42,.92) 100%)",
+          }}
+        />
+      </div>
 
-          <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+      {/* Internal header — fixed-height bar; logo can overflow for "sticker" effect */}
+      <header
+        className="relative z-20 h-14 sm:h-[60px] border-b overflow-visible"
+        style={{
+          background: "rgba(15, 81, 75, 0.55)",
+          backdropFilter: "blur(14px) saturate(140%)",
+          WebkitBackdropFilter: "blur(14px) saturate(140%)",
+          borderColor: "rgba(20, 220, 180, 0.15)",
+        }}
+      >
+        <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 overflow-visible">
+          <div className="shrink-0 translate-y-3 sm:translate-y-5">{logo}</div>
+
+          <nav className="hidden md:flex items-center gap-9" aria-label="Main navigation">
             {navigation.map((item, index) => (
               <a
                 key={index}
                 href={item.href || "#"}
                 onClick={item.onClick}
-                className="nav-link text-base font-medium text-white/60 hover:text-white"
+                className="nav-link text-[17px] font-semibold tracking-tight text-white/90 hover:text-white"
               >
                 {item.label}
-                {item.hasDropdown && (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "inline", marginLeft: 4, verticalAlign: "middle" }}>
-                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
               </a>
             ))}
           </nav>
@@ -192,8 +208,14 @@ export function PulseFitHero({
               ctaButton.onClick ? (
                 <button
                   onClick={ctaButton.onClick}
-                  className="hidden sm:inline-flex px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 text-sm sm:text-base"
-                  style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
+                  className="hidden sm:inline-flex px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:-translate-y-0.5 text-sm sm:text-base"
+                  style={{
+                    background: "#14dcb4",
+                    fontFamily: "Poppins, sans-serif",
+                    fontWeight: 700,
+                    color: "#0f514b",
+                    boxShadow: "0 6px 16px rgba(20,220,180,0.3)",
+                  }}
                 >
                   {ctaButton.label}
                 </button>
@@ -202,8 +224,14 @@ export function PulseFitHero({
                   href={ctaButton.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hidden sm:inline-flex px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 no-underline text-sm sm:text-base"
-                  style={{ background: "#14dcb4", border: "1px solid rgba(255,255,255,0.3)", fontFamily: "Poppins, sans-serif", fontWeight: 600, color: "#ffffff", boxShadow: "0 2px 12px rgba(20,220,180,0.3)" }}
+                  className="hidden sm:inline-flex px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:-translate-y-0.5 no-underline text-sm sm:text-base"
+                  style={{
+                    background: "#14dcb4",
+                    fontFamily: "Poppins, sans-serif",
+                    fontWeight: 700,
+                    color: "#0f514b",
+                    boxShadow: "0 6px 16px rgba(20,220,180,0.3)",
+                  }}
                 >
                   {ctaButton.label}
                 </a>
@@ -215,35 +243,89 @@ export function PulseFitHero({
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main content — overlay text on slideshow */}
       {children ? (
-        <div className="relative z-10 flex-1 flex items-center justify-center w-full">
+        <div className="relative z-10 flex items-center justify-center w-full pt-8 pb-20 sm:pt-12 sm:pb-24">
           {children}
         </div>
-      ) : hasImages ? (
-        /* Two-column layout: text left, image collage right */
-        <div className="relative z-10 flex-1 flex items-center px-8 lg:px-16 pb-16">
-          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      ) : (
+        <div className="relative z-10 px-6 sm:px-8 lg:px-12 pt-8 pb-24 sm:pt-12 sm:pb-32 lg:pt-16 lg:pb-36">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-col items-start gap-5 max-w-[720px] text-white">
+              {/* Pulse badge */}
+              <div
+                className="inline-flex items-center gap-2 rounded-full"
+                style={{
+                  padding: "7px 14px",
+                  background: "rgba(20,220,180,0.18)",
+                  border: "1px solid rgba(20,220,180,0.4)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#14dcb4",
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 99,
+                    background: "#14dcb4",
+                    animation: "hero-pulse 1.5s infinite",
+                  }}
+                />
+                Comparador 100% gratuito
+              </div>
 
-            {/* Left: Text Content */}
-            <div className="flex flex-col items-center text-center lg:items-start lg:text-left" style={{ gap: "28px" }}>
-              <h1 style={{ fontFamily: "Poppins, sans-serif", fontWeight: 700, fontSize: "clamp(32px, 5vw, 64px)", lineHeight: "1.1", color: "#ffffff", letterSpacing: "-0.02em" }}>
+              <h1
+                style={{
+                  fontFamily: "Poppins, sans-serif",
+                  fontWeight: 800,
+                  fontSize: "clamp(36px, 5.5vw, 60px)",
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.02em",
+                  margin: 0,
+                  color: "#fff",
+                }}
+              >
                 {title}
               </h1>
-              <p style={{ fontFamily: "Poppins, sans-serif", fontWeight: 400, fontSize: "clamp(15px, 1.8vw, 19px)", lineHeight: "1.6", color: "rgba(255,255,255,0.85)", maxWidth: "520px" }}>
+
+              <p
+                style={{
+                  fontFamily: "Poppins, sans-serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(15px, 1.8vw, 18px)",
+                  lineHeight: 1.55,
+                  color: "rgba(255,255,255,0.85)",
+                  margin: 0,
+                  maxWidth: 540,
+                }}
+              >
                 {subtitle}
               </p>
 
               {(primaryAction || secondaryAction) && (
-                <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2">
                   {primaryAction && (
                     <button
                       onClick={primaryAction.onClick}
-                      className="flex flex-row items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105"
-                      style={{ background: "#14dcb4", fontFamily: "Poppins, sans-serif", fontSize: "17px", fontWeight: 600, color: "#ffffff", boxShadow: "0 4px 20px rgba(20,220,180,0.35)" }}
+                      className="inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
+                      style={{
+                        padding: "15px 28px",
+                        borderRadius: 16,
+                        border: "none",
+                        background: "linear-gradient(135deg, #14dcb4, #0f9d8a)",
+                        color: "#fff",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        cursor: "pointer",
+                        boxShadow: "0 12px 28px rgba(20,220,180,0.35)",
+                      }}
                     >
                       {primaryAction.label}
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <path d="M7 10H13M13 10L10 7M13 10L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
@@ -251,8 +333,19 @@ export function PulseFitHero({
                   {secondaryAction && (
                     <button
                       onClick={secondaryAction.onClick}
-                      className="px-8 py-4 rounded-full transition-all hover:scale-105"
-                      style={{ background: "transparent", border: "2px solid rgba(255,255,255,0.5)", fontFamily: "Poppins, sans-serif", fontSize: "17px", fontWeight: 500, color: "#ffffff" }}
+                      className="transition-all hover:-translate-y-0.5"
+                      style={{
+                        padding: "15px 28px",
+                        borderRadius: 16,
+                        background: "rgba(255,255,255,0.1)",
+                        backdropFilter: "blur(10px)",
+                        WebkitBackdropFilter: "blur(10px)",
+                        border: "1px solid rgba(255,255,255,0.25)",
+                        color: "#fff",
+                        fontWeight: 600,
+                        fontSize: 15,
+                        cursor: "pointer",
+                      }}
                     >
                       {secondaryAction.label}
                     </button>
@@ -261,130 +354,80 @@ export function PulseFitHero({
               )}
 
               {disclaimer && (
-                <p style={{ fontFamily: "Poppins, sans-serif", fontSize: "13px", fontWeight: 400, color: "rgba(255,255,255,0.65)", fontStyle: "italic" }}>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", margin: 0, marginTop: 4 }}>
                   {disclaimer}
                 </p>
               )}
 
               {socialProof && (
-                <div className="flex flex-row items-center gap-3">
+                <div className="flex flex-row items-center gap-3 mt-2">
                   <div className="flex flex-row -space-x-2">
                     {socialProof.avatars.map((avatar, index) => (
-                      <img key={index} src={avatar} alt={`User ${index + 1}`} className="rounded-full border-2 border-white" style={{ width: "40px", height: "40px", objectFit: "cover" }} />
+                      <img
+                        key={index}
+                        src={avatar}
+                        alt={`User ${index + 1}`}
+                        className="rounded-full border-2 border-white"
+                        style={{ width: 40, height: 40, objectFit: "cover" }}
+                      />
                     ))}
                   </div>
-                  <span style={{ fontFamily: "Poppins, sans-serif", fontSize: "14px", fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
                     {socialProof.text}
                   </span>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Right: Image Collage — responsive mobile + desktop */}
-            <div className="relative w-full h-[280px] sm:h-[400px] lg:h-[500px]">
-              {/* Decorative Shapes */}
-              <motion.div
-                className="absolute -top-4 left-1/4 h-16 w-16 rounded-full bg-white/20 hidden sm:block"
-                variants={floatingVariants}
-                animate="animate"
-              />
-              <motion.div
-                className="absolute bottom-0 right-1/4 h-12 w-12 rounded-lg bg-white/15 hidden sm:block"
-                variants={floatingVariants2}
-                animate="animate"
-              />
-              <motion.div
-                className="absolute bottom-1/4 left-4 h-6 w-6 rounded-full bg-white/20 hidden sm:block"
-                variants={floatingVariants3}
-                animate="animate"
-              />
-
-              {/* Mobile: horizontal row of 3 small cards */}
-              <div className="flex lg:hidden justify-center gap-3 h-full items-center px-2">
-                {images.slice(0, 3).map((img, i) => {
-                  const labels = ["Cirugía", "Kinesiología", "Familia"];
-                  return (
-                    <motion.div
-                      key={i}
-                      className="w-[30%] h-[75%] rounded-2xl bg-white/10 p-1.5 shadow-lg"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + i * 0.15, duration: 0.5 }}
-                    >
-                      <img src={img} alt={labels[i]} className="h-full w-full rounded-xl object-cover" />
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop: overlapping collage */}
-              <div className="hidden lg:block absolute inset-0">
-                {/* Image 1 — top center */}
-                <div
-                  className="absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-64 sm:w-64"
-                  style={{ transformOrigin: "bottom center" }}
+          {/* Slide indicators */}
+          {slides.length > 1 && (
+            <div
+              className="absolute z-10 flex gap-1.5"
+              style={{
+                bottom: 22,
+                left: "max(24px, 5vw)",
+                right: "max(24px, 5vw)",
+                maxWidth: 280,
+                opacity: 0.55,
+              }}
+            >
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  aria-label={`Slide ${i + 1}`}
+                  className="flex-1 cursor-pointer relative overflow-hidden"
+                  style={{
+                    height: 1.5,
+                    borderRadius: 2,
+                    background: "rgba(255,255,255,0.18)",
+                    border: "none",
+                    padding: 0,
+                  }}
                 >
-                  <img src={images[0]} alt="Cirugía" className="h-full w-full rounded-xl object-cover" />
-                </div>
-
-                {/* Image 2 — right middle */}
-                <div
-                  className="absolute right-0 top-1/3 h-40 w-40 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-56 sm:w-56"
-                  style={{ transformOrigin: "left center" }}
-                >
-                  <img src={images[1]} alt="Kinesiología" className="h-full w-full rounded-xl object-cover" />
-                </div>
-
-                {/* Image 3 — bottom left */}
-                <div
-                  className="absolute bottom-0 left-8 h-44 w-44 rounded-2xl bg-white/10 p-2 shadow-lg sm:h-56 sm:w-56"
-                  style={{ transformOrigin: "top right" }}
-                >
-                  <img src={images[2]} alt="Familia" className="h-full w-full rounded-xl object-cover" />
-                </div>
-              </div>
+                  <span
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(255,255,255,0.7)",
+                      transformOrigin: "left",
+                      transform: i < active ? "scaleX(1)" : "scaleX(0)",
+                      animation: i === active ? `hero-progress ${SLIDE_DURATION}ms linear forwards` : "none",
+                      transition: i < active ? "transform .3s" : "none",
+                    }}
+                  />
+                </button>
+              ))}
             </div>
-
-          </div>
-        </div>
-      ) : (
-        /* Centered layout (no images) */
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4">
-          <div className="flex flex-col items-center text-center max-w-4xl" style={{ gap: "32px" }}>
-            <h1 style={{ fontFamily: "Poppins, sans-serif", fontWeight: 700, fontSize: "clamp(36px, 6vw, 72px)", lineHeight: "1.1", color: "#ffffff", letterSpacing: "-0.02em" }}>
-              {title}
-            </h1>
-            <p style={{ fontFamily: "Poppins, sans-serif", fontWeight: 400, fontSize: "clamp(16px, 2vw, 20px)", lineHeight: "1.6", color: "rgba(255,255,255,0.85)", maxWidth: "600px" }}>
-              {subtitle}
-            </p>
-            {(primaryAction || secondaryAction) && (
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                {primaryAction && (
-                  <button onClick={primaryAction.onClick} className="flex flex-row items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105" style={{ background: "#14dcb4", fontFamily: "Poppins, sans-serif", fontSize: "18px", fontWeight: 600, color: "#ffffff", boxShadow: "0 4px 20px rgba(20,220,180,0.35)" }}>
-                    {primaryAction.label}
-                  </button>
-                )}
-                {secondaryAction && (
-                  <button onClick={secondaryAction.onClick} className="px-8 py-4 rounded-full transition-all hover:scale-105" style={{ background: "transparent", border: "2px solid rgba(255,255,255,0.5)", fontFamily: "Poppins, sans-serif", fontSize: "18px", fontWeight: 500, color: "#ffffff" }}>
-                    {secondaryAction.label}
-                  </button>
-                )}
-              </div>
-            )}
-            {disclaimer && <p style={{ fontFamily: "Poppins, sans-serif", fontSize: "13px", fontWeight: 400, color: "rgba(255,255,255,0.65)", fontStyle: "italic" }}>{disclaimer}</p>}
-            {socialProof && (
-              <div className="flex flex-row items-center gap-3">
-                <div className="flex flex-row -space-x-2">
-                  {socialProof.avatars.map((avatar, index) => (
-                    <img key={index} src={avatar} alt={`User ${index + 1}`} className="rounded-full border-2 border-white" style={{ width: "40px", height: "40px", objectFit: "cover" }} />
-                  ))}
-                </div>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: "14px", fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>{socialProof.text}</span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
+
+      <style>{`
+        @keyframes hero-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes hero-progress { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+      `}</style>
     </section>
   );
 }

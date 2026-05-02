@@ -150,6 +150,7 @@ export default function IsapresClient({
   const currentSearch = search.get('search') ?? '';
   const currentPrestadorHosp = search.get('prestador_hosp') ?? '';
   const currentPrestadorAmb = search.get('prestador_amb') ?? '';
+  const currentPrestador = search.get('prestador') ?? '';
   const currentCobHosp = search.get('cobertura_hosp_min');
   const currentCobAmb = search.get('cobertura_amb_min');
   const currentPage = parseInt(search.get('page') ?? '1', 10);
@@ -173,6 +174,7 @@ export default function IsapresClient({
 
   const [searchText, setSearchText] = useState(currentSearch);
   const [grossSalaryInput, setGrossSalaryInput] = useState(currentGrossSalary);
+  const [clinicaSearch, setClinicaSearch] = useState(currentPrestador);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
@@ -196,6 +198,10 @@ export default function IsapresClient({
   useEffect(() => {
     setGrossSalaryInput(currentGrossSalary);
   }, [currentGrossSalary]);
+
+  useEffect(() => {
+    setClinicaSearch(currentPrestador);
+  }, [currentPrestador]);
 
   useEffect(() => {
     if (!selectedPlan && !selectedPdfPlan) return;
@@ -276,6 +282,7 @@ export default function IsapresClient({
     currentModalidad !== '',
     currentCobHosp !== null,
     currentCobAmb !== null,
+    currentPrestador !== '',
     currentLegalBudgetActive,
     localPriceMin > priceFloor || localPriceMax < priceCeiling,
   ].filter(Boolean).length;
@@ -575,7 +582,58 @@ export default function IsapresClient({
                 </label>
               ))}
             </div>
-</FilterSection>
+          </FilterSection>
+
+          {/* Clínica Preferida */}
+          <FilterSection
+            title="Clínica Preferida"
+            accent="blue"
+            onReset={() => {
+              setClinicaSearch('');
+              pushParams({ prestador: null, prestador_hosp: null, prestador_amb: null });
+            }}
+          >
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                list="clinicas-list"
+                value={clinicaSearch}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setClinicaSearch(v);
+                  if (initialPrestadores.includes(v)) {
+                    pushParams({ prestador: v, prestador_hosp: null, prestador_amb: null });
+                  } else if (!v) {
+                    pushParams({ prestador: null, prestador_hosp: null, prestador_amb: null });
+                  }
+                }}
+                placeholder="Buscar clínica..."
+                className="w-full pl-10 pr-8 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4]/60 bg-white text-slate-800 placeholder:text-slate-400"
+              />
+              {clinicaSearch && (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => {
+                    setClinicaSearch('');
+                    pushParams({ prestador: null, prestador_hosp: null, prestador_amb: null });
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-white rounded-full p-0.5"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <datalist id="clinicas-list">
+                {initialPrestadores.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              Selecciona tu clínica de preferencia para ver solo los planes que la cubren.
+            </p>
+          </FilterSection>
     </>
   );
 

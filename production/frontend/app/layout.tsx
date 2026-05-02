@@ -64,7 +64,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className={`${poppins.className} antialiased bg-[#eef2f5] text-slate-900 min-h-screen flex flex-col`}>
+      <body className={`${poppins.className} antialiased bg-[#f5f0e8] text-slate-900 min-h-screen flex flex-col`}>
         <SiteHeader />
 
         <main className="flex-grow">
@@ -73,7 +73,7 @@ export default function RootLayout({
 
         <WhatsAppFab />
 
-        <footer className="bg-[#092e2a] text-white mt-16">
+        <footer className="bg-[#06201d] text-white mt-16">
           <div className="max-w-7xl mx-auto px-6 pt-12 pb-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-10">
 

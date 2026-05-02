@@ -427,7 +427,7 @@ export default function TuMejorPlanPage() {
   ];
 
   return (
-    <div className="bg-[#f8fafc] min-h-screen">
+    <div className="bg-[#fbf8f3] min-h-screen">
       <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
         {/* Stepper */}

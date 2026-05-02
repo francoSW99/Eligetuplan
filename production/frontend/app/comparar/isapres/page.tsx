@@ -11,7 +11,7 @@ function parseIntParam(value?: string): number | undefined {
 }
 
 function parseFilters(params: Record<string, string>): PlansQuery {
-  const q: PlansQuery = { limit: 21 };
+  const q: PlansQuery = { limit: 15 };
   if (params.isapre) q.isapre = params.isapre;
   if (params.modalidad) q.modalidad = params.modalidad;
   if (params.zona) q.zona = params.zona;
@@ -46,7 +46,7 @@ export default async function CompararIsapresPage({
   ]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-[#fbf8f3]">
 
       {/* Client interactive shell */}
       <IsapresClient
@@ -56,21 +56,70 @@ export default async function CompararIsapresPage({
         initialData={plans}
       />
 
-      {/* CTA Bottom */}
-      <section className="bg-[#0f514b] py-16 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-            ¿No sabes cual elegir?
-          </h2>
-          <p className="text-white/70 mb-8 text-lg">
-            Dejanos ayudarte. Nuestro comparador inteligente encuentra el plan perfecto para tu perfil.
-          </p>
-          <Link
-            href="/tu-mejor-plan"
-            className="inline-flex items-center gap-2 bg-[#14dcb4] text-white font-bold px-10 py-4 rounded-xl text-lg hover:bg-[#12c9a4] transition-all shadow-lg"
+      {/* CTA Bottom — matching home FinalCta style */}
+      <section className="bg-[#fbf8f3] px-5 md:px-8 pt-6 pb-16 md:pt-10 md:pb-24">
+        <div className="max-w-6xl mx-auto">
+          <div
+            className="relative overflow-hidden rounded-[32px] grid md:grid-cols-[1.4fr_1fr] gap-8 md:gap-10 items-center px-7 py-10 md:px-14 md:py-14"
+            style={{
+              background: 'linear-gradient(180deg, #0f514b 0%, #092e2a 100%)',
+              boxShadow: '0 30px 80px -20px rgba(15,81,75,0.4)',
+              border: '1px solid rgba(20,220,180,0.15)',
+            }}
           >
-            Encontrar Mi Plan Ideal <ArrowRight className="w-5 h-5" />
-          </Link>
+            <div
+              className="pointer-events-none absolute -top-[30%] -right-[10%]"
+              style={{
+                width: 400,
+                height: 400,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(20,220,180,.18) 0%, transparent 60%)',
+              }}
+              aria-hidden
+            />
+            <div className="relative z-10">
+              <div className="text-[11px] font-bold tracking-[0.18em] uppercase text-[#14dcb4] mb-3.5">
+                · ¿Demasiadas opciones? ·
+              </div>
+              <h2 className="text-3xl md:text-[36px] font-bold text-white tracking-tight leading-tight mb-3">
+                Deja que la IA te encuentre el plan ideal.
+              </h2>
+              <p className="text-white/70 text-base leading-relaxed max-w-lg m-0">
+                Nuestro comparador inteligente analiza tu perfil y presupuesto para mostrarte el plan que mejor te calza, en menos de 2 minutos.
+              </p>
+            </div>
+            <div className="relative z-10 flex flex-col gap-2.5">
+              <Link
+                href="/tu-mejor-plan"
+                className="inline-flex items-center justify-center gap-2 text-white font-bold text-base transition-all hover:-translate-y-0.5 no-underline"
+                style={{
+                  padding: '17px 28px',
+                  borderRadius: 16,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #14dcb4, #0f9d8a)',
+                  boxShadow: '0 14px 30px rgba(20,220,180,0.4)',
+                }}
+              >
+                Encontrar mi Plan Ideal <ArrowRight className="w-5 h-5" />
+              </Link>
+              <a
+                href="https://wa.me/56968319807?text=Hola%2C%20quiero%20cotizar%20un%20plan%20de%20salud."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-center text-white font-semibold text-sm transition-all hover:-translate-y-0.5 no-underline"
+                style={{
+                  padding: '15px 28px',
+                  borderRadius: 16,
+                  background: 'rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                }}
+              >
+                Hablar por WhatsApp
+              </a>
+            </div>
+          </div>
         </div>
       </section>
     </div>
