@@ -5,6 +5,7 @@
 # Environment and local machine config
 .env
 .env.*
+!.env.example
 test/backend/.env
 test/frontend/.env.local
 production/backend/.env

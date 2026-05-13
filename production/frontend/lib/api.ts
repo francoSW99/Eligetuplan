@@ -1,4 +1,18 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const FALLBACK_API = "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? FALLBACK_API;
+
+if (
+  typeof window !== "undefined" &&
+  API_BASE === FALLBACK_API &&
+  !/^(localhost|127\.|192\.168\.)/.test(window.location.hostname)
+) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[Eligetuplan] NEXT_PUBLIC_API_URL no está configurada. " +
+    "El frontend está apuntando a localhost:8000 y las llamadas fallarán. " +
+    "Configurar en Vercel → Settings → Environment Variables y redeployar."
+  );
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
