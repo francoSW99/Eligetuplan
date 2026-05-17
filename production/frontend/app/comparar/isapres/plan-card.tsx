@@ -2,110 +2,84 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { Plan, Cobertura } from '@/lib/api';
 import { formatCLP, formatUF } from '@/lib/api';
 
-function CoberturaBlock({
-  titulo,
-  color,
-  data,
-}: {
-  titulo: string;
-  color: string;
-  data: Cobertura[];
-}) {
-  const [expanded, setExpanded] = useState(false);
+function coverageColor(pct: number) {
+  if (pct < 60) return { fg: '#c8401a', bg: 'rgba(200,64,26,0.10)' };
+  if (pct < 80) return { fg: '#d97706', bg: 'rgba(217,119,6,0.10)' };
+  return { fg: '#14dcb4', bg: 'rgba(20,220,180,0.10)' };
+}
 
+function flatClinicas(data: Cobertura[]): string[] {
+  if (!data || data.length === 0) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of data) {
+    for (const clin of c.clinicas) {
+      if (!seen.has(clin)) {
+        seen.add(clin);
+        out.push(clin);
+      }
+    }
+  }
+  return out;
+}
+
+function CoverageBlock({
+  title,
+  data,
+  expanded,
+}: {
+  title: string;
+  data: Cobertura[];
+  expanded: boolean;
+}) {
   if (!data || data.length === 0) {
     return (
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-            {titulo}
-          </span>
-          <span className="text-sm text-slate-400">No disponible</span>
+      <div className="rounded-xl border border-[#0f514b]/8 bg-[#fbf8f3]/60 p-3.5">
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a]">{title}</span>
+          <span className="text-[12px] text-[#5a6b6a]">No disponible</span>
         </div>
       </div>
     );
   }
 
-  const top = data[0];
-  const rest = data.slice(1);
-  const showRest = expanded && rest.length > 0;
+  const pct = data[0].pct;
+  const { fg, bg } = coverageColor(pct);
+  const clinicas = flatClinicas(data);
+  const visibles = expanded ? clinicas : clinicas.slice(0, 2);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-          {titulo}
+    <div className="rounded-xl border border-[#0f514b]/8 bg-[#fbf8f3]/60 p-3.5">
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a]">{title}</span>
+        <span className="text-[15px] font-extrabold tabular-nums" style={{ color: fg }}>
+          {pct}%
         </span>
-        <span className="text-sm font-bold text-slate-700">{top.pct}%</span>
       </div>
-      <div
-        className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-3"
-        aria-label={`Cobertura ${top.pct}%`}
-      >
+      <div className="h-1.5 rounded-full overflow-hidden mb-2.5" style={{ background: bg }}>
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${top.pct}%`, backgroundColor: color }}
+          style={{ width: `${pct}%`, background: fg }}
         />
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {top.clinicas.slice(0, 3).map((c) => (
+      <div className="flex flex-wrap gap-1">
+        {visibles.map((c) => (
           <span
             key={c}
-            className="inline-block text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700"
+            className="inline-block text-[10.5px] px-2 py-0.5 rounded-md bg-white border border-[#0f514b]/8 text-[#5a6b6a] font-medium"
           >
             {c}
           </span>
         ))}
-        {top.clinicas.length > 3 && !expanded && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="text-xs text-[#14dcb4] font-semibold hover:underline"
-          >
-            +{top.clinicas.length - 3} más
-          </button>
+        {!expanded && clinicas.length > 2 && (
+          <span className="inline-block text-[10.5px] px-2 py-0.5 rounded-md text-[#0f9d8a] font-bold">
+            +{clinicas.length - 2}
+          </span>
         )}
       </div>
-      {(rest.length > 0 || top.clinicas.length > 3) && (
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-[#14dcb4] font-semibold hover:underline mt-2"
-        >
-          {expanded ? (
-            <>
-              <ChevronUp className="w-3 h-3" /> Ocultar coberturas
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-3 h-3" /> + coberturas
-            </>
-          )}
-        </button>
-      )}
-      {showRest && (
-        <div className="mt-3 space-y-2 pl-2 border-l-2 border-slate-100">
-          {rest.map((cov, i) => (
-            <div key={i}>
-              <div className="text-xs font-bold text-slate-600 mb-1">{cov.pct}%</div>
-              <div className="flex flex-wrap gap-1.5">
-                {cov.clinicas.map((c) => (
-                  <span
-                    key={c}
-                    className="inline-block text-xs px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-600"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -114,22 +88,39 @@ export default function PlanCard({
   plan,
   onRequestPlan,
   onViewDetails,
+  budgetCLP,
 }: {
   plan: Plan;
   onRequestPlan: (plan: Plan) => void;
   onViewDetails: (plan: Plan) => void;
+  budgetCLP?: number | null;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const fits = !budgetCLP || (plan.price_clp != null && plan.price_clp <= budgetCLP);
+  const totalClinicas =
+    flatClinicas(plan.hospitalaria).length + flatClinicas(plan.ambulatoria).length;
+
   const logoSrc =
     plan.logo_url && plan.logo_url.startsWith('/')
       ? plan.logo_url
       : plan.logo_url || '/logos/placeholder.png';
 
   return (
-    <article className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-5 h-full">
-      <div className="flex h-full flex-col gap-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="relative w-28 h-12 mb-3">
+    <article
+      className={`relative bg-white rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-12px_rgba(15,81,75,0.18)] ${
+        fits ? 'border-[#0f514b]/10 hover:border-[#14dcb4]/40' : 'border-slate-200/60 opacity-75'
+      }`}
+    >
+      {!fits && budgetCLP && (
+        <div className="absolute -top-2.5 right-5 px-2.5 py-1 rounded-full text-[10.5px] font-bold tracking-[0.12em] uppercase bg-amber-100 text-amber-800 border border-amber-200 shadow-sm z-10">
+          Fuera de tu 7%
+        </div>
+      )}
+
+      <div className="p-5 md:p-6 flex flex-col gap-4 h-full">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="h-10 w-28 mb-2.5 relative">
               <Image
                 src={logoSrc}
                 alt={plan.isapre_name}
@@ -138,63 +129,90 @@ export default function PlanCard({
                 sizes="112px"
               />
             </div>
-            <h3 className="font-bold text-sm text-slate-800 uppercase leading-tight mb-1">
+            <h3 className="font-bold text-[14px] text-[#0f514b] uppercase leading-tight mb-1 tracking-tight">
               {plan.name}
             </h3>
-            {plan.codigo_plan && (
-              <p className="text-xs text-slate-400 font-mono break-all">{plan.codigo_plan}</p>
-            )}
-            {plan.modalidad && (
-              <span className="inline-block mt-2 text-xs font-semibold text-[#14dcb4] bg-[#14dcb4]/10 px-2 py-0.5 rounded-full w-fit">
-                {plan.modalidad}
-              </span>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {plan.codigo_plan && (
+                <span className="text-[10.5px] text-[#5a6b6a] font-mono">{plan.codigo_plan}</span>
+              )}
+              {plan.modalidad && (
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-md bg-[#14dcb4]/12 text-[#0f9d8a]">
+                  {plan.modalidad}
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-[#0f514b]/5 border border-[#0f514b]/10 px-4 py-3 sm:min-w-[150px] sm:text-right">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">
+          <div className="shrink-0 text-right">
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-0.5">
               Precio base
             </div>
-            <div className="text-2xl font-extrabold text-[#0f514b] leading-none">
-              {formatUF(plan.base_plan_uf ?? plan.price_uf)} UF
+            <div className="text-[22px] font-extrabold text-[#0f514b] leading-none tabular-nums tracking-tight">
+              UF {formatUF(plan.base_plan_uf ?? plan.price_uf)}
             </div>
-            <div className="text-sm text-slate-500 mt-1">
-              {formatCLP(plan.price_clp)} / mes
+            <div className="text-[12px] text-[#5a6b6a] mt-1 tabular-nums">
+              {formatCLP(plan.price_clp)} <span className="text-[#5a6b6a]/65">/mes</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-            <CoberturaBlock titulo="Hospitalaria" color="#f97316" data={plan.hospitalaria} />
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-            <CoberturaBlock titulo="Ambulatoria" color="#f97316" data={plan.ambulatoria} />
-          </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <CoverageBlock title="Hospitalaria" data={plan.hospitalaria} expanded={expanded} />
+          <CoverageBlock title="Ambulatoria" data={plan.ambulatoria} expanded={expanded} />
         </div>
 
-        <div className="mt-auto grid grid-cols-1 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
+        {totalClinicas > 4 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="self-start inline-flex items-center gap-1 text-[12px] font-semibold text-[#0f9d8a] hover:underline"
+          >
+            <svg
+              className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+            {expanded ? 'Ocultar clínicas' : 'Ver todas las clínicas'}
+          </button>
+        )}
+
+        <div className="mt-auto pt-4 border-t border-[#0f514b]/8 grid grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={() => onRequestPlan(plan)}
-            className="text-center bg-[linear-gradient(135deg,#14dcb4,#0f9d8a)] hover:brightness-105 text-white text-sm font-bold py-2.5 rounded-lg transition-all shadow-[0_10px_24px_rgba(20,220,180,0.24)]"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f514b] font-bold text-[12.5px] shadow-[0_8px_18px_rgba(20,220,180,0.3)] hover:-translate-y-0.5 transition-all uppercase tracking-[0.08em]"
           >
-            SOLICITAR PLAN
+            Solicitar plan
           </button>
           {plan.pdf_url ? (
             <button
               type="button"
               onClick={() => onViewDetails(plan)}
-              className="flex items-center justify-center gap-1.5 border border-slate-300 hover:border-[#14dcb4] hover:text-[#14dcb4] text-slate-700 text-sm font-bold py-2.5 rounded-lg transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] font-bold text-[12.5px] hover:bg-[#0f514b]/[0.03] hover:border-[#0f514b]/30 transition-all uppercase tracking-[0.08em] flex items-center justify-center gap-1.5"
             >
-              <FileText className="w-4 h-4" /> VER DETALLES
+              <svg
+                className="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              Ver PDF
             </button>
           ) : (
             <button
               disabled
-              className="flex items-center justify-center gap-1.5 border border-slate-200 text-slate-400 text-sm font-bold py-2.5 rounded-lg cursor-not-allowed"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-400 font-bold text-[12.5px] cursor-not-allowed uppercase tracking-[0.08em] flex items-center justify-center gap-1.5"
             >
-              <FileText className="w-4 h-4" /> Sin PDF
+              Sin PDF
             </button>
           )}
         </div>

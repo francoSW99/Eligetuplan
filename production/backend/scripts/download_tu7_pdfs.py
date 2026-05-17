@@ -11,6 +11,7 @@ Destino: test/backend/.cache/pdfs/{PDF_PLAN}
 Idempotente: salta archivos ya descargados (a menos que --force).
 Al terminar actualiza planes.pdf_local_path en Supabase.
 """
+
 import argparse
 import concurrent.futures
 import logging

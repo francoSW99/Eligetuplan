@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { getIsapres, getPlanes, getZonas, getPrestadores } from '@/lib/api';
 import type { PlansQuery } from '@/lib/api';
+import PageHeader from '@/components/comparar/page-header';
 import IsapresClient from './isapres-client';
 
 function parseIntParam(value?: string): number | undefined {
@@ -38,17 +39,25 @@ export default async function CompararIsapresPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const params = await searchParams;
-  const [isapres, zonas, prestadores, plans] = await Promise.all([
+  const hasFilters = Object.keys(params).length > 0;
+  const [isapres, zonas, prestadores, plans, totalsResp] = await Promise.all([
     getIsapres(),
     getZonas(),
     getPrestadores(),
     getPlanes(parseFilters(params)),
+    hasFilters ? getPlanes({ limit: 1 }) : Promise.resolve(null),
   ]);
+
+  const totalGlobal = totalsResp?.total ?? plans.total;
 
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
+      <PageHeader
+        totalShowing={plans.items.length}
+        totalFiltered={plans.total}
+        totalGlobal={totalGlobal}
+      />
 
-      {/* Client interactive shell */}
       <IsapresClient
         initialIsapres={isapres}
         initialZonas={zonas}
@@ -56,7 +65,7 @@ export default async function CompararIsapresPage({
         initialData={plans}
       />
 
-      {/* CTA Bottom — matching home FinalCta style */}
+      {/* CTA Bottom */}
       <section className="bg-[#fbf8f3] px-5 md:px-8 pt-6 pb-16 md:pt-10 md:pb-24">
         <div className="max-w-6xl mx-auto">
           <div

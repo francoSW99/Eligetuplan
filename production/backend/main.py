@@ -770,6 +770,16 @@ class ZonaItem(BaseModel):
     plan_count: int = 0
 
 
+class PrestadorItem(BaseModel):
+    id: str
+    tu7_id_prestador: Optional[int] = None
+    name: str
+    logo_filename: Optional[str] = None
+    zonas: Optional[list[int]] = None
+    cubre_hospitalaria: bool = True
+    cubre_ambulatoria: bool = True
+
+
 # ── Constantes / helpers ──────────────────────────────────────────────────────
 
 # Isapres activas en 2026
@@ -787,8 +797,8 @@ ZONA_MAP: dict[int, str] = {
 }
 
 # Valor UF en CLP para conversión precio UF → pesos mensuales.
-# Configurable vía env var UF_VALUE_CLP. Default: UF oficial abril 2026 ≈ $39,987.
-UF_VALUE_CLP = int(os.getenv("UF_VALUE_CLP", "39987"))
+# Configurable vía env var UF_VALUE_CLP. Default: UF oficial 17 may 2026 ≈ $40,374.
+UF_VALUE_CLP = int(os.getenv("UF_VALUE_CLP", "40374"))
 
 # Base URL para servir PDFs descargados
 PDF_BASE_URL = os.getenv("PDF_BASE_URL", "http://localhost:8000") + "/pdfs"
@@ -929,9 +939,6 @@ def _build_plan_item(row: dict) -> PlanListItem:
     )
 
 
-import random as _random
-
-
 def _interleaved_plan_list(plans: list["PlanListItem"], sort: str, page_size: int) -> list["PlanListItem"]:
     """Distribute Consalud plans at top/middle/bottom of each page.
 
@@ -962,10 +969,7 @@ def _interleaved_plan_list(plans: list["PlanListItem"], sort: str, page_size: in
         return (price, name_val, p.id)
 
     priority_plans.sort(key=_secondary)
-
-    # Deterministic shuffle for other plans → "al azar"
-    rng = _random.Random(42)
-    rng.shuffle(other_plans)
+    other_plans.sort(key=_secondary)
 
     total = len(priority_plans) + len(other_plans)
     result: list[Optional["PlanListItem"]] = [None] * total  # type: ignore[name-defined]
@@ -1358,6 +1362,59 @@ def list_prestadores():
 
     result = sorted(prestadores, key=lambda s: s.lower())
     _PRESTADORES_CACHE.set("all", result)
+    return result
+
+
+# ── GET /api/v1/prestadores/v2 ───────────────────────────────────────────────
+# Devuelve los 71 prestadores oficiales (tabla clinicas, populada vía sync_tu7_prestadores).
+# A diferencia del endpoint v1, expone metadata estructurada: id, logo, zonas, flags.
+
+_PRESTADORES_V2_CACHE = _TTLCache(ttl=3600)
+
+
+@app.get("/api/v1/prestadores/v2", response_model=list[PrestadorItem])
+def list_prestadores_v2():
+    """Lista de prestadores oficiales con metadata enriquecida."""
+    cached = _PRESTADORES_V2_CACHE.get("all")
+    if cached is not None:
+        return cached
+
+    if not supabase:
+        return []
+
+    rows = (
+        supabase.table("clinicas")
+        .select("id,tu7_id_prestador,name,logo_filename,zonas,cubre_hospitalaria,cubre_ambulatoria,visible")
+        .eq("visible", True)
+        .not_.is_("tu7_id_prestador", "null")
+        .order("name")
+        .execute()
+        .data
+        or []
+    )
+
+    result: list[PrestadorItem] = []
+    for r in rows:
+        zonas_csv = r.get("zonas")
+        zonas_list: Optional[list[int]] = None
+        if zonas_csv:
+            try:
+                zonas_list = [int(z.strip()) for z in zonas_csv.split(",") if z.strip()]
+            except ValueError:
+                zonas_list = None
+        result.append(
+            PrestadorItem(
+                id=r["id"],
+                tu7_id_prestador=r.get("tu7_id_prestador"),
+                name=r["name"],
+                logo_filename=r.get("logo_filename"),
+                zonas=zonas_list,
+                cubre_hospitalaria=bool(r.get("cubre_hospitalaria", True)),
+                cubre_ambulatoria=bool(r.get("cubre_ambulatoria", True)),
+            )
+        )
+
+    _PRESTADORES_V2_CACHE.set("all", result)
     return result
 
 
