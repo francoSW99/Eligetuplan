@@ -1,0 +1,1224 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Auditoría UX/UI · EligeTuPlan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --teal:#0f514b;
+    --teal-deep:#092e2a;
+    --teal-deeper:#06201d;
+    --mint:#14dcb4;
+    --mint-soft:#a8f0e0;
+    --cream:#f5f0e8;
+    --paper:#fbf8f3;
+    --ink:#1e2a2a;
+    --ink-soft:#4a5757;
+    --line:rgba(15,81,75,0.12);
+    --line-strong:rgba(15,81,75,0.22);
+    --critical:#c8401a;
+    --high:#d97706;
+    --medium:#0f9d8a;
+    --low:#475569;
+    --quick:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:'Poppins',system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    line-height:1.55;
+  }
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+  .serif{font-family:'Fraunces',serif;font-style:italic}
+
+  /* ===== Top bar ===== */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(251,248,243,.85);
+    backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:1240px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 32px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--teal);font-size:14px;letter-spacing:-.01em}
+  .brand-dot{width:10px;height:10px;border-radius:99px;background:var(--mint);box-shadow:0 0 0 4px rgba(20,220,180,.18)}
+  .topbar-meta{display:flex;gap:24px;font-size:12px;color:var(--ink-soft);font-weight:500}
+  .topbar-meta strong{color:var(--teal);font-weight:700}
+
+  /* ===== Layout ===== */
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  .grid-toc{display:grid;grid-template-columns:240px 1fr;gap:64px;align-items:start}
+  @media (max-width:960px){.grid-toc{grid-template-columns:1fr;gap:32px}}
+
+  /* ===== Hero ===== */
+  .hero{
+    position:relative;overflow:hidden;
+    background:linear-gradient(165deg,var(--teal) 0%,var(--teal-deep) 60%,var(--teal-deeper) 100%);
+    color:#fff;
+    padding:96px 32px 120px;
+    margin-bottom:96px;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 85% 10%, rgba(20,220,180,.22) 0%, transparent 45%),
+      radial-gradient(circle at 5% 90%, rgba(20,220,180,.10) 0%, transparent 50%);
+    pointer-events:none;
+  }
+  .hero::after{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:48px 48px;
+    pointer-events:none;
+    mask-image:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);
+  }
+  .hero-inner{position:relative;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr;gap:64px;align-items:end}
+  @media (max-width:880px){.hero-inner{grid-template-columns:1fr}}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--mint);
+    padding:7px 14px;border-radius:99px;
+    background:rgba(20,220,180,.12);
+    border:1px solid rgba(20,220,180,.32);
+    margin-bottom:24px;
+  }
+  .eyebrow .ping{width:6px;height:6px;border-radius:99px;background:var(--mint);animation:ping 1.8s infinite}
+  @keyframes ping{0%,100%{opacity:1}50%{opacity:.35}}
+  .hero h1{
+    font-size:clamp(40px,5.5vw,68px);
+    line-height:1.02;letter-spacing:-.028em;
+    font-weight:800;margin:0 0 20px;
+    text-wrap:balance;
+  }
+  .hero h1 em{color:var(--mint);font-style:normal}
+  .hero .sub{
+    font-size:17px;line-height:1.55;
+    color:rgba(255,255,255,.72);
+    max-width:560px;margin:0 0 36px;
+  }
+  .meta-strip{
+    display:flex;gap:0;flex-wrap:wrap;
+    border-top:1px solid rgba(255,255,255,.12);
+    padding-top:24px;
+  }
+  .meta-strip > div{flex:1;min-width:130px;padding-right:24px;border-right:1px solid rgba(255,255,255,.08)}
+  .meta-strip > div:last-child{border-right:none}
+  .meta-strip dt{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:6px}
+  .meta-strip dd{margin:0;font-size:14px;font-weight:600;color:#fff}
+
+  /* Score card */
+  .scorecard{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(20,220,180,.2);
+    border-radius:24px;
+    padding:32px;
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+  }
+  .score-label{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--mint);margin-bottom:16px}
+  .score-big{
+    display:flex;align-items:baseline;gap:6px;
+    font-weight:800;color:#fff;
+    margin-bottom:24px;
+  }
+  .score-big .num{font-size:88px;line-height:.85;letter-spacing:-.04em}
+  .score-big .den{font-size:24px;color:rgba(255,255,255,.4);font-weight:600}
+  .score-bars{display:flex;flex-direction:column;gap:14px}
+  .score-row{display:grid;grid-template-columns:110px 1fr 36px;gap:12px;align-items:center;font-size:12px}
+  .score-row label{color:rgba(255,255,255,.7);font-weight:500}
+  .score-row .bar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+  .score-row .fill{height:100%;background:linear-gradient(90deg,var(--mint),#0f9d8a);border-radius:99px}
+  .score-row .pct{text-align:right;color:#fff;font-weight:700}
+
+  /* ===== TOC sticky ===== */
+  .toc{
+    position:sticky;top:96px;
+    padding:24px 0;
+    font-size:13px;
+  }
+  .toc-title{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px}
+  .toc ol{list-style:none;padding:0;margin:0;counter-reset:toc;display:flex;flex-direction:column;gap:2px}
+  .toc li{counter-increment:toc;position:relative}
+  .toc a{
+    display:flex;gap:12px;align-items:baseline;
+    padding:8px 0;
+    color:var(--ink-soft);text-decoration:none;
+    border-left:2px solid transparent;
+    padding-left:14px;margin-left:-16px;
+    transition:all .2s;
+    line-height:1.4;
+  }
+  .toc a::before{
+    content:counter(toc,decimal-leading-zero);
+    font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mint);font-weight:600;
+    min-width:18px;
+  }
+  .toc a:hover{color:var(--teal);border-left-color:var(--mint)}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  .section-head{margin-bottom:48px}
+  .section-num{
+    display:inline-block;font-family:'JetBrains Mono',monospace;
+    font-size:11px;font-weight:600;color:var(--mint);letter-spacing:.18em;
+    margin-bottom:12px;
+  }
+  .section-num::before{content:"§ ";color:var(--ink-soft)}
+  .section-head h2{
+    font-size:clamp(28px,3.4vw,42px);line-height:1.05;letter-spacing:-.025em;
+    font-weight:800;color:var(--teal);margin:0 0 14px;text-wrap:balance;
+  }
+  .section-head p{font-size:16px;color:var(--ink-soft);max-width:640px;margin:0}
+
+  /* ===== Issue cards ===== */
+  .issues{display:flex;flex-direction:column;gap:20px}
+  .issue{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:24px 28px;
+    transition:box-shadow .2s, border-color .2s;
+  }
+  .issue:hover{border-color:var(--line-strong);box-shadow:0 12px 36px -16px rgba(15,81,75,.18)}
+  .issue-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    margin-bottom:14px;
+  }
+  .issue-head h3{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:700;color:var(--teal);margin:0;flex:1}
+  .badge{
+    font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    padding:5px 10px;border-radius:99px;white-space:nowrap;
+    border:1px solid currentColor;
+  }
+  .b-crit{color:var(--critical);background:rgba(200,64,26,.06)}
+  .b-high{color:var(--high);background:rgba(217,119,6,.06)}
+  .b-med{color:var(--medium);background:rgba(15,157,138,.08)}
+  .b-low{color:var(--low);background:rgba(71,85,105,.06)}
+  .b-quick{color:var(--quick);background:rgba(124,58,237,.06)}
+
+  .issue p{margin:0 0 12px;font-size:14.5px;color:var(--ink);line-height:1.6}
+  .issue p:last-child{margin-bottom:0}
+  .issue .fix{
+    display:flex;gap:10px;align-items:flex-start;
+    margin-top:14px;padding:14px 16px;
+    background:linear-gradient(135deg,rgba(20,220,180,.07),rgba(20,220,180,.02));
+    border-left:3px solid var(--mint);
+    border-radius:0 12px 12px 0;
+  }
+  .fix-tag{
+    font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--teal);
+    background:var(--mint);
+    padding:3px 8px;border-radius:6px;
+    flex-shrink:0;margin-top:2px;
+  }
+  .fix p{font-size:14px;color:var(--teal);margin:0;font-weight:500}
+
+  .code{
+    display:block;
+    background:var(--teal-deeper);color:#a8f0e0;
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.55;
+    padding:14px 16px;border-radius:10px;
+    margin:12px 0;
+    overflow-x:auto;
+    border:1px solid rgba(20,220,180,.18);
+  }
+  .code .c{color:rgba(168,240,224,.45)}
+  .code .k{color:#ffb86b}
+  .code .s{color:#ffeb95}
+
+  .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{
+    font-size:11px;font-weight:600;
+    padding:3px 9px;border-radius:99px;
+    background:rgba(15,81,75,.06);color:var(--teal);
+    border:1px solid var(--line);
+  }
+
+  /* ===== Quick wins ===== */
+  .quickwins{
+    background:#fff;border:1px solid var(--line);border-radius:24px;
+    padding:32px;margin-bottom:24px;
+  }
+  .quickwins h3{
+    font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--quick);margin:0 0 18px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .quickwins h3::before{content:"⚡";font-size:14px}
+  .quickwins ol{margin:0;padding-left:0;list-style:none;counter-reset:qw;display:flex;flex-direction:column;gap:14px}
+  .quickwins li{counter-increment:qw;display:grid;grid-template-columns:36px 1fr;gap:14px;align-items:start;padding-bottom:14px;border-bottom:1px dashed var(--line)}
+  .quickwins li:last-child{border-bottom:none;padding-bottom:0}
+  .quickwins li::before{
+    content:counter(qw,decimal-leading-zero);
+    font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;
+    color:var(--quick);
+    background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.22);
+    width:32px;height:32px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .qw-title{font-size:15px;font-weight:700;color:var(--teal);margin:0 0 4px;line-height:1.3}
+  .qw-desc{font-size:13px;color:var(--ink-soft);margin:0;line-height:1.55}
+
+  /* ===== Stats heatmap ===== */
+  .heatmap{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:6px;
+    margin:24px 0 8px;
+  }
+  .hmap-cell{
+    aspect-ratio:1.7/1;border-radius:6px;
+    display:flex;flex-direction:column;justify-content:space-between;padding:8px 10px;
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  }
+  .hmap-cell .v{font-size:14px;letter-spacing:-.01em}
+  .hm-good{background:rgba(20,220,180,.12);color:#0f9d8a;border:1px solid rgba(20,220,180,.3)}
+  .hm-mid{background:rgba(217,119,6,.10);color:#a86604;border:1px solid rgba(217,119,6,.28)}
+  .hm-bad{background:rgba(200,64,26,.10);color:#a4321a;border:1px solid rgba(200,64,26,.28)}
+  @media (max-width:680px){.heatmap{grid-template-columns:repeat(3,1fr)}}
+
+  /* ===== Roadmap ===== */
+  .roadmap{
+    background:var(--teal);color:#fff;
+    border-radius:32px;
+    padding:56px 48px;
+    margin:64px 0;
+    position:relative;overflow:hidden;
+  }
+  .roadmap::before{
+    content:"";position:absolute;top:-30%;right:-10%;width:500px;height:500px;
+    background:radial-gradient(circle,rgba(20,220,180,.15) 0%,transparent 60%);
+    pointer-events:none;
+  }
+  .roadmap h2{font-size:34px;color:#fff;margin:0 0 32px;position:relative;font-weight:800;letter-spacing:-.02em}
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative}
+  @media (max-width:880px){.phases{grid-template-columns:1fr}}
+  .phase{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(20,220,180,.18);
+    border-radius:20px;padding:24px;
+  }
+  .phase-num{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);margin-bottom:8px}
+  .phase h3{font-size:20px;color:#fff;margin:0 0 6px;font-weight:700}
+  .phase .when{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px;font-weight:500}
+  .phase ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+  .phase li{font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.5;padding-left:18px;position:relative}
+  .phase li::before{content:"→";position:absolute;left:0;color:var(--mint);font-weight:700}
+
+  /* ===== Footer ===== */
+  footer{
+    padding:48px 32px 64px;
+    background:var(--teal-deeper);color:rgba(255,255,255,.55);
+    text-align:center;font-size:13px;
+  }
+  footer strong{color:#fff;font-weight:600}
+  footer a{color:var(--mint);text-decoration:none}
+
+  /* ===== Misc ===== */
+  .pull{
+    border-left:3px solid var(--mint);
+    padding:6px 0 6px 20px;
+    margin:24px 0;
+    font-family:'Fraunces',serif;
+    font-size:20px;font-style:italic;
+    color:var(--teal);
+    line-height:1.45;
+    font-weight:500;
+  }
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media (max-width:760px){.twocol{grid-template-columns:1fr}}
+  .callout{
+    background:linear-gradient(180deg,#fff,rgba(20,220,180,.04));
+    border:1px solid var(--line);border-radius:20px;
+    padding:24px;
+  }
+  .callout h4{margin:0 0 8px;color:var(--teal);font-size:15px;font-weight:700}
+  .callout p{margin:0;color:var(--ink-soft);font-size:13.5px;line-height:1.6}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;
+    font-size:11px;font-weight:600;letter-spacing:.04em;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;border:1px solid var(--line)}
+  .legend i{width:8px;height:8px;border-radius:99px;display:inline-block}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="brand-dot"></span> AUDITORÍA · ELIGETUPLAN</div>
+    <div class="topbar-meta">
+      <span>Frontend: <strong>Next.js 16 · React 19</strong></span>
+      <span>Fecha: <strong>13 mayo 2026</strong></span>
+      <span>Ámbito: <strong>UX + UI + Conversión</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- =================== HERO =================== -->
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow"><span class="ping"></span> Auditoría UX/UI · Versión 1</div>
+      <h1>Una base sólida que <em>filtra bien</em>, pero deja conversión sobre la mesa.</h1>
+      <p class="sub">EligeTuPlan tiene una identidad visual madura y una arquitectura técnica moderna. La oportunidad real está en simplificar la primera decisión del usuario, ajustar la jerarquía de filtros y cerrar varios huecos de accesibilidad y confianza que hoy frenan la conversión.</p>
+      <dl class="meta-strip">
+        <div><dt>Páginas auditadas</dt><dd>6 + 2 modales</dd></div>
+        <div><dt>Componentes</dt><dd>10 UI</dd></div>
+        <div><dt>Hallazgos</dt><dd>34 puntos</dd></div>
+        <div><dt>Quick wins</dt><dd>8 acciones</dd></div>
+      </dl>
+    </div>
+
+    <aside class="scorecard">
+      <div class="score-label">Salud general del producto</div>
+      <div class="score-big"><span class="num">72</span><span class="den">/ 100</span></div>
+      <div class="score-bars">
+        <div class="score-row"><label>Visual / Brand</label><div class="bar"><div class="fill" style="width:85%"></div></div><div class="pct">85</div></div>
+        <div class="score-row"><label>UX flujo</label><div class="bar"><div class="fill" style="width:68%"></div></div><div class="pct">68</div></div>
+        <div class="score-row"><label>Conversión</label><div class="bar"><div class="fill" style="width:62%"></div></div><div class="pct">62</div></div>
+        <div class="score-row"><label>Accesibilidad</label><div class="bar"><div class="fill" style="width:58%"></div></div><div class="pct">58</div></div>
+        <div class="score-row"><label>Performance</label><div class="bar"><div class="fill" style="width:74%"></div></div><div class="pct">74</div></div>
+        <div class="score-row"><label>Confianza</label><div class="bar"><div class="fill" style="width:70%"></div></div><div class="pct">70</div></div>
+      </div>
+    </aside>
+  </div>
+</header>
+
+<!-- =================== TOC + CONTENT =================== -->
+<div class="wrap">
+  <div class="grid-toc">
+
+    <!-- ====== TOC ====== -->
+    <nav class="toc">
+      <p class="toc-title">Contenido</p>
+      <ol>
+        <li><a href="#exec">Resumen ejecutivo</a></li>
+        <li><a href="#quickwins">Quick wins (1 día)</a></li>
+        <li><a href="#home">Home / landing</a></li>
+        <li><a href="#compare">Comparar planes</a></li>
+        <li><a href="#quiz">Tu mejor plan (IA)</a></li>
+        <li><a href="#lead">Formulario de captura</a></li>
+        <li><a href="#nav">Navegación e IA</a></li>
+        <li><a href="#trust">Confianza y prueba social</a></li>
+        <li><a href="#a11y">Accesibilidad</a></li>
+        <li><a href="#perf">Performance y SEO</a></li>
+        <li><a href="#brand">Sistema visual</a></li>
+        <li><a href="#code">Calidad de código</a></li>
+        <li><a href="#roadmap">Roadmap propuesto</a></li>
+      </ol>
+      <div class="legend">
+        <span><i style="background:var(--critical)"></i>Crítico</span>
+        <span><i style="background:var(--high)"></i>Alto</span>
+        <span><i style="background:var(--medium)"></i>Medio</span>
+        <span><i style="background:var(--low)"></i>Bajo</span>
+      </div>
+    </nav>
+
+    <!-- ====== MAIN ====== -->
+    <main>
+
+      <!-- ============ EXEC SUMMARY ============ -->
+      <section id="exec" style="padding-top:32px">
+        <div class="section-head">
+          <span class="section-num">00 · Resumen ejecutivo</span>
+          <h2>Lo que está bien, lo que duele y dónde está el dinero.</h2>
+          <p>El sitio se siente premium y la paleta teal/mint es un acierto en un mercado dominado por azules genéricos. Sin embargo, hay tres áreas donde el producto pierde usuarios calificados antes del lead.</p>
+        </div>
+
+        <div class="pull">"El usuario llega buscando claridad sobre planes de salud y aterriza en una página que le ofrece tres caminos sin decirle cuál tomar. Esa indecisión es el primer escape."</div>
+
+        <div class="twocol">
+          <div class="callout">
+            <h4>✓ Fortalezas que hay que mantener</h4>
+            <p>Paleta teal/mint coherente, sistema de iconografía Lucide consistente, Hero con slideshow elegante, filtros bien implementados con debounce y URL-state, calculadora del 7% legal (gran feature), modal de PDF embebido, WhatsApp FAB.</p>
+          </div>
+          <div class="callout">
+            <h4>⚠ Las 3 áreas con mayor ROI</h4>
+            <p><strong>1. Jerarquía de filtros</strong> — hoy son 7 cards verticales que abruman.<br><strong>2. Datos contradictorios</strong> — "500+ planes" vs "1.854+" en la misma página.<br><strong>3. Funnel difuso</strong> — 3 CTAs compiten en el hero sin priorización clara.</p>
+          </div>
+        </div>
+
+        <div class="heatmap" aria-label="Heatmap de áreas auditadas">
+          <div class="hmap-cell hm-good"><span>Visual</span><span class="v">85</span></div>
+          <div class="hmap-cell hm-good"><span>Tipografía</span><span class="v">82</span></div>
+          <div class="hmap-cell hm-good"><span>Hero</span><span class="v">80</span></div>
+          <div class="hmap-cell hm-mid"><span>IA / Nav</span><span class="v">65</span></div>
+          <div class="hmap-cell hm-mid"><span>Compare</span><span class="v">66</span></div>
+          <div class="hmap-cell hm-mid"><span>Quiz IA</span><span class="v">62</span></div>
+          <div class="hmap-cell hm-mid"><span>Lead form</span><span class="v">68</span></div>
+          <div class="hmap-cell hm-mid"><span>Confianza</span><span class="v">60</span></div>
+          <div class="hmap-cell hm-bad"><span>A11y</span><span class="v">58</span></div>
+          <div class="hmap-cell hm-mid"><span>Mobile</span><span class="v">64</span></div>
+          <div class="hmap-cell hm-bad"><span>Estados error</span><span class="v">52</span></div>
+          <div class="hmap-cell hm-mid"><span>Copy</span><span class="v">70</span></div>
+        </div>
+      </section>
+
+      <!-- ============ QUICK WINS ============ -->
+      <section id="quickwins">
+        <div class="section-head">
+          <span class="section-num">01 · Quick wins</span>
+          <h2>8 cambios que puedes hacer en un día y que mueven la aguja.</h2>
+          <p>Ordenados por impacto/esfuerzo. Cada uno tarda entre 15 minutos y 2 horas y no requiere rediseñar nada.</p>
+        </div>
+
+        <div class="quickwins">
+          <h3>Lista priorizada</h3>
+          <ol>
+            <li>
+              <div>
+                <p class="qw-title">Unificar el número de planes en toda la web</p>
+                <p class="qw-desc">El hero dice <em>"más de 500 planes"</em>, las estadísticas dicen <em>"1.854+ planes activos"</em>, el FAQ dice <em>"más de 500"</em>. Es una contradicción visible que daña la credibilidad. Elige uno (probablemente 1.854) y úsalo siempre.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Arreglar la "Política de Privacidad" — hoy es un botón muerto</p>
+                <p class="qw-desc">En el footer es un <code class="mono">&lt;button&gt;</code> sin handler. Para un comparador que recibe RUT, correo y teléfono, no tener política de privacidad funcional es un problema legal en Chile (Ley 21.719).</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Quitar el doble CTA redundante del menú móvil</p>
+                <p class="qw-desc">El menú móvil tiene "Comparar Planes" como primer item y <em>también</em> un botón gigante "Comparar Planes Ahora" abajo. Mismo destino. Borra uno.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Validar formato real de RUT y teléfono en el formulario</p>
+                <p class="qw-desc">Hoy solo valida <em>not-empty</em>. Un RUT chileno tiene módulo 11 y un teléfono debe empezar con +56 9. Vas a recibir leads basura. Hay librerías de 1KB para esto.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Llevar la calculadora del 7% al home</p>
+                <p class="qw-desc">Es tu feature diferenciadora más fuerte y hoy está escondida como primer card del sidebar de filtros. Llévala al home (sobre el slider de Isapres) como mini-widget. Es el gancho perfecto.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Logo de Esencial y Fonasa: ahora muestran tu propio logo</p>
+                <p class="qw-desc">En <code class="mono">tu-mejor-plan/page.tsx</code> ambos mapean a <code class="mono">/logos/mamag.png</code> (tu logo) como fallback. Si el resultado recomienda un plan Esencial, verá el logo de EligeTuPlan — confuso y poco profesional.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Renombrar "Completado" en el quiz a "Tu resultado"</p>
+                <p class="qw-desc">El stepper de 3 pasos termina diciendo "Completado", lo que sugiere que el usuario ya terminó — antes de ver los resultados. Cambia a "Tu resultado" o "Recomendación".</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <p class="qw-title">Detener el "ping" infinito del FAB de WhatsApp tras 5 segundos</p>
+                <p class="qw-desc">La animación <code class="mono">@keyframes wsp-ping</code> corre indefinidamente. Es agresiva en lectura larga, drena batería en mobile y compite con el contenido. Detenla tras 5s o tras primer scroll.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ============ HOME ============ -->
+      <section id="home">
+        <div class="section-head">
+          <span class="section-num">02 · Home / landing</span>
+          <h2>Hero potente, pero el resto no decide por el usuario.</h2>
+          <p>El usuario aterriza con tres opciones idénticas en peso visual ("comparar", "IA", "asesor"). La página debería contar una historia con una decisión primaria.</p>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Tres CTAs compiten sin jerarquía clara</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>En el hero, navbar y sección "3 caminos · 1 plan ideal" se ofrecen tres rutas iguales: Comparar / IA / Asesor. Sin un camino dominante, el usuario indeciso simplemente se va. Solo el botón primario del hero ("Comparar Planes Ahora") destaca, pero el resto del flujo no refuerza esa elección.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Define una ruta primaria (probablemente <strong>"Encuentra tu mejor plan con IA"</strong>, porque es lo más diferenciador) y degrada visualmente las otras dos: una como botón secundario, otra como link de texto. En la sección de 3 caminos: agranda el card #2 (IA) un 30% y reduce los otros.</p></div>
+            <div class="tag-row"><span class="tag">UX</span><span class="tag">Conversión</span><span class="tag">Hero + Features</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Números contradictorios: 500+ vs 1.854+</h3>
+              <span class="badge b-crit">Crítico</span>
+            </div>
+            <p>El subtítulo del hero dice <em>"Comparamos más de 500 planes vigentes"</em>. La sección de estadísticas, 2 secciones más abajo, dice <em>"1.854+ Planes activos"</em>. El FAQ también dice "500+". Un usuario mínimamente atento lo nota.</p>
+            <div class="code"><span class="c">// pulse-fit-hero.tsx — subtitle</span><br>"Comparamos más de <span class="s">500 planes</span> vigentes..."<br><span class="c">// page.tsx — STATS</span><br>{ value: <span class="s">"1.854"</span>, label: <span class="s">"Planes activos"</span>, suffix: <span class="s">"+"</span> }</div>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Usa siempre el dato real: <strong>"más de 1.800 planes"</strong>. Mejor aún: muestra el conteo en tiempo real desde la API en el hero (ya tienes el endpoint <code class="mono">getPlanes</code> con <code class="mono">total</code>).</p></div>
+            <div class="tag-row"><span class="tag">Copy</span><span class="tag">Confianza</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>"100%" como sufijo en estadísticas se lee raro</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>El stat dice <strong>100%</strong> + label <em>"En línea y gratis"</em>. Resulta <em>"100% En línea y gratis"</em> visualmente, pero el "100%" sin objeto modificado no encaja con los otros tres stats (que son cantidades).</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Reemplaza ese stat por algo cuantificable: <strong>"24h"</strong> tiempo de respuesta del asesor, o <strong>"7"</strong> Isapres comparadas (consistente con el slider). Mueve "100% gratis" al header del bloque como kicker.</p></div>
+            <div class="tag-row"><span class="tag">Microcopy</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Testimonio único con avatar de iniciales</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>"Carolina M., Profesora, 38 años" con un círculo gradient de iniciales "CM". Un solo testimonio + avatar generado por iniciales se lee como placeholder o como reseña inventada. En un mercado regulado donde la confianza lo es todo, esto resta más de lo que suma.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Tres opciones, en orden de preferencia: <strong>(a)</strong> Consigue 3 testimonios reales con foto y autorización. <strong>(b)</strong> Reemplaza la sección por logos/insignias: "Datos auditados por Superintendencia de Salud · Tecnología certificada · 24h de respuesta". <strong>(c)</strong> Elimina la sección — un solo testimonio sin foto resta credibilidad.</p></div>
+            <div class="tag-row"><span class="tag">Confianza</span><span class="tag">Social proof</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>El slider de Isapres se ve "apagado" (opacity 70)</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Los 7 logos están a <code class="mono">opacity-70</code> con hover a 100%. Visualmente parece que esas Isapres "no participan" o el módulo está en estado deshabilitado. En un comparador, lo que quieres comunicar es <em>"todas estas marcas están vivas en nuestra base"</em>, no que están atenuadas.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Sube a <code class="mono">opacity-90</code> base y agrega un sutil grayscale solo en hover-out. O mejor: pon los logos a 100% color y agrega un mini-contador bajo cada uno: <em>"Banmédica · 312 planes"</em>.</p></div>
+            <div class="tag-row"><span class="tag">Visual</span><span class="tag">Confianza</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>"Tu plan ideal está a 2 minutos" es optimista</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>El quiz <code class="mono">tu-mejor-plan</code> tiene 2 pasos densos: plan actual, perfil del titular, carga(s), sueldo, región, email. Un usuario promedio tarda 4-6 minutos, no 2. Esto crea expectativa rota.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Cambia a <strong>"Tu plan ideal en menos de 5 minutos"</strong> o sé valiente y agrega un timer en el quiz que cuenta hacia atrás. Si quieres mantener "2 minutos", entonces realmente reduce el quiz a 4 campos esenciales (edad, sueldo, isapre actual, plan actual) y mueve el resto al post-lead.</p></div>
+            <div class="tag-row"><span class="tag">Copy</span><span class="tag">Expectativas</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ COMPARE ============ -->
+      <section id="compare">
+        <div class="section-head">
+          <span class="section-num">03 · Comparar planes</span>
+          <h2>El corazón del producto. Funciona, pero abruma.</h2>
+          <p>Los filtros están técnicamente bien hechos (URL-state, debounce, mobile sheet). El problema es la cantidad y la cognición que demandan.</p>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Sidebar con 7 cards verticales: parálisis por análisis</h3>
+              <span class="badge b-crit">Crítico</span>
+            </div>
+            <p>El sidebar tiene, en este orden: <strong>Filtro 7% legal · Rango precio · Cobertura hospitalaria · Cobertura ambulatoria · Isapres · Zonas · Modalidad · Clínica</strong>. Eso son 8 secciones con scroll. Es demasiado para una decisión que el usuario aún no entiende ni qué significa cada filtro.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Agrupa en 3 bloques colapsables: <strong>(1) Tu presupuesto</strong> (7% + rango precio) · <strong>(2) Tu cobertura</strong> (hosp, amb, modalidad, clínica) · <strong>(3) Tus preferencias</strong> (isapres, zonas). Por defecto, abre solo el bloque 1. Agrega un toggle al inicio: <em>"¿Sabes lo que buscas? — Modo experto"</em> que abre todo.</p></div>
+            <div class="tag-row"><span class="tag">UX</span><span class="tag">Cognición</span><span class="tag">Mobile crítico</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Bug semántico: con 0 seleccionados, todo aparece "marcado"</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>Los checkboxes de Isapres y Zonas usan esta lógica: <code class="mono">checked = currentSelected.length === 0 || currentSelected.includes(...)</code>. Eso significa que cuando el usuario no ha tocado nada, <strong>todo aparece marcado</strong>. Para filtrar, el usuario tiene que UN-CHECK lo que no quiere. Eso es contraintuitivo: si todo está marcado, parece que ya seleccioné todo.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Invierte la semántica visual: cuando no hay selección, <strong>nada aparece marcado</strong> pero muestra una nota gris encima: <em>"Mostrando todas las Isapres. Marca las que prefieres para filtrar."</em>. Al primer checkbox marcado, solo ese queda activo. Esto es lo que hace Booking, Airbnb, etc.</p></div>
+            <div class="tag-row"><span class="tag">UX bug</span><span class="tag">Filtros</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>No hay chips de filtros activos arriba de los resultados</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>Cuando el usuario aplica 3-4 filtros, no tiene una vista resumen de "qué tengo activo". Para quitar un filtro tiene que volver al sidebar, buscar la sección, y limpiar. En mobile esto es peor porque el sheet hay que abrirlo de nuevo.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Encima del grid de resultados, agrega una fila scrollable con chips: <em>[Banmédica ×] [Hospitalaria 80% ×] [Hasta $250.000 ×] [Limpiar todo]</em>. Cada × elimina ese filtro. Pattern estándar de comparadores.</p></div>
+            <div class="tag-row"><span class="tag">UX</span><span class="tag">Affordance</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Total de planes aparece duplicado (3 veces en algunos estados)</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>En el sidebar: dentro del card "Rango de precio" hay un pill verde con <em>"X / Y planes"</em>; dentro del card "Isapres" hay otro contador <em>"TOTAL PLANES: X"</em>; arriba del grid hay <em>"Mostrando 15 de Y planes"</em>. Misma info, tres lugares.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Mantén solo el contador del grid (donde el usuario realmente lo necesita). Quita los dos del sidebar — o reemplázalos por algo más útil, como "Aplicar este filtro mostrará X planes" en cada card.</p></div>
+            <div class="tag-row"><span class="tag">Redundancia</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Grid de cobertura: 13 botones en 4 columnas = última fila huérfana</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>Los pasos de cobertura son 13 valores (<code class="mono">[40,45,50...100]</code>) en una grid de 4 columnas: 3 filas completas + 1 botón solitario. Visualmente queda colgado.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Usa 5 columnas (40/50/60/70/80 + 45/55/65/75/85 + 90/95/100 + slot) o mejor: reemplaza por un <strong>slider de un solo manejador</strong> con marcas en 50/70/90. Más rápido de usar.</p></div>
+            <div class="tag-row"><span class="tag">UI</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Modal del PDF al 94vh es lento y muchos PDFs no se renderizan en mobile</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El detalle del plan se abre en un iframe a 94vh con el PDF original. En desktop está OK; en mobile Safari/Chrome embebido el PDF tarda 3-5s y a veces sale en blanco (limitación de iOS con iframes PDF).</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>En mobile, omite el iframe y abre el PDF en una pestaña nueva. En desktop, agrega un skeleton/spinner mientras carga (ya tienes <code class="mono">framer-motion</code>) y un fallback con botón "Si no carga, abrir aparte". Mejor aún: pre-procesa los PDFs en el backend a una vista HTML resumen.</p></div>
+            <div class="tag-row"><span class="tag">Mobile</span><span class="tag">Performance</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>"No hay planes que coincidan" es un callejón sin salida</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Cuando los filtros no devuelven resultados, el mensaje es solo texto. No hay botón "Limpiar todos los filtros", no se sugiere relajar el más restrictivo, no se ofrece una alternativa (asesor, WhatsApp).</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Card empty-state con: <strong>(1)</strong> CTA "Limpiar filtros" → resetea todo. <strong>(2)</strong> "Si quieres, un asesor te encuentra opciones similares" + botón WhatsApp. <strong>(3)</strong> Lista de los 2-3 filtros activos más restrictivos con sugerencia de relajarlos.</p></div>
+            <div class="tag-row"><span class="tag">Empty state</span><span class="tag">Conversión</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Barra de cobertura en color naranja (#f97316) fuera de la paleta</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>En <code class="mono">plan-card.tsx</code>, las barras de progreso de cobertura usan <code class="mono">#f97316</code> (orange-500 de Tailwind). Es el único naranja en todo el sitio y rompe la cohesión.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Usa la paleta de marca: barras en mint <code class="mono">#14dcb4</code>, o gradient teal→mint para reforzar identidad. Si quieres comunicar "atención" en coberturas bajas, hazlo con un sistema: rojo &lt;50%, amarillo 50-70%, verde &gt;70% (semáforo).</p></div>
+            <div class="tag-row"><span class="tag">Brand</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ QUIZ IA ============ -->
+      <section id="quiz">
+        <div class="section-head">
+          <span class="section-num">04 · Tu mejor plan (IA)</span>
+          <h2>Tu feature más diferenciadora también es la más larga.</h2>
+          <p>Un archivo de 1.232 líneas hace dos cosas: pide muchos datos antes de mostrar valor y es imposible de mantener.</p>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Stepper dice "Completado" antes de mostrar el resultado</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Los 3 pasos son: 1) Tu Plan Actual · 2) Tu Perfil · 3) <strong>"Completado"</strong>. El paso 3 es donde el usuario VE su recomendación — pero ya se le anuncia como terminado. Es como decirle "ya está, gracias" antes de darle lo que vino a buscar.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Renombra a <strong>"Tu recomendación"</strong> o <strong>"Resultado"</strong>. Y considera invertir la métrica: en lugar de mostrar "Paso 3 de 3", muestra "Tu match personalizado" como un destino, no como un paso administrativo.</p></div>
+            <div class="tag-row"><span class="tag">Copy</span><span class="tag">UX</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>El quiz pide email <em>antes</em> de mostrar el resultado</h3>
+              <span class="badge b-crit">Crítico</span>
+            </div>
+            <p>Esto es el clásico anti-pattern del "paywall pre-valor": el usuario invirtió 4 minutos rellenando, todavía no ha visto NADA, y debe entregar su email para ver el resultado. Una gran parte abandona aquí. <strong>Es donde más estás perdiendo conversión.</strong></p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Modelo "preview + gate": muestra los <strong>3 resultados con datos parciales</strong> (logo, nombre, precio, % cobertura) <em>sin pedir email</em>. Para "Ver detalle completo", "Descargar PDF", "Contactar asesor" → ahí sí pide email. Esto es lo que hace el Comparador Online de la Superintendencia de Salud. Las tasas de captura no bajan, los leads mejoran (gente realmente interesada).</p></div>
+            <div class="tag-row"><span class="tag">Conversión</span><span class="tag">Anti-pattern</span><span class="tag">Alto impacto</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>UF hardcodeado: $39.987</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El valor de la UF está hardcodeado en dos lugares: <code class="mono">UF_VALUE_CLP = 39987</code> en <code class="mono">isapres-client.tsx</code> y <code class="mono">UF_CLP = 39987</code> en <code class="mono">tu-mejor-plan</code>. La UF cambia diariamente. En 3 meses el valor mostrado al usuario en pesos estará desviado en miles de pesos.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Tres opciones: <strong>(a)</strong> Endpoint backend que devuelva la UF del día (mindicador.cl tiene API gratis). <strong>(b)</strong> Variable de entorno actualizada por cron. <strong>(c)</strong> Mostrar la UF activa visiblemente: <em>"UF de hoy: $39.987 · actualizado 13 may"</em>. Esto último también suma credibilidad.</p></div>
+            <div class="tag-row"><span class="tag">Datos</span><span class="tag">Confianza</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Logos fallback: Esencial y Fonasa muestran TU logo</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>En el mapeo <code class="mono">ISAPRE_LOGOS</code>, los slugs <code class="mono">esencial</code> y <code class="mono">fonasa</code> apuntan a <code class="mono">/logos/mamag.png</code> (el logo de EligeTuPlan). Si la IA recomienda un plan de Esencial, el usuario verá <strong>el logo de EligeTuPlan</strong> en la card de recomendación. Confuso y no profesional.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Consigue logos oficiales de Esencial y Fonasa (públicos). Mientras tanto, fallback a un placeholder genérico tipo monograma con la inicial de la Isapre — no a tu propio logo.</p></div>
+            <div class="tag-row"><span class="tag">Visual bug</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>1.232 líneas en un solo archivo</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El archivo <code class="mono">tu-mejor-plan/page.tsx</code> tiene 1.232 líneas, mezclando: definición de tipos, lógica de fetching, dos pasos del formulario, tarjetas de resultados, modales de cotización, animaciones, etc. Insostenible para iterar UX.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Divide en: <code class="mono">step-current-plan.tsx</code>, <code class="mono">step-profile.tsx</code>, <code class="mono">step-results.tsx</code>, <code class="mono">recommended-card.tsx</code>, <code class="mono">alternative-card.tsx</code>, <code class="mono">use-quiz.ts</code> (custom hook con todo el estado). Ningún archivo &gt; 250 líneas.</p></div>
+            <div class="tag-row"><span class="tag">Mantenibilidad</span><span class="tag">Code quality</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>"Preferencia": savings / balanced / coverage — el usuario no sabe qué significa</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>El selector de preferencia es matemáticamente útil (ajusta los pesos del scoring) pero los labels son técnicos.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Reescribe en lenguaje del usuario: <strong>"Quiero pagar lo menos posible"</strong> · <strong>"Buen equilibrio entre precio y cobertura"</strong> · <strong>"Quiero la mejor cobertura, aunque pague más"</strong>. Y agrega un mini-disclaimer: <em>"Esto reordena los resultados, no oculta planes."</em></p></div>
+            <div class="tag-row"><span class="tag">Copy</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ LEAD ============ -->
+      <section id="lead">
+        <div class="section-head">
+          <span class="section-num">05 · Formulario de captura</span>
+          <h2>El último kilómetro: donde se pierden los leads ya casi convertidos.</h2>
+          <p>El form es visualmente sólido pero tiene varios problemas técnicos y de fricción.</p>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>"Éxito" siempre se muestra, incluso si el backend falla</h3>
+              <span class="badge b-crit">Crítico</span>
+            </div>
+            <p>El form envía a Google Apps Script con <code class="mono">mode: 'no-cors'</code>. Esto significa que el navegador <strong>nunca</strong> sabe si el backend respondió OK o 500. El <code class="mono">try/catch</code> solo atrapa errores de red. Si el script falla (token vencido, cuota agotada, error de validación) el usuario igual ve "¡Perfecto! Datos recibidos" — pero <strong>tú nunca recibes el lead</strong>.</p>
+            <div class="code"><span class="c">// lead-capture-form.tsx</span><br>await fetch(SHEETS_URL, {<br>&nbsp;&nbsp;method: <span class="s">'POST'</span>,<br>&nbsp;&nbsp;mode: <span class="s">'no-cors'</span>, <span class="c">// opaque response, no errors detectables</span><br>&nbsp;&nbsp;...<br>});<br>setSubmitted(true); <span class="c">// ← se ejecuta siempre</span></div>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Mueve el envío a un endpoint propio (Next.js API route <code class="mono">/api/lead</code>) que: <strong>(1)</strong> Valida en backend. <strong>(2)</strong> Envía a Sheets server-side. <strong>(3)</strong> Devuelve 200/500 real al cliente. <strong>(4)</strong> Loguea fallas en Sentry/Logflare. Es 1 día de trabajo y te salva todos los leads que hoy estás perdiendo silenciosamente.</p></div>
+            <div class="tag-row"><span class="tag">Backend</span><span class="tag">Pérdida de leads</span><span class="tag">Crítico</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Validación de RUT y teléfono solo verifica "no vacío"</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El RUT acepta "asdf", "111", lo que sea. El teléfono acepta cualquier cosa. Recibirás leads basura que tu asesor descubre en la llamada (o no descubre y queda mal).</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Agrega validación de módulo 11 para RUT (15 líneas de código) y un patrón regex para teléfono chileno. Muestra errores en línea bajo cada campo, no en una sola alerta al final.</p></div>
+            <div class="tag-row"><span class="tag">Validación</span><span class="tag">Data quality</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Validación devuelve un solo error a la vez</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>La función <code class="mono">validate()</code> devuelve el primer error encontrado. Si el usuario olvidó 3 campos, los corrige uno por uno haciendo submit cada vez. Fricción alta.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Acumula todos los errores en un objeto <code class="mono">{ nombre: string, rut: string, ... }</code> y muestra cada uno bajo su campo respectivo. Marca los campos con borde rojo. Patrón estándar.</p></div>
+            <div class="tag-row"><span class="tag">UX</span><span class="tag">Validación</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>8 campos en una sola vista — fricción alta</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Nombre, RUT, correo, teléfono, región, edad, plan actual, observaciones. Todo arriba del fold para mobile es imposible. Y observaciones es el campo menos importante visualmente.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Dos opciones: <strong>(a)</strong> Divide en 2 pasos: "Contacto" (nombre + correo + teléfono) → "Para personalizar" (RUT + región + edad + plan). Tasa de finalización sube. <strong>(b)</strong> Mantén una sola vista pero reduce a 5 campos obligatorios y mueve RUT a un paso posterior (cuando el asesor llame).</p></div>
+            <div class="tag-row"><span class="tag">Fricción</span><span class="tag">Conversión</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Falta consentimiento explícito de tratamiento de datos</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El form recolecta RUT, edad, plan actual, sueldo (en el quiz). En Chile la Ley 21.719 (vigente desde 2026) requiere consentimiento explícito y separable. Hoy el form solo dice <em>"Al enviar aceptas que te contactemos"</em> en letra pequeña — eso no califica como consentimiento informado.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Agrega un checkbox obligatorio: <em>"Autorizo el tratamiento de mis datos personales para fines de cotización y contacto, según la <a>Política de Privacidad</a>."</em> Y arregla el link a la política (hoy es botón muerto). Audita con tu abogado.</p></div>
+            <div class="tag-row"><span class="tag">Legal</span><span class="tag">Compliance</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ NAV / IA ============ -->
+      <section id="nav">
+        <div class="section-head">
+          <span class="section-num">06 · Navegación e información</span>
+          <h2>Páginas huérfanas y headers inconsistentes.</h2>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>La página FAQ es huérfana — no hay link visible</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>Existe <code class="mono">/faq</code> con 4 preguntas útiles, pero no aparece en el navbar, footer, ni en el menú móvil. Solo se llega por URL directa o si Google la indexa. Y "¿Es realmente 100% gratuito?" es exactamente la objeción que el usuario tiene al ver el sitio.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Agrégala al footer (sección "EligeTuPlan"). Mejor aún: <strong>integra el FAQ en la home</strong> como sección acordeón antes del CTA final. Las 4 preguntas son objeciones de compra clásicas — responderlas in-place sube la conversión.</p></div>
+            <div class="tag-row"><span class="tag">IA</span><span class="tag">SEO</span><span class="tag">Conversión</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Dos headers distintos: home vs resto</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>El home usa <code class="mono">PulseFitHero</code> con su propio header embebido (con logo "sticker" overflowing). Las otras páginas usan <code class="mono">SiteHeader</code> sticky con botón "Volver al inicio". Dos experiencias de navegación distintas para el mismo producto.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Extrae el header como componente único reutilizable que acepte una prop <code class="mono">variant="hero" | "page"</code>. El hero queda con el efecto "sticker" + transparente; las páginas con el sticky sólido. Pero la estructura (logo, items, CTA) es la misma.</p></div>
+            <div class="tag-row"><span class="tag">Consistencia</span><span class="tag">Code</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Falta breadcrumb en /comparar/isapres y /tu-mejor-plan</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>El usuario que aterriza desde Google en una de estas páginas no tiene contexto de jerarquía. "Volver al inicio" funciona, pero un breadcrumb suma SEO y orientación.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Patrón mínimo: <em>Inicio &gt; Comparar planes</em> arriba del H1, en gris pequeño. Markup con <code class="mono">BreadcrumbList</code> schema.org para SEO.</p></div>
+            <div class="tag-row"><span class="tag">SEO</span><span class="tag">Orientación</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ TRUST ============ -->
+      <section id="trust">
+        <div class="section-head">
+          <span class="section-num">07 · Confianza y prueba social</span>
+          <h2>En seguros, la confianza es la moneda. Hoy está subempleada.</h2>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>No hay timestamp de "última actualización"</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Dices "Datos actualizados mes a mes desde la Superintendencia de Salud" pero no muestras CUÁNDO fue la última actualización. Para un comparador, eso es lo primero que un usuario informado quiere saber.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>En el bloque de stats y/o en el sidebar de comparar: <em>"Última actualización: 1 de mayo, 2026"</em>. Si tu pipeline es semanal, mejor aún. Genera confianza instantánea.</p></div>
+            <div class="tag-row"><span class="tag">Confianza</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Sin badges/insignias de confianza</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>No hay logos de prensa ("Como nos vieron en..."), no hay sello de Superintendencia, no hay número de leads procesados, no hay tiempo en el mercado. Todo lo que hay es una variable "1.854 planes" y un testimonio.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Banner discreto bajo el hero o sobre el CTA final: <em>"+10.000 chilenos comparados · Auditados por X · Visto en Y, Z"</em>. Si todavía no tienes prensa, omite ese pilar pero refuerza los demás (volumen, equipo, ubicación).</p></div>
+            <div class="tag-row"><span class="tag">Confianza</span><span class="tag">Conversión</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>WhatsApp FAB sin foto/nombre del asesor</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>El FAB es solo el logo verde de WhatsApp con un ping. En conversiones de servicios financieros/salud, personalizar al asesor sube el CTR brutalmente.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Variante: cuadro pequeño con foto del asesor + nombre + "En línea ahora" en lugar del FAB redondo. Patrón Intercom/Drift. Si no tienes asesor de turno real, omite "en línea ahora" pero mantén la foto y el nombre.</p></div>
+            <div class="tag-row"><span class="tag">Personalización</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ A11Y ============ -->
+      <section id="a11y">
+        <div class="section-head">
+          <span class="section-num">08 · Accesibilidad</span>
+          <h2>El area más débil. Hay deuda WCAG visible.</h2>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Mint #14dcb4 falla contraste cuando se usa para texto</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El mint sobre blanco tiene contraste ~1.9:1. WCAG AA pide 4.5:1 para texto normal, 3:1 para texto grande. Lo usas como texto en: links "+ coberturas" del PlanCard, link "Enviar otra consulta", kicker eyebrows, hover de "VER DETALLES". Todos fallan.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Reserva el mint para <strong>fondos y elementos no-texto</strong> (botones primarios, barras, badges con texto blanco). Para texto/links usa el teal <code class="mono">#0f514b</code> (contraste 8.5:1, AAA). Si necesitas un acento de texto verde, define un <code class="mono">--mint-text: #0f9d8a</code> que ya está en tu paleta — ese tiene 4.6:1, justo AA.</p></div>
+            <div class="tag-row"><span class="tag">A11y</span><span class="tag">WCAG AA</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Botones de "limpiar" en filtros sin aria-label</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>El icono <code class="mono">RefreshCw</code> en cada FilterSection tiene solo <code class="mono">title="Limpiar"</code>. Los lectores de pantalla no anuncian botones por título de forma consistente. Falta <code class="mono">aria-label</code>.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p><code class="mono">aria-label="Limpiar filtro de {título}"</code>. Mejor todavía: en cada sección, agrega texto visible "Limpiar" junto al icono. Sirve a usuarios con y sin lector de pantalla.</p></div>
+            <div class="tag-row"><span class="tag">A11y</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Indicadores de slide del hero: 1.5px de alto = imposibles de tocar</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>Los botones que cambian de slide en el hero tienen <code class="mono">height: 1.5</code> px. Tap target mínimo WCAG: 24×24 CSS px. Estos son inalcanzables en mobile (y casi en desktop también).</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Mantén la línea visual delgada pero envuelve el botón en un hit-area de 24px de alto con padding transparente: <code class="mono">padding: 12px 0; height: 24px;</code> con la línea visible centrada via <code class="mono">::before</code>.</p></div>
+            <div class="tag-row"><span class="tag">Mobile</span><span class="tag">Tap target</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Animaciones no respetan prefers-reduced-motion</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>El ping de WhatsApp, el pulse del hero, las transiciones de slideshow corren siempre. Usuarios con vestíbulo sensible o desencadenantes vestibulares deben poder desactivar.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Wrap global en <code class="mono">globals.css</code>:</p></div>
+            <div class="code"><span class="k">@media</span> (prefers-reduced-motion: reduce) {<br>&nbsp;&nbsp;*, *::before, *::after {<br>&nbsp;&nbsp;&nbsp;&nbsp;animation-duration: 0.01ms !important;<br>&nbsp;&nbsp;&nbsp;&nbsp;animation-iteration-count: 1 !important;<br>&nbsp;&nbsp;&nbsp;&nbsp;transition-duration: 0.01ms !important;<br>&nbsp;&nbsp;}<br>}</div>
+            <div class="tag-row"><span class="tag">A11y</span><span class="tag">Motion</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Falta skip-to-content link</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>Usuarios de teclado/lector de pantalla deben tabular por todo el header antes de llegar al contenido. WCAG bypass mechanism.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Primer elemento del body: <code class="mono">&lt;a href="#main" class="sr-only focus:not-sr-only"&gt;Saltar al contenido&lt;/a&gt;</code> con <code class="mono">id="main"</code> en el main.</p></div>
+            <div class="tag-row"><span class="tag">A11y</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Required fields marcados solo con * en texto</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>El label es <em>"Nombre Completo *"</em>. El asterisco no es un atributo HTML <code class="mono">required</code> ni un <code class="mono">aria-required</code>. Lectores de pantalla no lo anuncian.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Agrega <code class="mono">required aria-required="true"</code> en cada input. Y si quieres conservar el control de mensajes (sin browser-native), usa <code class="mono">aria-required</code> sin <code class="mono">required</code>.</p></div>
+            <div class="tag-row"><span class="tag">A11y</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ PERF / SEO ============ -->
+      <section id="perf">
+        <div class="section-head">
+          <span class="section-num">09 · Performance y SEO</span>
+          <h2>Buenas bases técnicas, pero el hero pesa más de lo necesario.</h2>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Hero carga 3 imágenes vía background-image (sin next/image)</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>El slideshow usa <code class="mono">backgroundImage: url(...)</code> en divs. Esto bypasea la optimización automática de Next.js (responsive sizes, AVIF/WebP, lazy). Las 3 imágenes (cirugia.png, kine.jpeg, familia.jpeg) cargan en el LCP sin compresión moderna.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Reemplaza los divs por <code class="mono">&lt;Image fill priority={i===0} sizes="100vw" /&gt;</code> en posición absoluta. La primera con <code class="mono">priority</code>, las otras con <code class="mono">loading="lazy"</code>. Espera mejora de LCP de 1.5-2s en 4G.</p></div>
+            <div class="tag-row"><span class="tag">Performance</span><span class="tag">LCP</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Poppins con 5 pesos (400/500/600/700/800)</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Cada peso es ~25KB. Cargas ~125KB de fuente cuando probablemente usas 3 pesos efectivos.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Limita a 3 pesos: 400 (body), 600 (semibold UI), 800 (display). Si necesitas otro peso, usa <code class="mono">font-weight</code> que el navegador interpolará entre los disponibles.</p></div>
+            <div class="tag-row"><span class="tag">Performance</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Metadata solo en root layout — todas las páginas comparten título</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>Solo <code class="mono">layout.tsx</code> exporta <code class="mono">metadata</code>. <code class="mono">/comparar/isapres</code>, <code class="mono">/tu-mejor-plan</code>, <code class="mono">/faq</code>, <code class="mono">/como-funciona</code>, <code class="mono">/buscar</code> heredan el mismo title y description. En SERPs de Google, todas se ven idénticas → canibalización.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Cada página exporta su propia <code class="mono">metadata</code>. Ejemplos: <em>"Compara 1.800+ planes de Isapres en Chile · EligeTuPlan"</em>, <em>"Tu mejor plan de salud con IA · EligeTuPlan"</em>, <em>"Cotiza con un asesor · EligeTuPlan"</em>. Y agrega JSON-LD <code class="mono">FAQPage</code> en /faq y <code class="mono">Organization</code> en root.</p></div>
+            <div class="tag-row"><span class="tag">SEO</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Imágenes con dimensiones absurdas: 1568×496 declaradas para logo de 56px</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p><code class="mono">/logos/mamag.png</code> se declara como 1568×496 en cada uso, pero se renderiza a 32-72px. Next/Image lo sirve optimizado, pero la imagen fuente probablemente es overkill.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Exporta el logo en un SVG (vectorial, peso constante ~2KB independiente del tamaño). Para los logos de Isapres que ya son rasterizados, mantén PNG pero a 512×256 max.</p></div>
+            <div class="tag-row"><span class="tag">Assets</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ BRAND ============ -->
+      <section id="brand">
+        <div class="section-head">
+          <span class="section-num">10 · Sistema visual</span>
+          <h2>Hay buena identidad — falta sistematizarla.</h2>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Radios de borde inconsistentes: rounded-full / 2xl / [28px] / [30px] / [32px]</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>En el código aparecen: <code class="mono">rounded-full</code>, <code class="mono">rounded-lg</code>, <code class="mono">rounded-xl</code>, <code class="mono">rounded-2xl</code>, <code class="mono">rounded-3xl</code>, <code class="mono">rounded-[16px]</code>, <code class="mono">rounded-[24px]</code>, <code class="mono">rounded-[28px]</code>, <code class="mono">rounded-[30px]</code>, <code class="mono">rounded-[32px]</code>. Sin sistema.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Define escala de radios en <code class="mono">globals.css</code>: <strong>4 / 8 / 12 / 16 / 24</strong>. Usar solo <code class="mono">rounded-full</code> para pills/avatars. Todo lo demás usa la escala. Y elimina los hardcoded <code class="mono">rounded-[NNpx]</code>.</p></div>
+            <div class="tag-row"><span class="tag">Sistema</span><span class="tag">Design tokens</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Dos cremas casi indistinguibles: #f5f0e8 y #fbf8f3</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>Tienes <code class="mono">--color-brand-cream: #f5f0e8</code> y <code class="mono">--color-brand-paper: #fbf8f3</code>. La diferencia es 2 puntos de luminosidad. Visualmente, casi no se distingue una banda de otra — el ritmo visual que intentas crear no se percibe.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Tres opciones: <strong>(a)</strong> Elige uno y elimina el otro. <strong>(b)</strong> Si quieres dos tonos, sepáralos más: <code class="mono">#f7f1e6</code> y <code class="mono">#ffffff</code> (blanco real). <strong>(c)</strong> En vez de cambiar el fondo entre secciones, usa una línea fina de teal/mint como separador.</p></div>
+            <div class="tag-row"><span class="tag">Tokens</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Inline styles mezclados con clases Tailwind por todos lados</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>El código mezcla <code class="mono">style={{ background: "linear-gradient(...)" }}</code> con <code class="mono">className="rounded-2xl"</code> en el mismo elemento. Es duro mantener consistencia visual entre componentes.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Crea clases utility en globals.css para los 4-5 gradientes recurrentes:</p></div>
+            <div class="code"><span class="k">@layer</span> components {<br>&nbsp;&nbsp;.bg-brand-card { background: linear-gradient(180deg, #0f514b 0%, #092e2a 100%); }<br>&nbsp;&nbsp;.bg-brand-button { background: linear-gradient(135deg, #14dcb4, #0f9d8a); }<br>&nbsp;&nbsp;.shadow-brand { box-shadow: 0 14px 30px rgba(20,220,180,0.4); }<br>}</div>
+            <div class="tag-row"><span class="tag">Mantenibilidad</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Token --color-brand-accent: #50f078 definido y nunca usado</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p>Un lime brillante declarado en <code class="mono">@theme</code> que no aparece en ningún componente. Token muerto.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Si no lo vas a usar, elimínalo. Si quieres mantenerlo para futuras notificaciones de éxito, documéntalo en un comentario: <em>"reservado para success-state, no usar en flujos normales"</em>.</p></div>
+            <div class="tag-row"><span class="tag">Tokens muertos</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Modo oscuro (.dark) definido pero sin toggle</h3>
+              <span class="badge b-low">Bajo</span>
+            </div>
+            <p><code class="mono">globals.css</code> tiene un bloque <code class="mono">.dark { ... }</code> con todas las variables shadcn, pero no hay toggle ni preferencia detectada en ningún lado.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>O lo implementas (toggle en header, persistencia en localStorage, detección de <code class="mono">prefers-color-scheme</code>) o lo eliminas. Mantener código muerto es deuda.</p></div>
+            <div class="tag-row"><span class="tag">Limpieza</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ CODE ============ -->
+      <section id="code">
+        <div class="section-head">
+          <span class="section-num">11 · Calidad de código</span>
+          <h2>Funciona, pero hay deudas que cobrarás en 6 meses.</h2>
+        </div>
+
+        <div class="issues">
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>lucide-react ^1.0.1 en package.json — probablemente versión inválida</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>La versión real publicada de <code class="mono">lucide-react</code> está en el rango <code class="mono">0.x.x</code> (~0.476.0 actualmente). La <code class="mono">^1.0.1</code> probablemente es un typo o un fork. Si tu CI hace <code class="mono">npm i</code> limpio puede fallar o instalar algo inesperado.</p>
+            <div class="code">"lucide-react": <span class="s">"^1.0.1"</span>  <span class="c">// ← verificar; debería ser ~0.476.0</span></div>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Verifica con <code class="mono">npm view lucide-react versions</code>. Si el iconset funciona en dev es porque el lockfile tiene una versión real congelada. Actualiza a la última estable <code class="mono">^0.476.0</code> antes de un deploy limpio.</p></div>
+            <div class="tag-row"><span class="tag">Dependencias</span><span class="tag">Deploy risk</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>Magic colors hardcodeados en lugar de tokens</h3>
+              <span class="badge b-med">Medio</span>
+            </div>
+            <p>Tienes <code class="mono">--color-brand-primary</code>, <code class="mono">--color-brand-secondary</code>, etc. definidos en <code class="mono">@theme</code> de Tailwind 4. Pero en el código aparece <code class="mono">bg-[#14dcb4]</code>, <code class="mono">text-[#0f514b]</code> cientos de veces. Cuando quieras retocar el primary, debes hacer find-and-replace global.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Reemplaza por las clases que ya están definidas: <code class="mono">bg-brand-primary</code>, <code class="mono">text-brand-secondary</code>. Hazlo gradualmente — empieza por <code class="mono">page.tsx</code> y <code class="mono">isapres-client.tsx</code> que son los más visibles.</p></div>
+            <div class="tag-row"><span class="tag">Tokens</span><span class="tag">Mantenibilidad</span></div>
+          </div>
+
+          <div class="issue">
+            <div class="issue-head">
+              <h3>NEXT_PUBLIC_API_URL fallback a localhost en build</h3>
+              <span class="badge b-high">Alto</span>
+            </div>
+            <p>En <code class="mono">tu-mejor-plan/page.tsx</code>: <code class="mono">const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'</code>. Si despliegas sin setear la env var, el sitio en producción intenta llamar al localhost del usuario. CORS-failure silenciosa.</p>
+            <div class="fix"><span class="fix-tag">Fix</span><p>Falla loudly en build si la variable no está: <code class="mono">if (!process.env.NEXT_PUBLIC_API_URL) throw new Error('Missing NEXT_PUBLIC_API_URL')</code> en un módulo de config compartido. Y agrega un <code class="mono">.env.example</code> al repo.</p></div>
+            <div class="tag-row"><span class="tag">Deploy risk</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ ROADMAP ============ -->
+      <div class="roadmap" id="roadmap">
+        <h2>Roadmap propuesto — en 3 fases</h2>
+        <div class="phases">
+          <div class="phase">
+            <div class="phase-num">Fase 1</div>
+            <h3>Higiene</h3>
+            <div class="when">Esta semana · 2–3 días</div>
+            <ul>
+              <li>Unificar el número de planes en toda la web</li>
+              <li>Arreglar Política de Privacidad (link funcional + checkbox de consentimiento)</li>
+              <li>Validar formato de RUT y teléfono</li>
+              <li>Migrar envío del form a API route propia (resolver el silenciamiento de errores)</li>
+              <li>Logos de Esencial/Fonasa o placeholder genérico</li>
+              <li>Renombrar "Completado" → "Tu resultado"</li>
+              <li>Agregar <code style="background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px">prefers-reduced-motion</code></li>
+              <li>Per-page metadata + JSON-LD FAQ</li>
+            </ul>
+          </div>
+          <div class="phase">
+            <div class="phase-num">Fase 2</div>
+            <h3>Conversión</h3>
+            <div class="when">2–3 semanas</div>
+            <ul>
+              <li>Mover quiz IA: mostrar preview de resultados <em>antes</em> de pedir email</li>
+              <li>Calculadora del 7% en el home (widget hero o sección dedicada)</li>
+              <li>Chips de filtros activos sobre el grid de planes</li>
+              <li>Empty state mejorado con CTA "Limpiar" + escape a WhatsApp</li>
+              <li>Reagrupar filtros en 3 bloques colapsables</li>
+              <li>Invertir semántica de checkboxes (nada marcado = todos)</li>
+              <li>3 testimonios reales con foto + insignias de confianza</li>
+              <li>FAQ integrado en home como acordeón</li>
+            </ul>
+          </div>
+          <div class="phase">
+            <div class="phase-num">Fase 3</div>
+            <h3>Sistema</h3>
+            <div class="when">3–4 semanas</div>
+            <ul>
+              <li>Refactor de <code style="background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px">tu-mejor-plan/page.tsx</code> en 6 archivos</li>
+              <li>Sistema de tokens consistente (radios, colores, sombras)</li>
+              <li>Header unificado con variantes hero/page</li>
+              <li>UF dinámica vía API + timestamp de actualización</li>
+              <li>Validación de toda la lib de accesibilidad (color contrast pass)</li>
+              <li>Reemplazo de hero background-image por next/image optimizado</li>
+              <li>Tests E2E del flujo crítico (Playwright)</li>
+              <li>Implementar dark mode o eliminarlo del CSS</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CIERRE ============ -->
+      <section style="border-top:none;padding-top:32px;padding-bottom:32px">
+        <div class="pull">"El producto está más cerca de lo que crees. La paleta funciona, los flujos básicos están. Solo falta dirigir la mirada del usuario y cerrar 6-8 cabos que hoy filtran leads en silencio."</div>
+        <p style="color:var(--ink-soft);font-size:15px;max-width:680px">Si quieres, puedo seguir con: <strong>(a)</strong> diseñar el nuevo hero con la calculadora del 7% integrada, <strong>(b)</strong> rediseñar el sidebar de filtros agrupado en 3 bloques, o <strong>(c)</strong> hacer un prototipo del nuevo flujo del quiz con "preview antes del gate". Solo dime cuál atacamos primero.</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<footer>
+  <p><strong>Auditoría EligeTuPlan</strong> · Revisada en <code style="font-family:'JetBrains Mono',monospace;color:var(--mint)">test/frontend/</code> @ commit <code style="font-family:'JetBrains Mono',monospace;color:var(--mint)">a7bffb1</code> · 13 mayo 2026</p>
+</footer>
+
+</body>
+</html>

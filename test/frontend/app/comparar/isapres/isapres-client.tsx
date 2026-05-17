@@ -3,123 +3,26 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState, useTransition, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, ChevronLeft, ChevronRight, RefreshCw, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { Isapre, Zona, PlansResponse, Plan } from '@/lib/api';
 import { formatCLP } from '@/lib/api';
 import PlanCard from './plan-card';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
 import ContactOptions from '@/components/ui/contact-options';
-import MobileFilterSheet from '@/components/ui/mobile-filter-sheet';
+import {
+  FilterGroup,
+  SevenPercentBlock,
+  PriceRange,
+  CoverageStepper,
+  IsapresFilter,
+  ZonasFilter,
+  ModalidadFilter,
+  ClinicaSearch,
+} from '@/components/comparar/sidebar-filters';
+import FilterChips, { type Chip } from '@/components/comparar/filter-chips';
+import EmptyState from '@/components/comparar/empty-state';
 
 const MODALIDADES = ['Preferente', 'Libre Elección', 'Cerrado'] as const;
-const COBERTURA_STEPS = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
-const UF_VALUE_CLP = 39987;
-
-function formatRangeUF(clp: number): string {
-  const uf = clp / UF_VALUE_CLP;
-  return `UF ${uf.toLocaleString('es-CL', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function sanitizeCurrencyInput(value: string): string {
-  return value.replace(/\D/g, '');
-}
-
-function formatSalaryCLP(rawDigits: string): string {
-  if (!rawDigits) return '';
-  const n = parseInt(rawDigits, 10);
-  if (isNaN(n)) return '';
-  return '$' + n.toLocaleString('es-CL');
-}
-
-function FilterSection({
-  title,
-  onReset,
-  children,
-  accent = 'blue',
-}: {
-  title: string;
-  onReset?: () => void;
-  children: React.ReactNode;
-  accent?: 'blue' | 'teal';
-}) {
-  const header =
-    accent === 'blue' ? 'bg-[#0f514b] text-white' : 'bg-[#0f514b] text-white';
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className={`${header} px-4 py-3 flex items-center justify-between`}>
-        <h3 className="text-sm font-bold uppercase tracking-wide">{title}</h3>
-        {onReset && (
-          <button
-            type="button"
-            onClick={onReset}
-            className="text-white/80 hover:text-white"
-            title="Limpiar"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      <div className="p-4">{children}</div>
-    </div>
-  );
-}
-
-function CoberturaFilter({
-  title,
-  selected,
-  onSelect,
-  onClear,
-  prestadores,
-  prestador,
-  onPrestador,
-}: {
-  title: string;
-  selected: number | null;
-  onSelect: (pct: number | null) => void;
-  onClear: () => void;
-  prestadores: string[];
-  prestador: string;
-  onPrestador: (p: string) => void;
-}) {
-  return (
-    <FilterSection title={title} accent="blue" onReset={onClear}>
-      <select
-        value={prestador}
-        onChange={(e) => onPrestador(e.target.value)}
-        className="w-full px-3 py-2 mb-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40"
-      >
-        <option value="">Todos los Prestadores</option>
-        {prestadores.map((p) => (
-          <option key={p} value={p}>
-            {p}
-          </option>
-        ))}
-      </select>
-      <div className="grid grid-cols-4 gap-2">
-        {COBERTURA_STEPS.map((pct) => {
-          const active = selected === pct;
-          return (
-            <button
-              key={pct}
-              type="button"
-              onClick={() => onSelect(active ? null : pct)}
-              className={`text-xs font-semibold py-1.5 rounded-md border transition-all ${
-                active
-                  ? 'bg-[#0f514b] text-white border-[#0f514b]'
-                  : 'border-dashed border-slate-300 text-slate-600 hover:border-[#14dcb4] hover:text-[#0f514b]'
-              }`}
-            >
-              {pct}%
-            </button>
-          );
-        })}
-      </div>
-    </FilterSection>
-  );
-}
 
 export default function IsapresClient({
   initialIsapres,
@@ -141,15 +44,13 @@ export default function IsapresClient({
     [initialIsapres]
   );
 
-  const priceFloor = initialData.price_min_clp ?? 0;
-  const priceCeiling = initialData.price_max_clp ?? 500000;
+  const priceFloor = initialData.price_min_clp ?? 50_000;
+  const priceCeiling = initialData.price_max_clp ?? 500_000;
 
   const currentIsapres = search.get('isapre')?.split(',').filter(Boolean) ?? [];
   const currentZonas = search.get('zona')?.split(',').filter(Boolean) ?? [];
   const currentModalidad = search.get('modalidad') ?? '';
   const currentSearch = search.get('search') ?? '';
-  const currentPrestadorHosp = search.get('prestador_hosp') ?? '';
-  const currentPrestadorAmb = search.get('prestador_amb') ?? '';
   const currentPrestador = search.get('prestador') ?? '';
   const currentCobHosp = search.get('cobertura_hosp_min');
   const currentCobAmb = search.get('cobertura_amb_min');
@@ -176,12 +77,17 @@ export default function IsapresClient({
   const [grossSalaryInput, setGrossSalaryInput] = useState(currentGrossSalary);
   const [clinicaSearch, setClinicaSearch] = useState(currentPrestador);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const clinicaDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
   const [showContactOptions, setShowContactOptions] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const grossSalary = grossSalaryInput ? parseInt(grossSalaryInput, 10) : 0;
   const legalBudget = grossSalary > 0 ? Math.floor(grossSalary * 0.07) : 0;
+  const budgetCLP = currentLegalBudgetActive && legalBudget > 0 ? legalBudget : null;
 
   useEffect(() => {
     if (searchText === currentSearch) return;
@@ -205,10 +111,8 @@ export default function IsapresClient({
 
   useEffect(() => {
     if (!selectedPlan && !selectedPdfPlan) return;
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-
     return () => {
       document.body.style.overflow = previousOverflow;
     };
@@ -216,14 +120,16 @@ export default function IsapresClient({
 
   function toggleIsapre(slug: string) {
     const set = new Set(currentIsapres);
-    set.has(slug) ? set.delete(slug) : set.add(slug);
+    if (set.has(slug)) set.delete(slug);
+    else set.add(slug);
     pushParams({ isapre: set.size ? Array.from(set).join(',') : null });
   }
 
   function toggleZona(id: number) {
     const set = new Set(currentZonas);
     const str = String(id);
-    set.has(str) ? set.delete(str) : set.add(str);
+    if (set.has(str)) set.delete(str);
+    else set.add(str);
     pushParams({ zona: set.size ? Array.from(set).join(',') : null });
   }
 
@@ -238,10 +144,8 @@ export default function IsapresClient({
     pushParams({
       sueldo_imponible_clp: null,
       aplicar_tope_legal: null,
-      precio_min_clp:
-        localPriceMin > priceFloor ? String(localPriceMin) : null,
-      precio_max_clp:
-        localPriceMax < priceCeiling ? String(localPriceMax) : null,
+      precio_min_clp: localPriceMin > priceFloor ? String(localPriceMin) : null,
+      precio_max_clp: localPriceMax < priceCeiling ? String(localPriceMax) : null,
     });
   }
 
@@ -264,433 +168,315 @@ export default function IsapresClient({
     });
   }
 
-  // Prestador: el backend tiene un solo filtro `prestador`. Combinamos:
-  // si el usuario elige hospitalario Y ambulatorio, usamos el último elegido.
-  function applyPrestador(kind: 'hosp' | 'amb', value: string) {
-    pushParams({
-      [kind === 'hosp' ? 'prestador_hosp' : 'prestador_amb']: value || null,
-      prestador: value || null,
+  function applyClinicaSearch(value: string) {
+    setClinicaSearch(value);
+    if (clinicaDebounceRef.current) clearTimeout(clinicaDebounceRef.current);
+    if (!value) {
+      pushParams({ prestador: null });
+      return;
+    }
+    clinicaDebounceRef.current = setTimeout(() => {
+      pushParams({ prestador: value });
+    }, 400);
+  }
+
+  function clearAll() {
+    setSearchText('');
+    setGrossSalaryInput('');
+    setClinicaSearch('');
+    setLocalPriceMin(priceFloor);
+    setLocalPriceMax(priceCeiling);
+    startTransition(() => {
+      router.push('?');
     });
   }
 
   const items = initialData.items;
   const totalGlobal = initialIsapres.reduce((sum, i) => sum + i.plan_count, 0);
 
-  const activeFilterCount = [
-    currentIsapres.length > 0,
-    currentZonas.length > 0,
-    currentModalidad !== '',
-    currentCobHosp !== null,
-    currentCobAmb !== null,
-    currentPrestador !== '',
+  // ── Group active counts ────────────────────────────────────────────
+  const budgetGroupCount =
+    (currentLegalBudgetActive ? 1 : 0) +
+    (priceMin > priceFloor ? 1 : 0) +
+    (priceMax < priceCeiling ? 1 : 0);
+
+  const coverageGroupCount =
+    (currentCobHosp !== null ? 1 : 0) +
+    (currentCobAmb !== null ? 1 : 0) +
+    (currentPrestador ? 1 : 0);
+
+  const prefsGroupCount =
+    currentIsapres.length +
+    currentZonas.length +
+    (currentModalidad ? 1 : 0);
+
+  const totalActiveCount = budgetGroupCount + coverageGroupCount + prefsGroupCount;
+
+  // ── Active filter chips ────────────────────────────────────────────
+  const chips = useMemo<Chip[]>(() => {
+    const arr: Chip[] = [];
+    if (currentLegalBudgetActive && legalBudget > 0)
+      arr.push({
+        k: 'budget',
+        l: `Mi 7% (≤ ${formatCLP(legalBudget)})`,
+        clear: clearLegalBudgetFilter,
+      });
+    if (priceMin > priceFloor)
+      arr.push({
+        k: 'priceMin',
+        l: `Desde ${formatCLP(priceMin)}`,
+        clear: () => pushParams({ precio_min_clp: null }),
+      });
+    if (priceMax < priceCeiling)
+      arr.push({
+        k: 'priceMax',
+        l: `Hasta ${formatCLP(priceMax)}`,
+        clear: () => pushParams({ precio_max_clp: null }),
+      });
+    if (currentCobHosp !== null)
+      arr.push({
+        k: 'covH',
+        l: `Hospitalaria ≥ ${currentCobHosp}%`,
+        clear: () => pushParams({ cobertura_hosp_min: null }),
+      });
+    if (currentCobAmb !== null)
+      arr.push({
+        k: 'covA',
+        l: `Ambulatoria ≥ ${currentCobAmb}%`,
+        clear: () => pushParams({ cobertura_amb_min: null }),
+      });
+    currentIsapres.forEach((slug) => {
+      const i = initialIsapres.find((x) => x.slug === slug);
+      if (i)
+        arr.push({
+          k: `isa-${slug}`,
+          l: i.name,
+          clear: () => toggleIsapre(slug),
+        });
+    });
+    currentZonas.forEach((id) => {
+      const z = initialZonas.find((x) => String(x.id) === id);
+      if (z)
+        arr.push({
+          k: `zona-${id}`,
+          l: z.nombre,
+          clear: () => toggleZona(z.id),
+        });
+    });
+    if (currentModalidad)
+      arr.push({
+        k: 'mod',
+        l: `Modalidad: ${currentModalidad}`,
+        clear: () => pushParams({ modalidad: null }),
+      });
+    if (currentPrestador)
+      arr.push({
+        k: 'clin',
+        l: `Clínica: ${currentPrestador}`,
+        clear: () => {
+          setClinicaSearch('');
+          pushParams({ prestador: null });
+        },
+      });
+    if (currentSearch)
+      arr.push({
+        k: 'search',
+        l: `"${currentSearch}"`,
+        clear: () => {
+          setSearchText('');
+          pushParams({ search: null });
+        },
+      });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
     currentLegalBudgetActive,
-    localPriceMin > priceFloor || localPriceMax < priceCeiling,
-  ].filter(Boolean).length;
+    legalBudget,
+    priceMin,
+    priceMax,
+    priceFloor,
+    priceCeiling,
+    currentCobHosp,
+    currentCobAmb,
+    currentIsapres.join(','),
+    currentZonas.join(','),
+    currentModalidad,
+    currentPrestador,
+    currentSearch,
+    initialIsapres,
+    initialZonas,
+  ]);
 
-  const sidebarContent = (
+  // ── Sidebar content ────────────────────────────────────────────────
+  const SidebarContent = () => (
     <>
-          <FilterSection
-            title="Filtro por 7% legal"
-            accent="blue"
-            onReset={clearLegalBudgetFilter}
-          >
-            <div className="space-y-3">
-              <div>
-                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Sueldo bruto imponible
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatSalaryCLP(grossSalaryInput)}
-                  onChange={(e) => setGrossSalaryInput(sanitizeCurrencyInput(e.target.value))}
-                  placeholder="$ Ej: 950.000"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4]"
-                />
-                <p className="mt-2 text-xs text-slate-500">
-                  Ingresa tu sueldo imponible y calculamos el 7% disponible para cotizar tu plan.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-[#14dcb4]/20 bg-[#14dcb4]/8 px-4 py-3">
-                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f514b]/70">
-                  7% disponible
-                </div>
-                <div className="mt-1 text-lg font-extrabold text-[#0f514b]">
-                  {legalBudget ? formatCLP(legalBudget) : 'Ingresa tu sueldo'}
-                </div>
-                {legalBudget > 0 && (
-                  <div className="mt-1 text-xs font-semibold text-slate-500">
-                    Se mostraran planes con costo igual o menor a {formatCLP(Math.min(legalBudget, priceCeiling))}.
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                disabled={!legalBudget}
-                onClick={applyLegalBudgetFilter}
-                className="w-full rounded-xl bg-[linear-gradient(135deg,#14dcb4,#0f9d8a)] px-4 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(20,220,180,0.24)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {currentLegalBudgetActive ? 'Actualizar filtro por mi 7%' : 'Filtrar por mi 7%'}
-              </button>
-
-              {currentLegalBudgetActive && legalBudget > 0 && (
-                <div className="rounded-xl border border-[#14dcb4]/30 bg-[#14dcb4]/5 px-3 py-3 text-center">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f514b]/60">
-                    Con tu 7% puedes optar a
-                  </div>
-                  <div className="mt-0.5 text-2xl font-extrabold text-[#0f514b]">
-                    {initialData.total.toLocaleString('es-CL')} planes
-                  </div>
-                  <div className="mt-0.5 text-xs text-slate-500">
-                    hasta {formatCLP(Math.min(legalBudget, priceCeiling))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </FilterSection>
-
-          {/* Rango de precio */}
-          <FilterSection
-            title="Rango de precio"
-            accent="blue"
-            onReset={() =>
-              pushParams({
-                sueldo_imponible_clp: null,
-                aplicar_tope_legal: null,
-                precio_min_clp: null,
-                precio_max_clp: null,
-              })
-            }
-          >
-            <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-3 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                    Desde
-                  </div>
-                  <div className="text-base font-extrabold leading-none text-slate-900">
-                    {formatCLP(localPriceMin)}
-                  </div>
-                  <div className="mt-1 inline-flex rounded-md bg-[#14dcb4]/10 px-2 py-0.5 text-[11px] font-semibold text-[#0f514b]">
-                    {formatRangeUF(localPriceMin)}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                    Hasta
-                  </div>
-                  <div className="text-base font-extrabold leading-none text-slate-900">
-                    {formatCLP(localPriceMax)}
-                  </div>
-                  <div className="mt-1 inline-flex rounded-md bg-[#14dcb4]/10 px-2 py-0.5 text-[11px] font-semibold text-[#0f514b]">
-                    {formatRangeUF(localPriceMax)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative mt-4 px-2 py-3">
-                <div className="absolute left-2 right-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-[#14dcb4]/20" />
-                <div
-                  className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-[#0f514b]"
-                  style={{
-                    left: `calc(${((localPriceMin - priceFloor) / Math.max(priceCeiling - priceFloor, 1)) * 100}% + 0.5rem)`,
-                    right: `calc(${100 - ((localPriceMax - priceFloor) / Math.max(priceCeiling - priceFloor, 1)) * 100}% + 0.5rem)`,
-                  }}
-                />
-                <input
-                  type="range"
-                  min={priceFloor}
-                  max={priceCeiling}
-                  step={1000}
-                  value={localPriceMin}
-                  onChange={(e) =>
-                    setLocalPriceMin(Math.min(+e.target.value, localPriceMax - 1000))
-                  }
-                  onMouseUp={applyPriceRange}
-                  onTouchEnd={applyPriceRange}
-                  className="price-range-input"
-                  aria-label="Precio mínimo"
-                />
-                <input
-                  type="range"
-                  min={priceFloor}
-                  max={priceCeiling}
-                  step={1000}
-                  value={localPriceMax}
-                  onChange={(e) =>
-                    setLocalPriceMax(Math.max(+e.target.value, localPriceMin + 1000))
-                  }
-                  onMouseUp={applyPriceRange}
-                  onTouchEnd={applyPriceRange}
-                  className="price-range-input"
-                  aria-label="Precio máximo"
-                />
-              </div>
-
-              <div className="mt-1 flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                <span>Minimo: {formatCLP(priceFloor)}</span>
-                <span>Maximo: {formatCLP(priceCeiling)}</span>
-              </div>
-
-              <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center">
-                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Rango seleccionado
-                </div>
-                <div className="mt-1 text-sm font-bold text-[#0f514b]">
-                  {formatCLP(localPriceMin)} a {formatCLP(localPriceMax)}
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 rounded-full bg-[linear-gradient(135deg,#14dcb4,#0f9d8a)] text-white text-xs font-bold text-center py-1.5">
-              {initialData.total.toLocaleString('es-CL')} / {totalGlobal.toLocaleString('es-CL')} planes
-            </div>
-          </FilterSection>
-
-          {/* Cobertura Hospitalaria */}
-          <CoberturaFilter
-            title="Cobertura Hospitalaria"
-            selected={currentCobHosp ? parseInt(currentCobHosp, 10) : null}
-            onSelect={(pct) =>
-              pushParams({ cobertura_hosp_min: pct ? String(pct) : null })
-            }
-            onClear={() =>
-              pushParams({
-                cobertura_hosp_min: null,
-                prestador_hosp: null,
-                prestador: currentPrestadorAmb || null,
-              })
-            }
-            prestadores={initialPrestadores}
-            prestador={currentPrestadorHosp}
-            onPrestador={(p) => applyPrestador('hosp', p)}
+      <FilterGroup
+        title="Tu presupuesto"
+        defaultOpen={true}
+        activeCount={budgetGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+        }
+      >
+        <SevenPercentBlock
+          salaryInput={grossSalaryInput}
+          setSalaryInput={setGrossSalaryInput}
+          applyBudget={applyLegalBudgetFilter}
+          clearBudget={clearLegalBudgetFilter}
+          active={currentLegalBudgetActive}
+          total={initialData.total}
+        />
+        <div className="pt-3 border-t border-[#0f514b]/8">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] mb-2.5">
+            O ajusta manualmente
+          </div>
+          <PriceRange
+            min={localPriceMin}
+            max={localPriceMax}
+            floor={priceFloor}
+            ceiling={priceCeiling}
+            setMin={setLocalPriceMin}
+            setMax={setLocalPriceMax}
+            onCommit={applyPriceRange}
           />
+        </div>
+      </FilterGroup>
 
-          {/* Cobertura Ambulatoria */}
-          <CoberturaFilter
-            title="Cobertura Ambulatoria"
-            selected={currentCobAmb ? parseInt(currentCobAmb, 10) : null}
-            onSelect={(pct) =>
-              pushParams({ cobertura_amb_min: pct ? String(pct) : null })
-            }
-            onClear={() =>
-              pushParams({
-                cobertura_amb_min: null,
-                prestador_amb: null,
-                prestador: currentPrestadorHosp || null,
-              })
-            }
-            prestadores={initialPrestadores}
-            prestador={currentPrestadorAmb}
-            onPrestador={(p) => applyPrestador('amb', p)}
-          />
+      <FilterGroup
+        title="Tu cobertura"
+        defaultOpen={false}
+        activeCount={coverageGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
+          </svg>
+        }
+      >
+        <CoverageStepper
+          label="Hospitalaria mínima"
+          value={currentCobHosp ? parseInt(currentCobHosp, 10) : null}
+          onChange={(v) => pushParams({ cobertura_hosp_min: v ? String(v) : null })}
+        />
+        <CoverageStepper
+          label="Ambulatoria mínima"
+          value={currentCobAmb ? parseInt(currentCobAmb, 10) : null}
+          onChange={(v) => pushParams({ cobertura_amb_min: v ? String(v) : null })}
+        />
+        <ClinicaSearch
+          prestadores={initialPrestadores}
+          value={clinicaSearch}
+          onChange={applyClinicaSearch}
+        />
+      </FilterGroup>
 
-          {/* Isapres */}
-          <FilterSection
-            title="Isapres"
-            accent="blue"
-            onReset={() => pushParams({ isapre: null })}
-          >
-            <ul className="space-y-2">
-              {activeIsapres.map((i) => {
-                const checked =
-                  currentIsapres.length === 0 ||
-                  currentIsapres.includes(i.slug ?? '');
-                return (
-                  <li key={i.id} className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleIsapre(i.slug ?? '')}
-                        className="w-4 h-4 rounded border-slate-300 accent-[#14dcb4]"
-                      />
-                      <span className="text-sm text-slate-700 truncate">
-                        {i.name}
-                      </span>
-                      {i.ges_isapre_uf != null && (
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          [{i.ges_isapre_uf.toFixed(3)}]
-                        </span>
-                      )}
-                    </label>
-                    <span className="text-xs font-bold text-[#0f514b] bg-[#14dcb4]/10 px-2 py-0.5 rounded-md">
-                      {i.plan_count}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-              <span className="text-xs text-slate-500 font-semibold">
-                TOTAL PLANES:{' '}
-                <span className="text-slate-800">
-                  {initialData.total.toLocaleString('es-CL')}
-                </span>
-              </span>
-            </div>
-          </FilterSection>
-
-          {/* Zonas */}
-          <FilterSection
-            title="Zonas"
-            accent="blue"
-            onReset={() => pushParams({ zona: null })}
-          >
-            <ul className="space-y-2">
-              {initialZonas.map((z) => {
-                const checked =
-                  currentZonas.length === 0 || currentZonas.includes(String(z.id));
-                return (
-                  <li key={z.id} className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer flex-1">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleZona(z.id)}
-                        className="w-4 h-4 rounded border-slate-300 accent-[#14dcb4]"
-                      />
-                      <span className="text-sm text-slate-700">{z.nombre}</span>
-                    </label>
-                    <span className="text-xs font-bold text-[#0f514b] bg-[#14dcb4]/10 px-2 py-0.5 rounded-md">
-                      {z.plan_count}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </FilterSection>
-
-          {/* Modalidad */}
-          <FilterSection
-            title="Modalidad"
-            accent="blue"
-            onReset={() => pushParams({ modalidad: null })}
-          >
-            <div className="space-y-2">
-              {MODALIDADES.map((m) => (
-                <label key={m} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="modalidad"
-                    checked={currentModalidad === m}
-                    onChange={() => pushParams({ modalidad: m })}
-                    className="w-4 h-4 accent-[#14dcb4]"
-                  />
-                  <span className="text-sm text-slate-700">{m}</span>
-                </label>
-              ))}
-            </div>
-          </FilterSection>
-
-          {/* Clínica Preferida */}
-          <FilterSection
-            title="Clínica Preferida"
-            accent="blue"
-            onReset={() => {
-              setClinicaSearch('');
-              pushParams({ prestador: null, prestador_hosp: null, prestador_amb: null });
-            }}
-          >
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <input
-                type="text"
-                list="clinicas-list"
-                value={clinicaSearch}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setClinicaSearch(v);
-                  if (initialPrestadores.includes(v)) {
-                    pushParams({ prestador: v, prestador_hosp: null, prestador_amb: null });
-                  } else if (!v) {
-                    pushParams({ prestador: null, prestador_hosp: null, prestador_amb: null });
-                  }
-                }}
-                placeholder="Buscar clínica..."
-                className="w-full pl-10 pr-8 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4]/60 bg-white text-slate-800 placeholder:text-slate-400"
-              />
-              {clinicaSearch && (
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onClick={() => {
-                    setClinicaSearch('');
-                    pushParams({ prestador: null, prestador_hosp: null, prestador_amb: null });
-                  }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-white rounded-full p-0.5"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              <datalist id="clinicas-list">
-                {initialPrestadores.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Selecciona tu clínica de preferencia para ver solo los planes que la cubren.
-            </p>
-          </FilterSection>
+      <FilterGroup
+        title="Tus preferencias"
+        defaultOpen={false}
+        activeCount={prefsGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        }
+      >
+        <IsapresFilter isapres={activeIsapres} selected={currentIsapres} toggle={toggleIsapre} />
+        <ZonasFilter zonas={initialZonas} selected={currentZonas} toggle={toggleZona} />
+        <ModalidadFilter
+          options={MODALIDADES}
+          value={currentModalidad}
+          onChange={(v) => pushParams({ modalidad: v || null })}
+        />
+      </FilterGroup>
     </>
   );
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-24 lg:pb-10 md:pt-4">
-      <MobileFilterSheet activeFilterCount={activeFilterCount}>
-        {sidebarContent}
-      </MobileFilterSheet>
+    <section className="mx-auto max-w-[1280px] px-6 lg:px-10 py-5 md:py-6">
+      <h1 className="sr-only">Compara planes de isapre</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-        {/* ─── Desktop Sidebar ─── */}
-        <aside className="hidden lg:block space-y-4">
-          {sidebarContent}
+      <div className="grid lg:grid-cols-[300px_1fr] gap-6 lg:gap-8">
+        {/* ─── Desktop sidebar ─── */}
+        <aside
+          className="hidden lg:block space-y-3 sticky top-[80px] self-start"
+          style={{ maxHeight: 'calc(100vh - 92px)', overflowY: 'auto' }}
+        >
+          <SidebarContent />
+          {totalActiveCount > 0 && (
+            <button
+              onClick={clearAll}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[12px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
+            >
+              Limpiar todos los filtros ({totalActiveCount})
+            </button>
+          )}
         </aside>
 
-        {/* ─── Resultados ──────────────────────────────────────────── */}
-        <div className="space-y-4">
-          <h1 className="sr-only">Compara planes de isapre</h1>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white rounded-2xl border border-slate-200 p-3 shadow-sm">
+        {/* ─── Results ─── */}
+        <div className="space-y-5">
+          {/* Toolbar */}
+          <div className="bg-white rounded-2xl border border-[#0f514b]/10 p-3.5 flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6b6a]" />
               <input
                 type="text"
-                placeholder="Buscar por nombre o código..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/50"
+                placeholder="Buscar por nombre o código de plan..."
+                className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13.5px] text-[#0f514b] placeholder:text-slate-400 transition-all"
               />
             </div>
             <select
               value={currentSort}
               onChange={(e) => pushParams({ sort: e.target.value })}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/50"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none text-[13px] font-semibold text-[#0f514b] bg-white cursor-pointer"
             >
               <option value="precio_asc">Precio: menor a mayor</option>
               <option value="precio_desc">Precio: mayor a menor</option>
-              <option value="name_asc">Nombre: A-Z</option>
+              <option value="cobertura">Mayor cobertura</option>
+              <option value="name_asc">Nombre A-Z</option>
             </select>
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(true)}
+              className="lg:hidden inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0f514b] text-white text-[13px] font-bold"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="6" y1="12" x2="18" y2="12" />
+                <line x1="9" y1="18" x2="15" y2="18" />
+              </svg>
+              Filtros
+              {totalActiveCount > 0 && (
+                <span className="bg-[#14dcb4] text-[#0f514b] text-[10px] font-extrabold w-5 h-5 rounded-full grid place-items-center">
+                  {totalActiveCount}
+                </span>
+              )}
+            </button>
           </div>
 
-          <div className="text-sm text-slate-600">
-            Mostrando {items.length} de{' '}
-            <strong>{initialData.total.toLocaleString('es-CL')}</strong> planes
+          <FilterChips chips={chips} clearAll={clearAll} />
+
+          <div className="text-[13px] text-[#5a6b6a]">
+            Mostrando <strong className="text-[#0f514b]">{items.length}</strong>{' '}
+            {items.length === 1 ? 'plan' : 'planes'}
+            {initialData.total !== items.length && (
+              <>
+                {' '}de <strong className="text-[#0f514b]">{initialData.total.toLocaleString('es-CL')}</strong>{' '}
+                que coinciden con tus filtros
+              </>
+            )}
             {initialData.total_pages > 1 && (
-              <span className="ml-2 text-slate-400">
+              <span className="ml-2 text-[#5a6b6a]/70">
                 · Página {initialData.page} de {initialData.total_pages}
               </span>
             )}
           </div>
 
           {items.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <p className="text-slate-500">
-                No hay planes que coincidan con los filtros. Intenta ampliar tu búsqueda.
-              </p>
-            </div>
+            <EmptyState onClearAll={clearAll} activeFiltersCount={totalActiveCount} />
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               {items.map((p) => (
@@ -699,6 +485,7 @@ export default function IsapresClient({
                   plan={p}
                   onRequestPlan={setSelectedPlan}
                   onViewDetails={setSelectedPdfPlan}
+                  budgetCLP={budgetCLP}
                 />
               ))}
             </div>
@@ -710,18 +497,18 @@ export default function IsapresClient({
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => pushParams({ page: String(currentPage - 1) })}
-                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#14dcb4] hover:text-[#14dcb4]"
+                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-[#0f514b] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#14dcb4] hover:text-[#0f9d8a]"
               >
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-[#5a6b6a]">
                 {currentPage} / {initialData.total_pages}
               </span>
               <button
                 type="button"
                 disabled={currentPage >= initialData.total_pages}
                 onClick={() => pushParams({ page: String(currentPage + 1) })}
-                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#14dcb4] hover:text-[#14dcb4]"
+                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-[#0f514b] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#14dcb4] hover:text-[#0f9d8a]"
               >
                 Siguiente <ChevronRight className="w-4 h-4" />
               </button>
@@ -729,6 +516,49 @@ export default function IsapresClient({
           )}
         </div>
       </div>
+
+      {/* Mobile filter sheet */}
+      {mobileFiltersOpen && (
+        <div
+          className="fixed inset-0 z-[70] lg:hidden"
+          onClick={() => setMobileFiltersOpen(false)}
+        >
+          <div className="absolute inset-0 bg-[#06201d]/55 backdrop-blur-sm" />
+          <div
+            className="absolute right-0 top-0 bottom-0 w-[340px] max-w-[90vw] bg-[#fbf8f3] shadow-2xl flex flex-col"
+            style={{ animation: 'slide-in-right 0.3s cubic-bezier(.2,.8,.2,1)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#0f514b] text-white px-5 py-4 flex items-center justify-between">
+              <h2 className="text-[16px] font-bold">Filtros</h2>
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                aria-label="Cerrar"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <SidebarContent />
+            </div>
+            <div className="border-t border-[#0f514b]/10 p-4 flex gap-2">
+              <button
+                onClick={clearAll}
+                className="flex-1 py-3 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[13px] font-bold"
+              >
+                Limpiar
+              </button>
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f514b] text-[13px] font-bold"
+              >
+                Ver {initialData.total} planes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {selectedPdfPlan && selectedPdfPlan.pdf_url && (
@@ -774,7 +604,6 @@ export default function IsapresClient({
                   </button>
                 </div>
               </div>
-
               <div className="flex-1 bg-slate-200/60 p-2 md:p-3">
                 <iframe
                   src={selectedPdfPlan.pdf_url}
@@ -787,21 +616,21 @@ export default function IsapresClient({
         )}
 
         {selectedPlan && (() => {
-              const isConsalud = selectedPlan.isapre_slug === 'consalud';
-              const handleClose = () => {
-                setSelectedPlan(null);
-                setShowContactOptions(false);
-                setShowLeadForm(false);
-              };
-              if (!showContactOptions && !showLeadForm) {
-                if (isConsalud) {
-                  setShowContactOptions(true);
-                } else {
-                  setShowLeadForm(true);
-                }
-                return null;
-              }
-              return (
+          const isConsalud = selectedPlan.isapre_slug === 'consalud';
+          const handleClose = () => {
+            setSelectedPlan(null);
+            setShowContactOptions(false);
+            setShowLeadForm(false);
+          };
+          if (!showContactOptions && !showLeadForm) {
+            if (isConsalud) {
+              setShowContactOptions(true);
+            } else {
+              setShowLeadForm(true);
+            }
+            return null;
+          }
+          return (
             <motion.div
               key="plan-modal"
               initial={{ opacity: 0 }}
@@ -835,19 +664,23 @@ export default function IsapresClient({
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-
                 <div className="overflow-y-auto px-4 py-3 md:px-6 md:py-4">
                   {showContactOptions && !showLeadForm && (
                     <div className="space-y-5">
                       <div className="text-center">
-                        <h3 className="text-lg font-bold text-[#0f514b] mb-2">Conecta con un Ejecutivo {selectedPlan.isapre_name}</h3>
-                        <p className="text-sm text-slate-500">Elige tu forma preferida de contacto</p>
+                        <h3 className="text-lg font-bold text-[#0f514b] mb-2">
+                          Conecta con un Ejecutivo {selectedPlan.isapre_name}
+                        </h3>
+                        <p className="text-sm text-[#5a6b6a]">Elige tu forma preferida de contacto</p>
                       </div>
                       <ContactOptions
                         isConsalud={isConsalud}
                         planName={selectedPlan.name}
                         isapreName={selectedPlan.isapre_name}
-                        onChooseForm={() => { setShowContactOptions(false); setShowLeadForm(true); }}
+                        onChooseForm={() => {
+                          setShowContactOptions(false);
+                          setShowLeadForm(true);
+                        }}
                       />
                     </div>
                   )}
@@ -865,8 +698,8 @@ export default function IsapresClient({
                 </div>
               </motion.div>
             </motion.div>
-              );
-            })()}
+          );
+        })()}
       </AnimatePresence>
     </section>
   );

@@ -88,7 +88,7 @@ export interface PlansQuery {
 
 export async function getIsapres(): Promise<Isapre[]> {
   const res = await fetch(`${API_BASE}/api/v1/isapres`, {
-    next: { revalidate: 3600 },
+    next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
@@ -96,7 +96,7 @@ export async function getIsapres(): Promise<Isapre[]> {
 
 export async function getZonas(): Promise<Zona[]> {
   const res = await fetch(`${API_BASE}/api/v1/zonas`, {
-    next: { revalidate: 3600 },
+    next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
@@ -131,7 +131,7 @@ export async function getPlanes(q: PlansQuery = {}): Promise<PlansResponse> {
 
 export async function getPrestadores(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/api/v1/prestadores`, {
-    next: { revalidate: 3600 },
+    next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
@@ -139,7 +139,7 @@ export async function getPrestadores(): Promise<string[]> {
 
 export async function getPlan(id: string): Promise<Plan> {
   const res = await fetch(`${API_BASE}/api/v1/planes/${id}`, {
-    next: { revalidate: 3600 },
+    next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();

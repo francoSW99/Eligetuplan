@@ -120,9 +120,10 @@ def build_slug_to_id(sb: Client) -> dict[str, str]:
     return {r["slug"]: r["id"] for r in rows if r.get("slug")}
 
 
-def upsert_planes(sb: Client, planes: list[dict], slug_to_id: dict[str, str]) -> tuple[int, int]:
+def upsert_planes(sb: Client, planes: list[dict], slug_to_id: dict[str, str]) -> tuple[int, int, set[str]]:
     ok = 0
     skipped = 0
+    seen_codes: set[str] = set()
     batch: list[dict] = []
 
     for p in planes:
@@ -140,6 +141,8 @@ def upsert_planes(sb: Client, planes: list[dict], slug_to_id: dict[str, str]) ->
         if not codigo:
             skipped += 1
             continue
+
+        seen_codes.add(codigo)
 
         hosp_txt = p.get("HOSPITALARIA_PLAN", "").strip() or None
         amb_txt = p.get("AMBULATORIA_PLAN", "").strip() or None
@@ -174,14 +177,63 @@ def upsert_planes(sb: Client, planes: list[dict], slug_to_id: dict[str, str]) ->
         sb.table("planes").upsert(batch, on_conflict="codigo_plan").execute()
         ok += len(batch)
 
-    return ok, skipped
+    return ok, skipped, seen_codes
+
+
+def deactivate_stale_planes(sb: Client, seen_codes: set[str]) -> int:
+    """Marca como inactivos los planes que estan en la BD pero NO vinieron en este sync.
+
+    Diff = (codigos activos en DB) - (codigos vistos en sync). Los del diff pasan a
+    tu7_activo=False, vigente=False — quedan en la BD para historico pero no aparecen
+    en el comparador.
+    """
+    db_codes: set[str] = set()
+    offset = 0
+    page_size = 1000
+    while True:
+        r = (
+            sb.table("planes")
+            .select("codigo_plan")
+            .eq("tu7_activo", True)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        batch = r.data or []
+        if not batch:
+            break
+        for row in batch:
+            c = row.get("codigo_plan")
+            if c:
+                db_codes.add(c)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    stale = sorted(db_codes - seen_codes)
+    if not stale:
+        logger.info("Sin planes stale: BD y tu7 estan alineados.")
+        return 0
+
+    logger.info(f"Stale detectados: {len(stale)} planes que ya no estan en tu7.cl")
+    chunk = 100
+    total = 0
+    for i in range(0, len(stale), chunk):
+        slice_ = stale[i : i + chunk]
+        sb.table("planes").update({
+            "tu7_activo": False,
+            "vigente":    False,
+            "updated_at": "now()",
+        }).in_("codigo_plan", slice_).execute()
+        total += len(slice_)
+        logger.info(f"  Desactivados: {total}/{len(stale)}")
+    return total
 
 
 def main():
     logger.info("=== Sync tu7.cl → Supabase ===")
     t0 = time.time()
 
-    planes = fetch_tu7_planes(use_cache=True)
+    planes = fetch_tu7_planes(use_cache=False)
     logger.info(f"Planes recibidos desde tu7: {len(planes)}")
 
     if not planes:
@@ -192,13 +244,15 @@ def main():
     slug_to_id = build_slug_to_id(sb)
     logger.info(f"Isapres disponibles: {list(slug_to_id.keys())}")
 
-    ok, skipped = upsert_planes(sb, planes, slug_to_id)
+    ok, skipped, seen_codes = upsert_planes(sb, planes, slug_to_id)
+    deactivated = deactivate_stale_planes(sb, seen_codes)
 
     elapsed = time.time() - t0
     logger.info("=" * 50)
-    logger.info(f"✅ Sync tu7 completado en {elapsed:.1f}s")
-    logger.info(f"   Planes upserted : {ok}")
-    logger.info(f"   Planes omitidos : {skipped}")
+    logger.info(f"Sync tu7 completado en {elapsed:.1f}s")
+    logger.info(f"   Planes upserted    : {ok}")
+    logger.info(f"   Planes omitidos    : {skipped}")
+    logger.info(f"   Planes desactivados: {deactivated}")
     logger.info("=" * 50)
 
 
