@@ -17,6 +17,16 @@ export interface Zona {
   plan_count: number;
 }
 
+export interface PrestadorItem {
+  id: string;
+  tu7_id_prestador: number | null;
+  name: string;
+  logo_filename: string | null;
+  zonas: number[] | null;
+  cubre_hospitalaria: boolean;
+  cubre_ambulatoria: boolean;
+}
+
 export interface Cobertura {
   pct: number;
   clinicas: string[];
@@ -76,6 +86,7 @@ export interface PlansQuery {
   cobertura_hosp_min?: number;
   cobertura_amb_min?: number;
   prestador?: string;
+  prestador_ids?: string;
   con_parto?: boolean;
   tu7_activo?: boolean;
   search?: string;
@@ -112,6 +123,7 @@ export async function getPlanes(q: PlansQuery = {}): Promise<PlansResponse> {
   if (q.cobertura_hosp_min != null) params.set("cobertura_hosp_min", String(q.cobertura_hosp_min));
   if (q.cobertura_amb_min != null) params.set("cobertura_amb_min", String(q.cobertura_amb_min));
   if (q.prestador) params.set("prestador", q.prestador);
+  if (q.prestador_ids) params.set("prestador_ids", q.prestador_ids);
   if (q.con_parto != null) params.set("con_parto", String(q.con_parto));
   if (q.tu7_activo != null) params.set("tu7_activo", String(q.tu7_activo));
   if (q.search) params.set("search", q.search);
@@ -131,6 +143,14 @@ export async function getPlanes(q: PlansQuery = {}): Promise<PlansResponse> {
 
 export async function getPrestadores(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/api/v1/prestadores`, {
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
+export async function getPrestadoresV2(): Promise<PrestadorItem[]> {
+  const res = await fetch(`${API_BASE}/api/v1/prestadores/v2`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);

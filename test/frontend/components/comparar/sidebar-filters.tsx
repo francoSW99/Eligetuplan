@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
-import type { Isapre, Zona } from "@/lib/api";
+import type { Isapre, Zona, PrestadorItem } from "@/lib/api";
 import { formatCLP } from "@/lib/api";
 import { STATS } from "@/lib/home-data";
 
@@ -488,45 +488,134 @@ export function ModalidadFilter({
   );
 }
 
-// ── Clinica Search ─────────────────────────────────────────────────────
-export function ClinicaSearch({
-  prestadores,
-  value,
-  onChange,
+// ── Clinicas Filter ─────────────────────────────────────────────────────
+const ZONA_LABELS: Record<number, string> = {
+  1: "Norte",
+  3: "Octava",
+  4: "Quinta",
+  5: "RM",
+  6: "Sur",
+  8: "Regional",
+  9: "Centro",
+};
+
+export function ClinicasFilter({
+  clinicas,
+  selected,
+  toggle,
+  activeCount,
 }: {
-  prestadores: string[];
-  value: string;
-  onChange: (v: string) => void;
+  clinicas: PrestadorItem[];
+  selected: string[];
+  toggle: (id: string) => void;
+  activeCount: number;
 }) {
+  const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
+  const filtered = useMemo(() => {
+    if (!search) return clinicas;
+    const q = search.toLowerCase();
+    return clinicas.filter((c) => c.name.toLowerCase().includes(q));
+  }, [clinicas, search]);
+
+  const visible = showAll ? filtered : filtered.slice(0, 8);
+
   return (
-    <div>
-      <div className="text-[12px] font-bold text-[#0f514b] mb-2">Clínica preferida</div>
+    <div className="space-y-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6b6a] pointer-events-none" />
         <input
           type="text"
-          list="clinicas-list"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Buscar clínica..."
-          className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-all"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar clínica u hospital..."
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-all"
         />
-        {value && (
+        {search && (
           <button
             type="button"
-            onClick={() => onChange("")}
+            onClick={() => setSearch("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a] transition-colors"
-            aria-label="Limpiar"
+            aria-label="Limpiar búsqueda"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         )}
-        <datalist id="clinicas-list">
-          {prestadores.map((p) => (
-            <option key={p} value={p} />
-          ))}
-        </datalist>
       </div>
+
+      <ul className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1">
+        {visible.map((c) => {
+          const checked = selected.includes(c.id);
+          return (
+            <li key={c.id}>
+              <label className="flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                      checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {checked && (
+                      <svg className="w-3 h-3 text-[#0f514b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    )}
+                  </span>
+                  <input type="checkbox" checked={checked} onChange={() => toggle(c.id)} className="sr-only" />
+                  <span
+                    className={`text-[13px] truncate transition-colors ${
+                      checked ? "text-[#0f514b] font-semibold" : "text-[#1e2a2a]"
+                    }`}
+                  >
+                    {c.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {c.zonas &&
+                    c.zonas.map((z) => (
+                      <span
+                        key={z}
+                        className="text-[9.5px] font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-md bg-[#0f514b]/5 text-[#5a6b6a]"
+                      >
+                        {ZONA_LABELS[z] || z}
+                      </span>
+                    ))}
+                </div>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+
+      {filtered.length > 8 && (
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="text-[11px] font-semibold text-[#0f9d8a] hover:underline"
+        >
+          {showAll ? "Ver menos" : `Ver todas (${filtered.length})`}
+        </button>
+      )}
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((id) => {
+            const c = clinicas.find((cl) => cl.id === id);
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => toggle(id)}
+                className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-1 rounded-lg bg-[#14dcb4]/15 text-[#0f9d8a] hover:bg-[#14dcb4]/25 transition-colors"
+              >
+                {c?.name ?? id}
+                <X className="w-3 h-3" />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

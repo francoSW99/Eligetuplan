@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { getIsapres, getPlanes, getZonas, getPrestadores } from '@/lib/api';
+import { getIsapres, getPlanes, getZonas, getPrestadoresV2 } from '@/lib/api';
 import type { PlansQuery } from '@/lib/api';
 import PageHeader from '@/components/comparar/page-header';
 import IsapresClient from './isapres-client';
@@ -25,6 +25,7 @@ function parseFilters(params: Record<string, string>): PlansQuery {
   if (coberturaHospMin != null) q.cobertura_hosp_min = coberturaHospMin;
   if (coberturaAmbMin != null) q.cobertura_amb_min = coberturaAmbMin;
   if (params.prestador) q.prestador = params.prestador;
+  if (params.prestador_ids) q.prestador_ids = params.prestador_ids;
   if (params.con_parto) q.con_parto = params.con_parto === 'true';
   if (params.search) q.search = params.search;
   const page = parseIntParam(params.page);
@@ -43,7 +44,7 @@ export default async function CompararIsapresPage({
   const [isapres, zonas, prestadores, plans, totalsResp] = await Promise.all([
     getIsapres(),
     getZonas(),
-    getPrestadores(),
+    getPrestadoresV2(),
     getPlanes(parseFilters(params)),
     hasFilters ? getPlanes({ limit: 1 }) : Promise.resolve(null),
   ]);

@@ -1169,6 +1169,7 @@ def _filter_plan_items(
     cobertura_hosp_min: Optional[int] = None,
     cobertura_amb_min: Optional[int] = None,
     prestador_q: Optional[str] = None,
+    prestador_plan_ids: Optional[set[str]] = None,
     search: Optional[str] = None,
 ) -> list[PlanListItem]:
     """Filter pre-built PlanListItem objects by user-facing attributes."""
@@ -1205,6 +1206,8 @@ def _filter_plan_items(
                     break
             if not found:
                 continue
+        if prestador_plan_ids is not None and p.id not in prestador_plan_ids:
+            continue
         if search:
             sl = search.lower()
             name = (p.name or "").lower()
@@ -1483,6 +1486,7 @@ def list_planes(
     cobertura_hosp_min: Optional[int] = Query(None, ge=0, le=100),
     cobertura_amb_min: Optional[int] = Query(None, ge=0, le=100),
     prestador: Optional[str] = Query(None, description="Filtra por nombre de clínica/prestador"),
+    prestador_ids: Optional[str] = Query(None, description="IDs de clínicas (UUID) separados por coma"),
     con_parto: Optional[bool] = Query(None),
     tu7_activo: bool = Query(True, description="Solo planes activos en tu7 (default)"),
     search: Optional[str] = Query(None, description="Busca en nombre o código"),
@@ -1511,6 +1515,22 @@ def list_planes(
     zona_ids = [int(z.strip()) for z in zona.split(",") if z.strip().isdigit()] if zona else None
     prestador_q = prestador.replace(",", "").strip() if prestador else None
 
+    # ── 3b. Resolve prestador_ids → plan IDs via plan_clinica ────────────
+    prestador_plan_ids: Optional[set[str]] = None
+    if prestador_ids:
+        clinica_ids = [cid.strip() for cid in prestador_ids.split(",") if cid.strip()]
+        if clinica_ids and supabase:
+            try:
+                r = (
+                    supabase.table("plan_clinica")
+                    .select("plan_id")
+                    .in_("clinica_id", clinica_ids)
+                    .execute()
+                )
+                prestador_plan_ids = {str(row["plan_id"]) for row in (r.data or [])}
+            except Exception:
+                prestador_plan_ids = None
+
     filtered = _filter_plan_items(
         all_items,
         tu7_activo=tu7_activo,
@@ -1523,6 +1543,7 @@ def list_planes(
         cobertura_hosp_min=cobertura_hosp_min,
         cobertura_amb_min=cobertura_amb_min,
         prestador_q=prestador_q,
+        prestador_plan_ids=prestador_plan_ids,
         search=search,
     )
 

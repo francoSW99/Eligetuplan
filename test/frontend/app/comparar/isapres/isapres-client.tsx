@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState, useTransition, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import type { Isapre, Zona, PlansResponse, Plan } from '@/lib/api';
+import type { Isapre, Zona, PrestadorItem, PlansResponse, Plan } from '@/lib/api';
 import { formatCLP } from '@/lib/api';
 import PlanCard from './plan-card';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
@@ -17,7 +17,7 @@ import {
   IsapresFilter,
   ZonasFilter,
   ModalidadFilter,
-  ClinicaSearch,
+  ClinicasFilter,
 } from '@/components/comparar/sidebar-filters';
 import FilterChips, { type Chip } from '@/components/comparar/filter-chips';
 import EmptyState from '@/components/comparar/empty-state';
@@ -32,7 +32,7 @@ export default function IsapresClient({
 }: {
   initialIsapres: Isapre[];
   initialZonas: Zona[];
-  initialPrestadores: string[];
+  initialPrestadores: PrestadorItem[];
   initialData: PlansResponse;
 }) {
   const router = useRouter();
@@ -51,7 +51,6 @@ export default function IsapresClient({
   const currentZonas = search.get('zona')?.split(',').filter(Boolean) ?? [];
   const currentModalidad = search.get('modalidad') ?? '';
   const currentSearch = search.get('search') ?? '';
-  const currentPrestador = search.get('prestador') ?? '';
   const currentCobHosp = search.get('cobertura_hosp_min');
   const currentCobAmb = search.get('cobertura_amb_min');
   const currentPage = parseInt(search.get('page') ?? '1', 10);
@@ -75,9 +74,8 @@ export default function IsapresClient({
 
   const [searchText, setSearchText] = useState(currentSearch);
   const [grossSalaryInput, setGrossSalaryInput] = useState(currentGrossSalary);
-  const [clinicaSearch, setClinicaSearch] = useState(currentPrestador);
+  const [selectedClinicas, setSelectedClinicas] = useState<string[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const clinicaDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
@@ -106,8 +104,13 @@ export default function IsapresClient({
   }, [currentGrossSalary]);
 
   useEffect(() => {
-    setClinicaSearch(currentPrestador);
-  }, [currentPrestador]);
+    const ids = search.get('prestador_ids');
+    if (ids) {
+      setSelectedClinicas(ids.split(',').filter(Boolean));
+    } else {
+      setSelectedClinicas([]);
+    }
+  }, [search]);
 
   useEffect(() => {
     if (!selectedPlan && !selectedPdfPlan) return;
@@ -168,22 +171,18 @@ export default function IsapresClient({
     });
   }
 
-  function applyClinicaSearch(value: string) {
-    setClinicaSearch(value);
-    if (clinicaDebounceRef.current) clearTimeout(clinicaDebounceRef.current);
-    if (!value) {
-      pushParams({ prestador: null });
-      return;
-    }
-    clinicaDebounceRef.current = setTimeout(() => {
-      pushParams({ prestador: value });
-    }, 400);
+  function toggleClinica(id: string) {
+    setSelectedClinicas((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      pushParams({ prestador_ids: next.length ? next.join(',') : null, prestador: null });
+      return next;
+    });
   }
 
   function clearAll() {
     setSearchText('');
     setGrossSalaryInput('');
-    setClinicaSearch('');
+    setSelectedClinicas([]);
     setLocalPriceMin(priceFloor);
     setLocalPriceMax(priceCeiling);
     startTransition(() => {
@@ -202,15 +201,16 @@ export default function IsapresClient({
 
   const coverageGroupCount =
     (currentCobHosp !== null ? 1 : 0) +
-    (currentCobAmb !== null ? 1 : 0) +
-    (currentPrestador ? 1 : 0);
+    (currentCobAmb !== null ? 1 : 0);
 
   const prefsGroupCount =
     currentIsapres.length +
     currentZonas.length +
     (currentModalidad ? 1 : 0);
 
-  const totalActiveCount = budgetGroupCount + coverageGroupCount + prefsGroupCount;
+  const clinicasGroupCount = selectedClinicas.length;
+
+  const totalActiveCount = budgetGroupCount + coverageGroupCount + prefsGroupCount + clinicasGroupCount;
 
   // ── Active filter chips ────────────────────────────────────────────
   const chips = useMemo<Chip[]>(() => {
@@ -269,15 +269,14 @@ export default function IsapresClient({
         l: `Modalidad: ${currentModalidad}`,
         clear: () => pushParams({ modalidad: null }),
       });
-    if (currentPrestador)
+    selectedClinicas.forEach((cid) => {
+      const clinica = initialPrestadores.find((c) => c.id === cid);
       arr.push({
-        k: 'clin',
-        l: `Clínica: ${currentPrestador}`,
-        clear: () => {
-          setClinicaSearch('');
-          pushParams({ prestador: null });
-        },
+        k: `clin-${cid}`,
+        l: clinica?.name ?? cid,
+        clear: () => toggleClinica(cid),
       });
+    });
     if (currentSearch)
       arr.push({
         k: 'search',
@@ -301,10 +300,11 @@ export default function IsapresClient({
     currentIsapres.join(','),
     currentZonas.join(','),
     currentModalidad,
-    currentPrestador,
+    selectedClinicas.join(','),
     currentSearch,
     initialIsapres,
     initialZonas,
+    initialPrestadores,
   ]);
 
   // ── Sidebar content ────────────────────────────────────────────────
@@ -365,10 +365,23 @@ export default function IsapresClient({
           value={currentCobAmb ? parseInt(currentCobAmb, 10) : null}
           onChange={(v) => pushParams({ cobertura_amb_min: v ? String(v) : null })}
         />
-        <ClinicaSearch
-          prestadores={initialPrestadores}
-          value={clinicaSearch}
-          onChange={applyClinicaSearch}
+      </FilterGroup>
+
+      <FilterGroup
+        title="Clínicas y hospitales"
+        defaultOpen={false}
+        activeCount={clinicasGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><path d="M9 9h1" /><path d="M9 13h1" /><path d="M9 17h1" /><path d="M14 13h1" /><path d="M14 17h1" />
+          </svg>
+        }
+      >
+        <ClinicasFilter
+          clinicas={initialPrestadores}
+          selected={selectedClinicas}
+          toggle={toggleClinica}
+          activeCount={clinicasGroupCount}
         />
       </FilterGroup>
 
