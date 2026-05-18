@@ -5,7 +5,17 @@ import re
 import sys
 import threading
 import time
+import unicodedata
 from typing import Any, Optional
+
+
+def _norm(s: Optional[str]) -> str:
+    """Normaliza texto para matching: minusculas + sin acentos."""
+    if not s:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", s)
+    no_accents = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return no_accents.lower()
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -1100,9 +1110,10 @@ def _filter_plans_in_python(
                 continue
 
         if prestador_q:
-            ht = (r.get("hospitalaria_texto") or "")
-            at = (r.get("ambulatoria_texto") or "")
-            if prestador_q.lower() not in ht.lower() and prestador_q.lower() not in at.lower():
+            q = _norm(prestador_q)
+            ht = _norm(r.get("hospitalaria_texto"))
+            at = _norm(r.get("ambulatoria_texto"))
+            if q not in ht and q not in at:
                 continue
 
         if search:
@@ -1170,9 +1181,11 @@ def _filter_plan_items(
     cobertura_amb_min: Optional[int] = None,
     prestador_q: Optional[str] = None,
     prestador_plan_ids: Optional[set[str]] = None,
+    prestador_names: Optional[list[str]] = None,
     search: Optional[str] = None,
 ) -> list[PlanListItem]:
     """Filter pre-built PlanListItem objects by user-facing attributes."""
+    prestador_names_norm = [_norm(n) for n in prestador_names] if prestador_names else None
     out: list[PlanListItem] = []
     for p in items:
         if tu7_activo and not p.tu7_activo:
@@ -1195,18 +1208,34 @@ def _filter_plan_items(
         if cobertura_amb_min is not None and (p.ambulatory_coverage is None or p.ambulatory_coverage < cobertura_amb_min):
             continue
         if prestador_q:
-            q = prestador_q.lower()
+            q = _norm(prestador_q)
             found = False
             for cobs in (p.hospitalaria, p.ambulatoria):
                 for cob in cobs:
-                    if any(q in c.lower() for c in cob.clinicas):
+                    if any(q in _norm(c) for c in cob.clinicas):
                         found = True
                         break
                 if found:
                     break
             if not found:
-                continue
-        if prestador_plan_ids is not None and p.id not in prestador_plan_ids:
+                if prestador_plan_ids is None or p.id not in prestador_plan_ids:
+                    continue
+        elif prestador_names_norm:
+            found = False
+            for name in prestador_names_norm:
+                for cobs in (p.hospitalaria, p.ambulatoria):
+                    for cob in cobs:
+                        if any(name in _norm(c) for c in cob.clinicas):
+                            found = True
+                            break
+                    if found:
+                        break
+                if found:
+                    break
+            if not found:
+                if prestador_plan_ids is None or p.id not in prestador_plan_ids:
+                    continue
+        elif prestador_plan_ids is not None and p.id not in prestador_plan_ids:
             continue
         if search:
             sl = search.lower()
@@ -1515,8 +1544,9 @@ def list_planes(
     zona_ids = [int(z.strip()) for z in zona.split(",") if z.strip().isdigit()] if zona else None
     prestador_q = prestador.replace(",", "").strip() if prestador else None
 
-    # ── 3b. Resolve prestador_ids → plan IDs via plan_clinica ────────────
+    # ── 3b. Resolve prestador_ids → plan IDs or fallback to text search ─────
     prestador_plan_ids: Optional[set[str]] = None
+    prestador_names: Optional[list[str]] = None
     if prestador_ids:
         clinica_ids = [cid.strip() for cid in prestador_ids.split(",") if cid.strip()]
         if clinica_ids and supabase:
@@ -1527,9 +1557,24 @@ def list_planes(
                     .in_("clinica_id", clinica_ids)
                     .execute()
                 )
-                prestador_plan_ids = {str(row["plan_id"]) for row in (r.data or [])}
+                found_ids = {str(row["plan_id"]) for row in (r.data or [])}
+                if found_ids:
+                    prestador_plan_ids = found_ids
+                else:
+                    names_r = (
+                        supabase.table("clinicas")
+                        .select("name")
+                        .in_("id", clinica_ids)
+                        .execute()
+                    )
+                    names = [(row["name"] or "").strip() for row in (names_r.data or []) if (row["name"] or "").strip()]
+                    if names:
+                        prestador_names = names
             except Exception:
                 prestador_plan_ids = None
+
+    # Combine text-based prestador filters
+    combined_prestador_q = prestador_q
 
     filtered = _filter_plan_items(
         all_items,
@@ -1542,8 +1587,9 @@ def list_planes(
         zona_ids=zona_ids,
         cobertura_hosp_min=cobertura_hosp_min,
         cobertura_amb_min=cobertura_amb_min,
-        prestador_q=prestador_q,
+        prestador_q=combined_prestador_q,
         prestador_plan_ids=prestador_plan_ids,
+        prestador_names=prestador_names,
         search=search,
     )
 
