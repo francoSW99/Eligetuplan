@@ -1,37 +1,39 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { getIsapres, getPlanes, getZonas, getPrestadoresV2 } from '@/lib/api';
-import type { PlansQuery } from '@/lib/api';
-import PageHeader from '@/components/comparar/page-header';
-import IsapresClient from './isapres-client';
+import ResultsSkeleton, { SidebarSkeleton } from '@/components/comparar/results-skeleton';
+import CompareBody from './compare-body';
 
-function parseIntParam(value?: string): number | undefined {
-  if (!value) return undefined;
-  const parsed = parseInt(value, 10);
-  return Number.isNaN(parsed) ? undefined : parsed;
-}
+function BodyFallback() {
+  return (
+    <>
+      {/* PageHeader skeleton */}
+      <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] pt-8 pb-5 md:pt-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#14dcb4]" aria-hidden />
+        <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
+            <div className="min-w-0 space-y-2">
+              <div className="h-3 w-32 bg-white/15 rounded animate-pulse" />
+              <div className="h-6 w-72 sm:w-96 bg-white/15 rounded animate-pulse" />
+            </div>
+            <div className="shrink-0">
+              <div className="h-14 w-44 rounded-2xl bg-white/8 border border-[#14dcb4]/20 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </section>
 
-function parseFilters(params: Record<string, string>): PlansQuery {
-  const q: PlansQuery = { limit: 15 };
-  if (params.isapre) q.isapre = params.isapre;
-  if (params.modalidad) q.modalidad = params.modalidad;
-  if (params.zona) q.zona = params.zona;
-  const precioMin = parseIntParam(params.precio_min_clp);
-  const precioMax = parseIntParam(params.precio_max_clp);
-  const coberturaHospMin = parseIntParam(params.cobertura_hosp_min);
-  const coberturaAmbMin = parseIntParam(params.cobertura_amb_min);
-  if (precioMin != null) q.precio_min_clp = precioMin;
-  if (precioMax != null) q.precio_max_clp = precioMax;
-  if (coberturaHospMin != null) q.cobertura_hosp_min = coberturaHospMin;
-  if (coberturaAmbMin != null) q.cobertura_amb_min = coberturaAmbMin;
-  if (params.prestador) q.prestador = params.prestador;
-  if (params.prestador_ids) q.prestador_ids = params.prestador_ids;
-  if (params.con_parto) q.con_parto = params.con_parto === 'true';
-  if (params.search) q.search = params.search;
-  const page = parseIntParam(params.page);
-  if (page != null) q.page = page;
-  if (params.sort) q.sort = params.sort;
-  return q;
+      {/* Content skeleton */}
+      <section className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10 py-4 sm:py-5 md:py-6">
+        <div className="grid lg:grid-cols-[300px_1fr] gap-4 sm:gap-6 lg:gap-8">
+          <aside className="hidden lg:block">
+            <SidebarSkeleton />
+          </aside>
+          <ResultsSkeleton />
+        </div>
+      </section>
+    </>
+  );
 }
 
 export default async function CompararIsapresPage({
@@ -40,37 +42,18 @@ export default async function CompararIsapresPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const params = await searchParams;
-  const hasFilters = Object.keys(params).length > 0;
-  const [isapres, zonas, prestadores, plans, totalsResp] = await Promise.all([
-    getIsapres(),
-    getZonas(),
-    getPrestadoresV2(),
-    getPlanes(parseFilters(params)),
-    hasFilters ? getPlanes({ limit: 1 }) : Promise.resolve(null),
-  ]);
-
-  const totalGlobal = totalsResp?.total ?? plans.total;
 
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
-      <PageHeader
-        totalShowing={plans.items.length}
-        totalFiltered={plans.total}
-        totalGlobal={totalGlobal}
-      />
+      <Suspense key={JSON.stringify(params)} fallback={<BodyFallback />}>
+        <CompareBody params={params} />
+      </Suspense>
 
-      <IsapresClient
-        initialIsapres={isapres}
-        initialZonas={zonas}
-        initialPrestadores={prestadores}
-        initialData={plans}
-      />
-
-      {/* CTA Bottom */}
-      <section className="bg-[#fbf8f3] px-5 md:px-8 pt-6 pb-16 md:pt-10 md:pb-24">
+      {/* CTA Bottom — static, renders immediately */}
+      <section className="bg-[#fbf8f3] px-5 sm:px-6 lg:px-10 pt-6 pb-16 md:pt-10 md:pb-24">
         <div className="max-w-6xl mx-auto">
           <div
-            className="relative overflow-hidden rounded-[32px] grid md:grid-cols-[1.4fr_1fr] gap-8 md:gap-10 items-center px-7 py-10 md:px-14 md:py-14"
+            className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] grid md:grid-cols-[1.4fr_1fr] gap-6 sm:gap-8 md:gap-10 items-center px-6 py-10 sm:px-8 sm:py-12 md:px-14 md:py-14"
             style={{
               background: 'linear-gradient(180deg, #0f514b 0%, #092e2a 100%)',
               boxShadow: '0 30px 80px -20px rgba(15,81,75,0.4)',
