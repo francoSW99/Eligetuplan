@@ -117,10 +117,10 @@ export default function PlanCard({
         </div>
       )}
 
-      <div className="p-5 md:p-6 flex flex-col gap-4 h-full">
-        <div className="flex items-start justify-between gap-4">
+      <div className="p-4 sm:p-5 md:p-6 flex flex-col gap-3.5 sm:gap-4 h-full">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="min-w-0 flex-1">
-            <div className="h-10 w-28 mb-2.5 relative">
+            <div className="h-9 sm:h-10 w-24 sm:w-28 mb-2 sm:mb-2.5 relative">
               <Image
                 src={logoSrc}
                 alt={plan.isapre_name}
@@ -129,12 +129,12 @@ export default function PlanCard({
                 sizes="112px"
               />
             </div>
-            <h3 className="font-bold text-[14px] text-[#0f514b] uppercase leading-tight mb-1 tracking-tight">
+            <h3 className="font-bold text-[13px] sm:text-[14px] text-[#0f514b] uppercase leading-tight mb-1 tracking-tight">
               {plan.name}
             </h3>
             <div className="flex items-center gap-2 flex-wrap">
               {plan.codigo_plan && (
-                <span className="text-[10.5px] text-[#5a6b6a] font-mono">{plan.codigo_plan}</span>
+                <span className="text-[10.5px] text-[#5a6b6a] font-mono break-all">{plan.codigo_plan}</span>
               )}
               {plan.modalidad && (
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-md bg-[#14dcb4]/12 text-[#0f9d8a]">
@@ -148,16 +148,16 @@ export default function PlanCard({
             <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-0.5">
               Precio base
             </div>
-            <div className="text-[22px] font-extrabold text-[#0f514b] leading-none tabular-nums tracking-tight">
+            <div className="text-[18px] sm:text-[22px] font-extrabold text-[#0f514b] leading-none tabular-nums tracking-tight">
               UF {formatUF(plan.base_plan_uf ?? plan.price_uf)}
             </div>
-            <div className="text-[12px] text-[#5a6b6a] mt-1 tabular-nums">
+            <div className="text-[11px] sm:text-[12px] text-[#5a6b6a] mt-1 tabular-nums">
               {formatCLP(plan.price_clp)} <span className="text-[#5a6b6a]/65">/mes</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
           <CoverageBlock title="Hospitalaria" data={plan.hospitalaria} expanded={expanded} />
           <CoverageBlock title="Ambulatoria" data={plan.ambulatoria} expanded={expanded} />
         </div>

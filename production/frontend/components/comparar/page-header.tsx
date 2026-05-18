@@ -16,7 +16,7 @@ export default function PageHeader({ totalShowing, totalFiltered, totalGlobal }:
       />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#14dcb4]" aria-hidden />
 
-      <div className="relative mx-auto max-w-[1280px] px-6 lg:px-10">
+      <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
           <div className="min-w-0">
             <nav className="text-[11px] text-white/55 mb-1.5 flex items-center gap-1.5 font-medium" aria-label="Breadcrumb">
@@ -28,7 +28,7 @@ export default function PageHeader({ totalShowing, totalFiltered, totalGlobal }:
               </svg>
               <span className="text-white/85">Comparar planes</span>
             </nav>
-            <h1 className="text-[20px] md:text-[24px] font-extrabold tracking-[-0.02em] leading-[1.15] text-balance">
+            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-extrabold tracking-[-0.02em] leading-[1.2] text-balance">
               Compara los{" "}
               <span className="text-[#14dcb4] serif font-medium italic">
                 {totalGlobal.toLocaleString("es-CL")}

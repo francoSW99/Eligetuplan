@@ -116,30 +116,30 @@ export default function HeroSplit() {
   return (
     <section
       id="top"
-      className="relative overflow-hidden text-white pt-[120px] pb-20 lg:pt-[160px] lg:pb-28"
+      className="relative overflow-hidden text-white pt-[100px] pb-14 sm:pt-[120px] sm:pb-20 lg:pt-[160px] lg:pb-28"
       style={{ animation: "hero-fade-in 0.7s cubic-bezier(.2,.8,.2,1)" }}
     >
       <HeroBackground />
-      <div className="relative mx-auto max-w-[1280px] px-6 lg:px-10">
-        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-16 items-center">
+      <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-8 sm:gap-10 lg:gap-16 items-center">
           <div className="max-w-[620px]">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14dcb4]/12 border border-[#14dcb4]/30 mb-7">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14dcb4]/12 border border-[#14dcb4]/30 mb-5 sm:mb-7">
               <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse" />
-              <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-[#14dcb4]">
+              <span className="text-[10.5px] sm:text-[11px] font-bold tracking-[0.18em] uppercase text-[#14dcb4]">
                 Comparador 100% gratuito · {STATS.plansTotal.toLocaleString("es-CL")} planes
               </span>
             </div>
 
             <h1
-              className="font-extrabold tracking-[-0.025em] leading-[0.98] mb-6"
-              style={{ fontSize: "clamp(40px,5.8vw,72px)" }}
+              className="font-extrabold tracking-[-0.025em] leading-[1] sm:leading-[0.98] mb-5 sm:mb-6"
+              style={{ fontSize: "clamp(32px,7.5vw,72px)" }}
             >
               ¿Cuánto{" "}
               <span className="text-[#14dcb4] serif font-medium italic">deberías</span>{" "}
               pagar por tu plan de salud?
             </h1>
 
-            <p className="text-[17px] lg:text-[18px] text-white/72 leading-relaxed max-w-[540px] mb-8">
+            <p className="text-[15px] sm:text-[17px] lg:text-[18px] text-white/72 leading-relaxed max-w-[540px] mb-6 sm:mb-8">
               La ley te reserva el <strong className="text-white font-semibold">7% de tu sueldo bruto</strong> para salud. Ingrésalo aquí y te mostramos cuántos planes vigentes están realmente a tu alcance — sin formularios, sin cuentas, sin promesas raras.
             </p>
 

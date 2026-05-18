@@ -1,8 +1,8 @@
 export default function FinalCTA() {
   return (
-    <section id="asesor" className="bg-[#fbf8f3] px-6 lg:px-10 pb-24">
+    <section id="asesor" className="bg-[#fbf8f3] px-5 sm:px-6 lg:px-10 pb-16 sm:pb-24">
       <div className="mx-auto max-w-[1280px]">
-        <div className="relative overflow-hidden rounded-[32px] grid md:grid-cols-[1.4fr_1fr] gap-8 md:gap-12 items-center px-8 py-12 md:px-14 md:py-16 bg-gradient-to-br from-[#0f514b] to-[#092e2a] border border-[#14dcb4]/15 shadow-[0_30px_80px_-20px_rgba(15,81,75,0.45)]">
+        <div className="relative overflow-hidden rounded-[24px] sm:rounded-[32px] grid md:grid-cols-[1.4fr_1fr] gap-6 sm:gap-8 md:gap-12 items-center px-6 py-10 sm:px-8 sm:py-12 md:px-14 md:py-16 bg-gradient-to-br from-[#0f514b] to-[#092e2a] border border-[#14dcb4]/15 shadow-[0_30px_80px_-20px_rgba(15,81,75,0.45)]">
           <div
             className="absolute -top-[40%] -right-[10%] w-[500px] h-[500px] rounded-full pointer-events-none"
             style={{ background: "radial-gradient(circle, rgba(20,220,180,.2) 0%, transparent 60%)" }}

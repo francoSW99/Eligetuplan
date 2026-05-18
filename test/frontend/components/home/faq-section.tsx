@@ -7,9 +7,9 @@ export default function FaqSection() {
   const [openIdx, setOpenIdx] = useState(0);
 
   return (
-    <section id="faq" className="bg-[#fbf8f3] py-20 md:py-28">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-10">
-        <div className="grid lg:grid-cols-[1fr_1.4fr] gap-12 lg:gap-20">
+    <section id="faq" className="bg-[#fbf8f3] py-14 sm:py-20 md:py-28">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
+        <div className="grid lg:grid-cols-[1fr_1.4fr] gap-8 sm:gap-12 lg:gap-20">
           <header className="lg:sticky lg:top-32 self-start">
             <div className="text-[11px] font-bold tracking-[0.22em] uppercase text-[#0f9d8a] mb-3">
               · Preguntas frecuentes ·
@@ -51,14 +51,14 @@ export default function FaqSection() {
                   <button
                     type="button"
                     onClick={() => setOpenIdx(open ? -1 : i)}
-                    className="w-full flex items-start justify-between gap-5 text-left p-6"
+                    className="w-full flex items-start justify-between gap-3 sm:gap-5 text-left p-4 sm:p-6"
                     aria-expanded={open}
                   >
-                    <span className="flex items-start gap-4">
+                    <span className="flex items-start gap-3 sm:gap-4 min-w-0">
                       <span className="shrink-0 mt-0.5 font-mono text-[11px] font-semibold text-[#0f9d8a] tracking-wider">
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <span className="font-bold text-[#0f514b] text-[16px] leading-snug pr-4">{f.q}</span>
+                      <span className="font-bold text-[#0f514b] text-[14.5px] sm:text-[16px] leading-snug pr-2 sm:pr-4">{f.q}</span>
                     </span>
                     <span
                       className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
@@ -78,7 +78,7 @@ export default function FaqSection() {
                     </span>
                   </button>
                   {open && (
-                    <div className="px-6 pb-6 -mt-1 pl-[60px] pr-16 text-[15px] text-[#5a6b6a] leading-relaxed">
+                    <div className="px-4 pb-4 -mt-1 pl-[46px] pr-6 sm:px-6 sm:pb-6 sm:pl-[60px] sm:pr-16 text-[14px] sm:text-[15px] text-[#5a6b6a] leading-relaxed">
                       {f.a}
                     </div>
                   )}
