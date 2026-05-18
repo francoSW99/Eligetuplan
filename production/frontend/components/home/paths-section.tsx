@@ -1,20 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { PATHS } from "@/lib/home-data";
+
+function GridBg() {
+  return (
+    <div
+      className="absolute inset-0 opacity-[0.08]"
+      style={{
+        backgroundImage:
+          "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+        backgroundSize: "24px 24px",
+      }}
+    />
+  );
+}
 
 function IAVisual() {
   return (
     <div className="relative w-full h-full bg-gradient-to-br from-[#0f514b] to-[#092e2a] p-6 flex items-center justify-center overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
+      <GridBg />
       <svg viewBox="0 0 360 220" className="relative w-full max-w-md drop-shadow-2xl">
         <g style={{ animation: "ia-pulse 3s ease-in-out infinite" }}>
           <circle cx="55" cy="110" r="32" fill="#fbf8f3" />
@@ -57,51 +62,187 @@ function IAVisual() {
   );
 }
 
-function ComparePreviewVisual() {
+// ── Compare Visual — tabla de planes con filas y barras de cobertura animadas ──
+function CompareVisual() {
+  // 3 filas: una "match" (highlighted), dos regulares
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#fbf8f3] rounded-2xl">
-      <Image
-        src="/comparar-preview.png"
-        alt="Vista del comparador de planes"
-        fill
-        sizes="(max-width: 768px) 100vw, 33vw"
-        className="object-cover object-top"
-        style={{ objectPosition: "50% 0%" }}
-      />
-      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#fbf8f3] to-transparent pointer-events-none" />
-      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-[#0f514b]/15 text-[10px] font-bold tracking-[0.14em] uppercase text-[#0f514b] shadow-sm">
-        Vista real del comparador
-      </div>
-      <div className="absolute bottom-3 left-3 right-3 text-center">
-        <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#0f514b]">
-          Filtros · precio · cobertura · clínicas
+    <div className="relative w-full h-full bg-gradient-to-br from-[#0f514b] to-[#092e2a] p-6 flex items-center justify-center overflow-hidden">
+      <GridBg />
+
+      <svg viewBox="0 0 360 220" className="relative w-full max-w-md drop-shadow-2xl">
+        {/* Chips de filtros flotantes (top) */}
+        <g style={{ animation: "ia-float 4s ease-in-out infinite" }}>
+          <rect x="20" y="14" width="60" height="18" rx="9" fill="#14dcb4" opacity="0.18" stroke="#14dcb4" strokeWidth="1" />
+          <text x="50" y="26" fontSize="8.5" fontWeight="700" fill="#14dcb4" textAnchor="middle">Precio ≤ 7%</text>
+        </g>
+        <g style={{ animation: "ia-float 4s ease-in-out -1.3s infinite" }}>
+          <rect x="86" y="14" width="64" height="18" rx="9" fill="#14dcb4" opacity="0.18" stroke="#14dcb4" strokeWidth="1" />
+          <text x="118" y="26" fontSize="8.5" fontWeight="700" fill="#14dcb4" textAnchor="middle">Cobertura ≥80%</text>
+        </g>
+        <g style={{ animation: "ia-float 4s ease-in-out -2.6s infinite" }}>
+          <rect x="156" y="14" width="56" height="18" rx="9" fill="#14dcb4" opacity="0.18" stroke="#14dcb4" strokeWidth="1" />
+          <text x="184" y="26" fontSize="8.5" fontWeight="700" fill="#14dcb4" textAnchor="middle">Consalud</text>
+        </g>
+
+        {/* Header de tabla */}
+        <text x="22" y="56" fontSize="7.5" fontWeight="700" fill="#14dcb4" opacity="0.7" letterSpacing="1">PLAN</text>
+        <text x="160" y="56" fontSize="7.5" fontWeight="700" fill="#14dcb4" opacity="0.7" letterSpacing="1">COBERTURA</text>
+        <text x="306" y="56" fontSize="7.5" fontWeight="700" fill="#14dcb4" opacity="0.7" letterSpacing="1" textAnchor="middle">PRECIO</text>
+
+        {/* Fila 1 — Match (highlighted) */}
+        <g>
+          <rect x="14" y="64" width="332" height="42" rx="8" fill="#14dcb4" opacity="0.16" stroke="#14dcb4" strokeWidth="1.5" />
+          {/* Plan name */}
+          <rect x="22" y="74" width="80" height="6" rx="3" fill="#fbf8f3" />
+          <rect x="22" y="86" width="50" height="5" rx="2.5" fill="#fbf8f3" opacity="0.5" />
+          {/* Coverage bar */}
+          <rect x="150" y="79" width="120" height="6" rx="3" fill="#fbf8f3" opacity="0.15" />
+          <g style={{ transformOrigin: "150px 82px", animation: "compare-bar-grow 2.2s ease-out infinite" }}>
+            <rect x="150" y="79" width="108" height="6" rx="3" fill="#14dcb4" />
+          </g>
+          <text x="276" y="87" fontSize="9" fontWeight="700" fill="#14dcb4">90%</text>
+          {/* Price */}
+          <text x="306" y="89" fontSize="10" fontWeight="800" fill="#fbf8f3" textAnchor="middle">UF 3.4</text>
+          {/* Check mark */}
+          <circle cx="332" cy="85" r="9" fill="#14dcb4" />
+          <path
+            d="M 327 85 L 331 89 L 338 81"
+            stroke="#0f2826"
+            strokeWidth="2.2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="20"
+            style={{ animation: "compare-check 2.2s ease-out infinite" }}
+          />
+          {/* Sparkle on match */}
+          <path
+            d="M 8 70 L 11 76 L 17 79 L 11 82 L 8 88 L 5 82 L -1 79 L 5 76 Z"
+            fill="#14dcb4"
+            transform="translate(2, 0)"
+            style={{ animation: "ia-sparkle 1.6s ease-in-out infinite" }}
+          />
+        </g>
+
+        {/* Fila 2 — Regular dimmed */}
+        <g style={{ animation: "compare-row-highlight 3s ease-in-out -0.5s infinite" }}>
+          <rect x="14" y="114" width="332" height="36" rx="8" fill="#fbf8f3" opacity="0.05" />
+          <rect x="22" y="124" width="70" height="6" rx="3" fill="#fbf8f3" opacity="0.7" />
+          <rect x="22" y="136" width="45" height="5" rx="2.5" fill="#fbf8f3" opacity="0.35" />
+          <rect x="150" y="129" width="120" height="6" rx="3" fill="#fbf8f3" opacity="0.12" />
+          <g style={{ transformOrigin: "150px 132px", animation: "compare-bar-grow 2.6s ease-out -0.3s infinite" }}>
+            <rect x="150" y="129" width="84" height="6" rx="3" fill="#fbf8f3" opacity="0.5" />
+          </g>
+          <text x="276" y="137" fontSize="9" fontWeight="600" fill="#fbf8f3" opacity="0.55">70%</text>
+          <text x="306" y="139" fontSize="9.5" fontWeight="700" fill="#fbf8f3" opacity="0.55" textAnchor="middle">UF 2.8</text>
+        </g>
+
+        {/* Fila 3 — Regular dimmed */}
+        <g style={{ animation: "compare-row-highlight 3s ease-in-out -1.5s infinite" }}>
+          <rect x="14" y="158" width="332" height="36" rx="8" fill="#fbf8f3" opacity="0.05" />
+          <rect x="22" y="168" width="86" height="6" rx="3" fill="#fbf8f3" opacity="0.7" />
+          <rect x="22" y="180" width="56" height="5" rx="2.5" fill="#fbf8f3" opacity="0.35" />
+          <rect x="150" y="173" width="120" height="6" rx="3" fill="#fbf8f3" opacity="0.12" />
+          <g style={{ transformOrigin: "150px 176px", animation: "compare-bar-grow 2.4s ease-out -0.8s infinite" }}>
+            <rect x="150" y="173" width="66" height="6" rx="3" fill="#fbf8f3" opacity="0.5" />
+          </g>
+          <text x="276" y="181" fontSize="9" fontWeight="600" fill="#fbf8f3" opacity="0.55">55%</text>
+          <text x="306" y="183" fontSize="9.5" fontWeight="700" fill="#fbf8f3" opacity="0.55" textAnchor="middle">UF 1.9</text>
+        </g>
+
+        {/* Cursor que recorre las filas */}
+        <g style={{ animation: "compare-cursor 4s ease-in-out infinite", transformOrigin: "center" }}>
+          <path d="M 0 0 L 0 12 L 4 9 L 7 14 L 9 13 L 6 8 L 11 8 Z" fill="#fbf8f3" transform="translate(348, 78)" />
+        </g>
+      </svg>
+
+      <div className="absolute bottom-4 left-6 right-6 text-center">
+        <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#14dcb4]/85">
+          Filtra 2.072 planes en segundos
         </div>
       </div>
     </div>
   );
 }
 
+// ── Asesor Visual — silueta humana con auriculares + pulse de llamada + bubble ──
 function AsesorVisual() {
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl">
-      <Image
-        src="/familia.jpeg"
-        alt="Familia consultando con un asesor"
-        fill
-        sizes="(max-width: 768px) 100vw, 33vw"
-        className="object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0f514b]/85 via-[#0f514b]/35 to-transparent" />
-      <div className="absolute top-4 right-4 max-w-[180px] bg-white rounded-2xl rounded-tr-sm px-3 py-2 shadow-lg">
-        <div className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#0f9d8a] mb-0.5">Asesor certificado</div>
-        <div className="text-[11px] font-semibold text-[#0f514b] leading-snug">&ldquo;Te llamo en 24 h con 3 opciones&rdquo;</div>
-      </div>
-      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#25D366] text-white text-[11px] font-bold shadow-md">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 0 0 .612.638l4.725-1.228A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
-          </svg>
-          O por WhatsApp al instante
+    <div className="relative w-full h-full bg-gradient-to-br from-[#0f514b] to-[#092e2a] p-6 flex items-center justify-center overflow-hidden">
+      <GridBg />
+
+      <svg viewBox="0 0 360 220" className="relative w-full max-w-md drop-shadow-2xl">
+        {/* Pulse rings emanando del headset */}
+        <g style={{ transformOrigin: "85px 110px" }}>
+          <circle cx="85" cy="110" r="32" fill="none" stroke="#14dcb4" strokeWidth="1.8" opacity="0.6" style={{ animation: "asesor-ring 2.4s ease-out infinite", transformOrigin: "85px 110px" }} />
+          <circle cx="85" cy="110" r="32" fill="none" stroke="#14dcb4" strokeWidth="1.8" opacity="0.6" style={{ animation: "asesor-ring 2.4s ease-out -0.8s infinite", transformOrigin: "85px 110px" }} />
+          <circle cx="85" cy="110" r="32" fill="none" stroke="#14dcb4" strokeWidth="1.8" opacity="0.6" style={{ animation: "asesor-ring 2.4s ease-out -1.6s infinite", transformOrigin: "85px 110px" }} />
+        </g>
+
+        {/* Asesor: cabeza + auriculares + cuerpo */}
+        <g>
+          {/* Cuerpo */}
+          <path d="M 55 158 Q 85 138 115 158 L 115 175 L 55 175 Z" fill="#fbf8f3" />
+          {/* Cabeza */}
+          <circle cx="85" cy="112" r="26" fill="#fbf8f3" />
+          {/* Ojos */}
+          <circle cx="77" cy="110" r="2.2" fill="#0f514b" />
+          <circle cx="93" cy="110" r="2.2" fill="#0f514b" />
+          {/* Sonrisa */}
+          <path d="M 76 119 Q 85 124 94 119" stroke="#0f514b" strokeWidth="2" fill="none" strokeLinecap="round" />
+          {/* Auriculares (banda) */}
+          <path d="M 62 102 Q 85 78 108 102" stroke="#14dcb4" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          {/* Auriculares (copas) */}
+          <rect x="56" y="100" width="8" height="14" rx="3" fill="#14dcb4" />
+          <rect x="106" y="100" width="8" height="14" rx="3" fill="#14dcb4" />
+          {/* Microfono */}
+          <path d="M 64 110 Q 70 122 76 128" stroke="#14dcb4" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <circle cx="76" cy="128" r="2.5" fill="#14dcb4" />
+        </g>
+
+        {/* Chat bubble del asesor (loop con bubble animation) */}
+        <g style={{ animation: "asesor-bubble 4s ease-in-out infinite" }}>
+          <rect x="180" y="50" width="160" height="50" rx="14" fill="#fbf8f3" />
+          {/* Tail */}
+          <path d="M 180 80 L 168 88 L 180 88 Z" fill="#fbf8f3" />
+          {/* Kicker */}
+          <text x="192" y="68" fontSize="7.5" fontWeight="700" fill="#0f9d8a" letterSpacing="1.2">ASESOR CERTIFICADO</text>
+          {/* Message */}
+          <text x="192" y="84" fontSize="10" fontWeight="700" fill="#0f514b">&quot;Te llamo en 24 h con</text>
+          <text x="192" y="96" fontSize="10" fontWeight="700" fill="#0f514b">3 opciones para ti.&quot;</text>
+        </g>
+
+        {/* Typing dots (siempre) */}
+        <g>
+          <circle cx="186" cy="120" r="2.5" fill="#fbf8f3" opacity="0.5" style={{ animation: "asesor-dot 1.2s ease-in-out infinite" }} />
+          <circle cx="196" cy="120" r="2.5" fill="#fbf8f3" opacity="0.5" style={{ animation: "asesor-dot 1.2s ease-in-out -0.4s infinite" }} />
+          <circle cx="206" cy="120" r="2.5" fill="#fbf8f3" opacity="0.5" style={{ animation: "asesor-dot 1.2s ease-in-out -0.8s infinite" }} />
+        </g>
+
+        {/* Badge "24h" floating */}
+        <g style={{ animation: "ia-float 3.2s ease-in-out infinite" }}>
+          <circle cx="305" cy="135" r="22" fill="#14dcb4" />
+          <text x="305" y="133" fontSize="13" fontWeight="800" fill="#0f2826" textAnchor="middle">24h</text>
+          <text x="305" y="146" fontSize="6.5" fontWeight="700" fill="#0f2826" textAnchor="middle" letterSpacing="0.6">RESPUESTA</text>
+        </g>
+
+        {/* Checkmark certificado */}
+        <g style={{ animation: "ia-float 3.2s ease-in-out -1.2s infinite" }}>
+          <circle cx="245" cy="160" r="14" fill="#fbf8f3" />
+          <path
+            d="M 239 160 L 244 165 L 252 156"
+            stroke="#0f9d8a"
+            strokeWidth="2.4"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
+      </svg>
+
+      <div className="absolute bottom-4 left-6 right-6 text-center">
+        <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#14dcb4]/85">
+          Asesor humano · sin costo · sin compromiso
         </div>
       </div>
     </div>
@@ -110,7 +251,7 @@ function AsesorVisual() {
 
 const VISUALS: Record<string, React.ReactNode> = {
   ia: <IAVisual />,
-  comparar: <ComparePreviewVisual />,
+  comparar: <CompareVisual />,
   asesor: <AsesorVisual />,
 };
 
