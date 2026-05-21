@@ -1,5 +1,6 @@
 import { getIsapres, getPlanes, getZonas, getPrestadoresV2 } from '@/lib/api';
 import type { PlansQuery } from '@/lib/api';
+import { getTotalFactor, parseBeneficiarios } from '@/lib/factores';
 import PageHeader from '@/components/comparar/page-header';
 import IsapresClient from './isapres-client';
 
@@ -9,7 +10,11 @@ function parseIntParam(value?: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-function parseFilters(params: Record<string, string>): PlansQuery {
+function parseFilters(
+  params: Record<string, string>,
+  sumaFactores: number,
+  numBeneficiarios: number
+): PlansQuery {
   const q: PlansQuery = { limit: 15 };
   if (params.isapre) q.isapre = params.isapre;
   if (params.modalidad) q.modalidad = params.modalidad;
@@ -18,8 +23,20 @@ function parseFilters(params: Record<string, string>): PlansQuery {
   const precioMax = parseIntParam(params.precio_max_clp);
   const coberturaHospMin = parseIntParam(params.cobertura_hosp_min);
   const coberturaAmbMin = parseIntParam(params.cobertura_amb_min);
-  if (precioMin != null) q.precio_min_clp = precioMin;
-  if (precioMax != null) q.precio_max_clp = precioMax;
+  // Fórmula tu7: displayed = base × sumaF + ges × N. Para que displayed ≤ X →
+  // base ≤ (X - gesAvg × N) / sumaF. Usamos GES promedio aprox 0.7 UF ≈ 28k CLP.
+  const GES_AVG_CLP = 28_000;
+  if (sumaFactores > 0 && numBeneficiarios > 0) {
+    if (precioMin != null) {
+      q.precio_min_clp = Math.max(0, Math.round((precioMin - GES_AVG_CLP * numBeneficiarios) / sumaFactores));
+    }
+    if (precioMax != null) {
+      q.precio_max_clp = Math.max(0, Math.round((precioMax - GES_AVG_CLP * numBeneficiarios) / sumaFactores));
+    }
+  } else {
+    if (precioMin != null) q.precio_min_clp = precioMin;
+    if (precioMax != null) q.precio_max_clp = precioMax;
+  }
   if (coberturaHospMin != null) q.cobertura_hosp_min = coberturaHospMin;
   if (coberturaAmbMin != null) q.cobertura_amb_min = coberturaAmbMin;
   if (params.prestador) q.prestador = params.prestador;
@@ -38,11 +55,13 @@ export default async function CompareBody({
   params: Record<string, string>;
 }) {
   const hasFilters = Object.keys(params).length > 0;
+  const beneficiarios = parseBeneficiarios(params.ben ?? null);
+  const totalFactor = getTotalFactor(beneficiarios);
   const [isapres, zonas, prestadores, plans, totalsResp] = await Promise.all([
     getIsapres(),
     getZonas(),
     getPrestadoresV2(),
-    getPlanes(parseFilters(params)),
+    getPlanes(parseFilters(params, totalFactor, beneficiarios.length)),
     hasFilters ? getPlanes({ limit: 1 }) : Promise.resolve(null),
   ]);
 

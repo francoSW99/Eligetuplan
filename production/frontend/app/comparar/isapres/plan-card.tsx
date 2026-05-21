@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import type { Plan, Cobertura } from '@/lib/api';
 import { formatCLP, formatUF } from '@/lib/api';
+import { STATS } from '@/lib/home-data';
 
 function coverageColor(pct: number) {
   if (pct < 60) return { fg: '#c8401a', bg: 'rgba(200,64,26,0.10)' };
@@ -89,14 +90,32 @@ export default function PlanCard({
   onRequestPlan,
   onViewDetails,
   budgetCLP,
+  totalFactor = 0,
+  numBeneficiarios = 0,
 }: {
   plan: Plan;
   onRequestPlan: (plan: Plan) => void;
   onViewDetails: (plan: Plan) => void;
   budgetCLP?: number | null;
+  totalFactor?: number;
+  numBeneficiarios?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const fits = !budgetCLP || (plan.price_clp != null && plan.price_clp <= budgetCLP);
+  const hasFactor = numBeneficiarios > 0;
+  const baseUf = plan.base_plan_uf ?? plan.price_uf;
+  const gesUf = plan.ges_isapre_uf ?? 0;
+  // Fórmula exacta tu7: precio = BASE_PLAN × Σ factores + GES × N° beneficiarios
+  const displayUf = hasFactor
+    ? baseUf * totalFactor + gesUf * numBeneficiarios
+    : plan.price_uf;
+  const displayCLP = hasFactor
+    ? Math.round(displayUf * STATS.ufValueCLP)
+    : plan.price_clp;
+  const fits = !budgetCLP || (displayCLP != null && displayCLP <= budgetCLP);
+  const adicionalCLP =
+    budgetCLP && displayCLP != null && displayCLP > budgetCLP
+      ? displayCLP - budgetCLP
+      : 0;
   const totalClinicas =
     flatClinicas(plan.hospitalaria).length + flatClinicas(plan.ambulatoria).length;
 
@@ -146,16 +165,38 @@ export default function PlanCard({
 
           <div className="shrink-0 text-right">
             <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-0.5">
-              Precio base
+              {hasFactor ? `Tu precio (${numBeneficiarios} ben.)` : 'Precio base'}
             </div>
-            <div className="text-[18px] sm:text-[22px] font-extrabold text-[#0f514b] leading-none tabular-nums tracking-tight">
-              UF {formatUF(plan.base_plan_uf ?? plan.price_uf)}
+            <div className={`text-[18px] sm:text-[22px] font-extrabold leading-none tabular-nums tracking-tight ${hasFactor ? 'text-[#0f9d8a]' : 'text-[#0f514b]'}`}>
+              UF {formatUF(displayUf)}
             </div>
             <div className="text-[11px] sm:text-[12px] text-[#5a6b6a] mt-1 tabular-nums">
-              {formatCLP(plan.price_clp)} <span className="text-[#5a6b6a]/65">/mes</span>
+              {formatCLP(displayCLP)} <span className="text-[#5a6b6a]/65">/mes</span>
             </div>
+            {hasFactor && (
+              <div className="text-[9.5px] text-[#5a6b6a]/70 mt-0.5 tabular-nums">
+                Base {formatUF(baseUf)} × {totalFactor.toFixed(2)} + GES {formatUF(gesUf)} × {numBeneficiarios}
+              </div>
+            )}
           </div>
         </div>
+
+        {adicionalCLP > 0 && (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <svg className="w-3.5 h-3.5 shrink-0 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span className="text-[11px] font-semibold text-amber-900 truncate">
+                Pagas <strong className="font-extrabold">{formatCLP(adicionalCLP)}</strong> extra sobre tu 7%
+              </span>
+            </div>
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700/80">
+              /mes
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
           <CoverageBlock title="Hospitalaria" data={plan.hospitalaria} expanded={expanded} />

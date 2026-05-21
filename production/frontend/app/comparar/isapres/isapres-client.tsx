@@ -6,6 +6,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { Isapre, Zona, PrestadorItem, PlansResponse, Plan } from '@/lib/api';
 import { formatCLP } from '@/lib/api';
+import {
+  type Beneficiario,
+  getTotalFactor,
+  parseBeneficiarios,
+  serializeBeneficiarios,
+} from '@/lib/factores';
 import PlanCard from './plan-card';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
 import ContactOptions from '@/components/ui/contact-options';
@@ -19,10 +25,15 @@ import {
   ModalidadFilter,
   ClinicasFilter,
 } from '@/components/comparar/sidebar-filters';
+import BeneficiariosBlock from '@/components/comparar/beneficiarios-block';
 import FilterChips, { type Chip } from '@/components/comparar/filter-chips';
 import EmptyState from '@/components/comparar/empty-state';
 
 const MODALIDADES = ['Preferente', 'Libre Elección', 'Cerrado'] as const;
+
+function normalizeText(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
 
 export default function IsapresClient({
   initialIsapres,
@@ -44,8 +55,25 @@ export default function IsapresClient({
     [initialIsapres]
   );
 
-  const priceFloor = initialData.price_min_clp ?? 50_000;
-  const priceCeiling = initialData.price_max_clp ?? 500_000;
+  const baseFloor = initialData.price_min_clp ?? 50_000;
+  const baseCeiling = initialData.price_max_clp ?? 500_000;
+
+  const beneficiarios = useMemo(
+    () => parseBeneficiarios(search.get('ben')),
+    [search]
+  );
+  const totalFactor = useMemo(() => getTotalFactor(beneficiarios), [beneficiarios]);
+
+  // Floor/ceiling user-facing: aplica fórmula tu7 (base × sumaF + gesAvg × N)
+  // GES promedio aprox: 0.7 UF ≈ 28k CLP. Es una aproximación; cada plan tiene su GES exacto.
+  const GES_AVG_CLP = 28_000;
+  const N = beneficiarios.length;
+  const priceFloor = N > 0
+    ? Math.round(baseFloor * totalFactor + GES_AVG_CLP * N)
+    : baseFloor;
+  const priceCeiling = N > 0
+    ? Math.round(baseCeiling * totalFactor + GES_AVG_CLP * N)
+    : baseCeiling;
 
   const currentIsapres = search.get('isapre')?.split(',').filter(Boolean) ?? [];
   const currentZonas = search.get('zona')?.split(',').filter(Boolean) ?? [];
@@ -75,7 +103,8 @@ export default function IsapresClient({
   const [searchText, setSearchText] = useState(currentSearch);
   const [grossSalaryInput, setGrossSalaryInput] = useState(currentGrossSalary);
   const [selectedClinicas, setSelectedClinicas] = useState<string[]>([]);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
@@ -87,17 +116,20 @@ export default function IsapresClient({
   const legalBudget = grossSalary > 0 ? Math.floor(grossSalary * 0.07) : 0;
   const budgetCLP = currentLegalBudgetActive && legalBudget > 0 ? legalBudget : null;
 
+  // El push de `search` a la URL ya NO es automático: requiere Enter o click en una sugerencia.
+  // Si el usuario borra el input por completo y había un search activo, lo limpiamos.
   useEffect(() => {
-    if (searchText === currentSearch) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      pushParams({ search: searchText || null });
-    }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    if (searchText === '' && currentSearch !== '') {
+      pushParams({ search: null });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
+
+  function submitPlanSearch() {
+    const q = searchText.trim();
+    pushParams({ search: q || null });
+    setSearchOpen(false);
+  }
 
   useEffect(() => {
     setGrossSalaryInput(currentGrossSalary);
@@ -120,6 +152,25 @@ export default function IsapresClient({
       document.body.style.overflow = previousOverflow;
     };
   }, [selectedPdfPlan, selectedPlan]);
+
+  // Cerrar dropdown del buscador al hacer click afuera o pulsar Escape
+  useEffect(() => {
+    if (!searchOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSearchOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [searchOpen]);
 
   function toggleIsapre(slug: string) {
     const set = new Set(currentIsapres);
@@ -179,6 +230,29 @@ export default function IsapresClient({
     });
   }
 
+  // Selección de clínica desde el dropdown del buscador principal
+  function selectClinicFromSearch(id: string) {
+    setSelectedClinicas((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      pushParams({
+        prestador_ids: next.length ? next.join(',') : null,
+        prestador: null,
+        search: null,
+      });
+      return next;
+    });
+    setSearchText('');
+    setSearchOpen(false);
+  }
+
+  const clinicSuggestions = useMemo(() => {
+    const q = normalizeText(searchText.trim());
+    if (!q) return [];
+    return initialPrestadores
+      .filter((c) => normalizeText(c.name).includes(q))
+      .slice(0, 6);
+  }, [searchText, initialPrestadores]);
+
   function clearAll() {
     setSearchText('');
     setGrossSalaryInput('');
@@ -188,6 +262,23 @@ export default function IsapresClient({
     startTransition(() => {
       router.push('?');
     });
+  }
+
+  function addBeneficiario(b: Omit<Beneficiario, 'id'>) {
+    const next: Beneficiario[] = [
+      ...beneficiarios,
+      { ...b, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
+    ];
+    pushParams({ ben: serializeBeneficiarios(next) });
+  }
+
+  function removeBeneficiario(id: string) {
+    const next = beneficiarios.filter((b) => b.id !== id);
+    pushParams({ ben: next.length ? serializeBeneficiarios(next) : null });
+  }
+
+  function clearBeneficiarios() {
+    pushParams({ ben: null });
   }
 
   const items = initialData.items;
@@ -311,6 +402,27 @@ export default function IsapresClient({
   const SidebarContent = () => (
     <>
       <FilterGroup
+        title="Beneficiarios"
+        defaultOpen={true}
+        activeCount={beneficiarios.length}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        }
+      >
+        <BeneficiariosBlock
+          beneficiarios={beneficiarios}
+          onAdd={addBeneficiario}
+          onRemove={removeBeneficiario}
+          onClear={clearBeneficiarios}
+        />
+      </FilterGroup>
+
+      <FilterGroup
         title="Tu presupuesto"
         defaultOpen={true}
         activeCount={budgetGroupCount}
@@ -416,7 +528,7 @@ export default function IsapresClient({
           className="hidden lg:block space-y-3 sticky top-[80px] self-start"
           style={{ maxHeight: 'calc(100vh - 92px)', overflowY: 'auto' }}
         >
-          <SidebarContent />
+          {SidebarContent()}
           {totalActiveCount > 0 && (
             <button
               onClick={clearAll}
@@ -431,15 +543,116 @@ export default function IsapresClient({
         <div className="space-y-5">
           {/* Toolbar */}
           <div className="bg-white rounded-2xl border border-[#0f514b]/10 p-3.5 flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6b6a]" />
+            <div ref={searchContainerRef} className="flex-1 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6b6a] pointer-events-none" />
               <input
                 type="text"
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Buscar por nombre o código de plan..."
-                className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13.5px] text-[#0f514b] placeholder:text-slate-400 transition-all"
+                onChange={(e) => {
+                  setSearchText(e.target.value);
+                  if (!searchOpen) setSearchOpen(true);
+                }}
+                onFocus={() => setSearchOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitPlanSearch();
+                  }
+                }}
+                placeholder="Buscar por clínica, plan o código..."
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13.5px] text-[#0f514b] placeholder:text-slate-400 transition-all"
               />
+              {searchText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchText('');
+                    setSearchOpen(false);
+                    if (currentSearch) pushParams({ search: null });
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a] transition-colors"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {searchOpen && searchText.trim().length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-[0_16px_40px_-12px_rgba(15,81,75,0.22)] z-50 overflow-hidden">
+                  {clinicSuggestions.length > 0 ? (
+                    <>
+                      <div className="px-3.5 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] bg-slate-50/70 border-b border-slate-100">
+                        Clínicas y hospitales
+                      </div>
+                      <ul className="py-1">
+                        {clinicSuggestions.map((c) => {
+                          const isSelected = selectedClinicas.includes(c.id);
+                          return (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => selectClinicFromSearch(c.id)}
+                                className="w-full px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#14dcb4]/[0.07] transition-colors text-left"
+                              >
+                                <span
+                                  className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                    isSelected ? 'bg-[#14dcb4] border-[#14dcb4]' : 'border-slate-300 bg-white'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <svg
+                                      className="w-3 h-3 text-[#0f514b]"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="3"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                  )}
+                                </span>
+                                <span
+                                  className={`flex-1 truncate text-[13px] ${
+                                    isSelected ? 'text-[#0f514b] font-semibold' : 'text-[#1e2a2a]'
+                                  }`}
+                                >
+                                  {c.name}
+                                </span>
+                                {isSelected && (
+                                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f9d8a]">
+                                    Activa
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  ) : (
+                    <div className="px-3.5 py-3 text-[12.5px] text-[#5a6b6a]">
+                      No encontramos clínicas con &quot;<strong className="text-[#0f514b]">{searchText}</strong>&quot;.
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={submitPlanSearch}
+                    className="w-full border-t border-slate-100 px-3.5 py-2.5 bg-slate-50/60 hover:bg-[#14dcb4]/[0.08] text-[12px] text-[#0f514b] flex items-center gap-2 transition-colors text-left"
+                  >
+                    <Search className="w-3.5 h-3.5 shrink-0 text-[#0f9d8a]" />
+                    <span className="truncate">
+                      Buscar planes con &quot;<strong>{searchText}</strong>&quot; en nombre o código
+                    </span>
+                    <span className="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a] border border-slate-200 rounded px-1.5 py-0.5 bg-white">
+                      Enter
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
             <select
               value={currentSort}
@@ -499,6 +712,8 @@ export default function IsapresClient({
                   onRequestPlan={setSelectedPlan}
                   onViewDetails={setSelectedPdfPlan}
                   budgetCLP={budgetCLP}
+                  totalFactor={totalFactor}
+                  numBeneficiarios={beneficiarios.length}
                 />
               ))}
             </div>
@@ -553,7 +768,7 @@ export default function IsapresClient({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <SidebarContent />
+              {SidebarContent()}
             </div>
             <div className="border-t border-[#0f514b]/10 p-4 flex gap-2">
               <button

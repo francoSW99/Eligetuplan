@@ -3,6 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { STATS } from "@/lib/home-data";
+import {
+  type Beneficiario,
+  type TipoBeneficiario,
+  getFactor,
+  getTotalFactor,
+  serializeBeneficiarios,
+} from "@/lib/factores";
 
 const PRESETS = [
   { label: "$700K", value: 700_000 },
@@ -12,15 +19,29 @@ const PRESETS = [
   { label: "$3M+",  value: 3_000_000 },
 ];
 
-function plansAvailableFor(sevenPct: number): number {
-  if (sevenPct < 25_000)  return 14;
-  if (sevenPct < 45_000)  return 87;
-  if (sevenPct < 70_000)  return 264;
-  if (sevenPct < 95_000)  return 521;
-  if (sevenPct < 130_000) return 842;
-  if (sevenPct < 170_000) return 1147;
-  if (sevenPct < 220_000) return 1452;
-  if (sevenPct < 300_000) return 1689;
+const GES_AVG_CLP = 28_000; // GES promedio por beneficiario (ver lib/factores.ts)
+const MIN_BASE_CLP = 38_000; // plan más barato del mercado (base_plan_uf × UF, mayo 2026)
+
+// Distribución calibrada con consultas reales al backend (mayo 2026).
+// El backend filtra por price_clp = base_plan_uf × UF, así que `effectiveBudget`
+// representa el cap sobre el precio base (no el precio mostrado al usuario).
+function plansAvailableFor(effectiveBudget: number): number {
+  if (effectiveBudget < 38_000)  return 0;
+  if (effectiveBudget < 45_000)  return 5;
+  if (effectiveBudget < 50_000)  return 35;
+  if (effectiveBudget < 55_000)  return 102;
+  if (effectiveBudget < 60_000)  return 166;
+  if (effectiveBudget < 65_000)  return 241;
+  if (effectiveBudget < 70_000)  return 326;
+  if (effectiveBudget < 80_000)  return 509;
+  if (effectiveBudget < 90_000)  return 683;
+  if (effectiveBudget < 100_000) return 858;
+  if (effectiveBudget < 115_000) return 1071;
+  if (effectiveBudget < 130_000) return 1273;
+  if (effectiveBudget < 150_000) return 1501;
+  if (effectiveBudget < 175_000) return 1736;
+  if (effectiveBudget < 200_000) return 1899;
+  if (effectiveBudget < 250_000) return 2031;
   return STATS.plansTotal;
 }
 
@@ -28,11 +49,65 @@ export default function SevenPercentCalculator() {
   const router = useRouter();
   const [salary, setSalary] = useState(1_200_000);
   const [focused, setFocused] = useState(false);
+  const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
+  const [edadInput, setEdadInput] = useState('');
+  const [edadError, setEdadError] = useState(false);
 
   const sevenPct = Math.floor(salary * 0.07);
   const inUF = sevenPct / STATS.ufValueCLP;
-  const plansAvailable = useMemo(() => plansAvailableFor(sevenPct), [sevenPct]);
+  const totalFactor = useMemo(() => getTotalFactor(beneficiarios), [beneficiarios]);
+  const N = beneficiarios.length;
+
+  // Budget efectivo por unidad de factor (mismo cálculo que compare-body.tsx)
+  const effectiveBudget = N > 0 && totalFactor > 0
+    ? Math.max(0, (sevenPct - GES_AVG_CLP * N) / totalFactor)
+    : sevenPct;
+
+  const plansAvailable = useMemo(() => plansAvailableFor(effectiveBudget), [effectiveBudget]);
   const pct = Math.round((plansAvailable / STATS.plansTotal) * 100);
+
+  // Si no alcanza ningún plan, calcular sueldo bruto sugerido para alcanzar el más barato
+  const insufficientBudget = plansAvailable === 0 && salary > 0;
+  const minDisplayedCLP = N > 0
+    ? MIN_BASE_CLP * totalFactor + GES_AVG_CLP * N
+    : MIN_BASE_CLP;
+  const suggestedSalary = Math.ceil(minDisplayedCLP / 0.07 / 10_000) * 10_000;
+
+  function addBeneficiario(tipo: TipoBeneficiario) {
+    const edad = parseInt(edadInput, 10);
+    if (!Number.isFinite(edad) || edad < 0 || edad > 110) {
+      setEdadError(true);
+      return;
+    }
+    setEdadError(false);
+    setBeneficiarios((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, edad, tipo },
+    ]);
+    setEdadInput('');
+  }
+
+  function removeBeneficiario(id: string) {
+    setBeneficiarios((prev) => prev.filter((b) => b.id !== id));
+  }
+
+  function handleGoToComparar() {
+    const params = new URLSearchParams();
+    if (salary > 0) {
+      params.set('sueldo_imponible_clp', String(salary));
+      params.set('aplicar_tope_legal', 'true');
+      // Si el 7% no alcanza para el grupo, bumpeamos el cap al mínimo viable
+      // (mismo comportamiento del sidebar). Así el usuario ve las opciones más
+      // cercanas con la banda "Pagas $X extra sobre tu 7%" en cada card.
+      const cappedBudget = Math.max(sevenPct, minDisplayedCLP);
+      params.set('precio_max_clp', String(Math.round(cappedBudget)));
+    }
+    if (beneficiarios.length > 0) {
+      params.set('ben', serializeBeneficiarios(beneficiarios));
+    }
+    const qs = params.toString();
+    router.push(qs ? `/comparar/isapres?${qs}` : '/comparar/isapres');
+  }
 
   return (
     <div className="relative rounded-3xl bg-white shadow-[0_30px_80px_-20px_rgba(9,46,42,0.55)] border border-white/40 overflow-hidden">
@@ -119,35 +194,140 @@ export default function SevenPercentCalculator() {
               ≈ <strong className="text-[#14dcb4] font-semibold">UF {inUF.toFixed(2)}</strong> al mes · UF ${STATS.ufValueCLP.toLocaleString("es-CL")}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/10 flex items-baseline justify-between">
-              <div>
-                <div className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-white/55">
-                  Planes a tu alcance
+            <div className="mt-4 pt-4 border-t border-white/10">
+              {insufficientBudget ? (
+                <div className="flex items-start gap-2.5">
+                  <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-amber-300/20 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-[12.5px] text-white/85 leading-relaxed">
+                    Tu 7% no alcanza para {N > 0 ? `tu grupo de ${N + 1}` : 'ningún plan'}.
+                    Necesitas un sueldo bruto de{' '}
+                    <strong className="text-[#14dcb4] font-bold">${suggestedSalary.toLocaleString('es-CL')}</strong>{' '}
+                    o más para acceder al plan más barato.
+                  </div>
                 </div>
-                <div className="text-[26px] font-extrabold text-[#14dcb4] tabular-nums leading-tight">
-                  {plansAvailable.toLocaleString("es-CL")}{" "}
-                  <span className="text-[13px] font-medium text-white/45">de {STATS.plansTotal.toLocaleString("es-CL")}</span>
+              ) : (
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <div className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-white/55">
+                      Planes a tu alcance{N > 0 && <span className="text-[#14dcb4]/85"> · con {N} {N === 1 ? 'ben.' : 'bens.'}</span>}
+                    </div>
+                    <div className="text-[26px] font-extrabold text-[#14dcb4] tabular-nums leading-tight">
+                      {plansAvailable.toLocaleString("es-CL")}{" "}
+                      <span className="text-[13px] font-medium text-white/45">de {STATS.plansTotal.toLocaleString("es-CL")}</span>
+                    </div>
+                  </div>
+                  <div className="hidden sm:block w-[80px]">
+                    <div className="text-right text-[11px] font-semibold text-white/55 mb-1.5">{pct}%</div>
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#14dcb4] to-[#1ee5be] rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="hidden sm:block w-[80px]">
-                <div className="text-right text-[11px] font-semibold text-white/55 mb-1.5">{pct}%</div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#14dcb4] to-[#1ee5be] rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Beneficiarios (opcional) */}
+        <div className="mt-3.5 rounded-2xl border border-slate-200 p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="text-[10.5px] font-bold tracking-[0.16em] uppercase text-[#5a6b6a]">
+              Beneficiarios{' '}
+              <span className="text-slate-400 font-semibold normal-case tracking-normal">
+                (opcional)
+              </span>
+            </div>
+            {totalFactor > 0 && (
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#0f9d8a]">
+                Factor {totalFactor.toFixed(2)}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-[68px_1fr_1fr] gap-1.5">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={edadInput}
+              onChange={(e) => {
+                setEdadInput(e.target.value.replace(/\D/g, '').slice(0, 3));
+                if (edadError) setEdadError(false);
+              }}
+              placeholder="Edad"
+              className={`rounded-lg border px-2.5 py-2 text-[13px] font-bold text-[#0f514b] tabular-nums focus:outline-none focus:ring-2 transition-all placeholder:text-slate-300 ${
+                edadError
+                  ? 'border-red-300 focus:border-red-400 focus:ring-red-200'
+                  : 'border-slate-200 focus:border-[#14dcb4] focus:ring-[#14dcb4]/15'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => addBeneficiario('cotizante')}
+              disabled={!edadInput}
+              className="rounded-lg px-2 py-2 text-[11.5px] font-bold bg-[#0f514b]/8 hover:bg-[#0f514b]/15 text-[#0f514b] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              + Cotizante
+            </button>
+            <button
+              type="button"
+              onClick={() => addBeneficiario('carga')}
+              disabled={!edadInput}
+              className="rounded-lg px-2 py-2 text-[11.5px] font-bold bg-[#14dcb4]/15 hover:bg-[#14dcb4]/25 text-[#0f9d8a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              + Carga
+            </button>
+          </div>
+
+          {beneficiarios.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {beneficiarios.map((b) => {
+                const isCot = b.tipo === 'cotizante';
+                const factor = getFactor(b.edad, b.tipo);
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => removeBeneficiario(b.id)}
+                    title="Quitar"
+                    className={`inline-flex items-center gap-1.5 rounded-lg pl-2 pr-1.5 py-1 text-[11px] font-bold transition-all hover:-translate-y-px ${
+                      isCot
+                        ? 'bg-[#0f514b]/10 text-[#0f514b] hover:bg-[#0f514b]/15'
+                        : 'bg-[#14dcb4]/20 text-[#0f9d8a] hover:bg-[#14dcb4]/30'
+                    }`}
+                  >
+                    <span className="tabular-nums">{b.edad}</span>
+                    <span className="text-[9.5px] font-extrabold uppercase tracking-[0.08em]">
+                      {isCot ? 'COT' : 'CRG'}
+                    </span>
+                    <span className="text-[10px] opacity-65 tabular-nums">{factor.toFixed(1)}</span>
+                    <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
-          onClick={() => router.push("/comparar/isapres")}
+          onClick={handleGoToComparar}
           className="mt-4 w-full px-5 py-4 rounded-2xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] font-bold text-[15px] shadow-[0_14px_30px_rgba(20,220,180,0.4)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group"
         >
-          Ver mis {plansAvailable.toLocaleString("es-CL")} planes disponibles
+          {insufficientBudget
+            ? 'Ver planes con pago adicional'
+            : `Ver mis ${plansAvailable.toLocaleString('es-CL')} planes disponibles`}
           <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>

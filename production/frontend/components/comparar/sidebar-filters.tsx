@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import type { Isapre, Zona, PrestadorItem } from "@/lib/api";
 import { formatCLP } from "@/lib/api";
@@ -93,6 +93,36 @@ export function SevenPercentBlock({
   const sevenPct = salary > 0 ? Math.floor(salary * 0.07) : 0;
   const uf = sevenPct / UF_VALUE_CLP;
 
+  // Local display state: raw digits while focused, formatted with dots on blur
+  const [inputDisplay, setInputDisplay] = useState(
+    salaryInput ? parseInt(salaryInput, 10).toLocaleString("es-CL") : ""
+  );
+  const [focused, setFocused] = useState(false);
+
+  // Sync display when parent resets (e.g. clearAll)
+  useEffect(() => {
+    if (!focused) {
+      setInputDisplay(salaryInput ? parseInt(salaryInput, 10).toLocaleString("es-CL") : "");
+    }
+  }, [salaryInput, focused]);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/\D/g, "");
+    setInputDisplay(raw); // raw digits → no cursor jump
+    setSalaryInput(raw);
+  }
+
+  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
+    setFocused(true);
+    setInputDisplay(e.target.value.replace(/\D/g, "")); // strip dots on focus
+  }
+
+  function handleBlur() {
+    setFocused(false);
+    const num = parseInt(salaryInput, 10);
+    setInputDisplay(num > 0 ? num.toLocaleString("es-CL") : "");
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-[12.5px] text-[#5a6b6a] leading-relaxed">
@@ -111,8 +141,10 @@ export function SevenPercentBlock({
           <input
             type="text"
             inputMode="numeric"
-            value={salaryInput ? parseInt(salaryInput, 10).toLocaleString("es-CL") : ""}
-            onChange={(e) => setSalaryInput(e.target.value.replace(/\D/g, ""))}
+            value={inputDisplay}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder="950.000"
             className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border-2 border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[15px] font-bold text-[#0f514b] placeholder:text-slate-300 transition-all"
           />
