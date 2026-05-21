@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { STATS } from "@/lib/home-data";
 import {
   type Beneficiario,
-  type TipoBeneficiario,
   getFactor,
   getTotalFactor,
   serializeBeneficiarios,
@@ -47,14 +46,25 @@ function plansAvailableFor(effectiveBudget: number): number {
 
 export default function SevenPercentCalculator() {
   const router = useRouter();
-  const [salary, setSalary] = useState(1_200_000);
+  const [salary, setSalary] = useState(0);
   const [focused, setFocused] = useState(false);
-  const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
-  const [edadInput, setEdadInput] = useState('');
-  const [edadError, setEdadError] = useState(false);
+  // El usuario es el cotizante. Solo guardamos su edad y la lista de cargas.
+  const [userAge, setUserAge] = useState<number | null>(null);
+  const [userAgeInput, setUserAgeInput] = useState('');
+  const [userAgeError, setUserAgeError] = useState(false);
+  const [cargas, setCargas] = useState<Beneficiario[]>([]);
+  const [cargaInput, setCargaInput] = useState('');
+  const [cargaError, setCargaError] = useState(false);
 
   const sevenPct = Math.floor(salary * 0.07);
   const inUF = sevenPct / STATS.ufValueCLP;
+
+  // Construye el array completo de beneficiarios para serializar URL y calcular factor
+  const beneficiarios = useMemo<Beneficiario[]>(() => {
+    if (userAge == null) return [];
+    return [{ id: 'cotizante', edad: userAge, tipo: 'cotizante' }, ...cargas];
+  }, [userAge, cargas]);
+
   const totalFactor = useMemo(() => getTotalFactor(beneficiarios), [beneficiarios]);
   const N = beneficiarios.length;
 
@@ -73,22 +83,39 @@ export default function SevenPercentCalculator() {
     : MIN_BASE_CLP;
   const suggestedSalary = Math.ceil(minDisplayedCLP / 0.07 / 10_000) * 10_000;
 
-  function addBeneficiario(tipo: TipoBeneficiario) {
-    const edad = parseInt(edadInput, 10);
-    if (!Number.isFinite(edad) || edad < 0 || edad > 110) {
-      setEdadError(true);
+  function commitUserAge(value: string) {
+    const raw = value.trim();
+    if (!raw) {
+      setUserAge(null);
+      setCargas([]); // sin cotizante no pueden existir cargas
+      setUserAgeError(false);
       return;
     }
-    setEdadError(false);
-    setBeneficiarios((prev) => [
-      ...prev,
-      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, edad, tipo },
-    ]);
-    setEdadInput('');
+    const edad = parseInt(raw, 10);
+    if (!Number.isFinite(edad) || edad < 0 || edad > 110) {
+      setUserAgeError(true);
+      return;
+    }
+    setUserAgeError(false);
+    setUserAge(edad);
   }
 
-  function removeBeneficiario(id: string) {
-    setBeneficiarios((prev) => prev.filter((b) => b.id !== id));
+  function addCarga() {
+    const edad = parseInt(cargaInput, 10);
+    if (!Number.isFinite(edad) || edad < 0 || edad > 110) {
+      setCargaError(true);
+      return;
+    }
+    setCargaError(false);
+    setCargas((prev) => [
+      ...prev,
+      { id: `crg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, edad, tipo: 'carga' },
+    ]);
+    setCargaInput('');
+  }
+
+  function removeCarga(id: string) {
+    setCargas((prev) => prev.filter((c) => c.id !== id));
   }
 
   function handleGoToComparar() {
@@ -108,6 +135,8 @@ export default function SevenPercentCalculator() {
     const qs = params.toString();
     router.push(qs ? `/comparar/isapres?${qs}` : '/comparar/isapres');
   }
+
+  const hasUserAge = userAge != null;
 
   return (
     <div className="relative rounded-3xl bg-white shadow-[0_30px_80px_-20px_rgba(9,46,42,0.55)] border border-white/40 overflow-hidden">
@@ -151,8 +180,8 @@ export default function SevenPercentCalculator() {
               }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="950.000"
-              className="w-full pl-10 pr-4 py-3.5 rounded-2xl text-[20px] font-bold text-[#0f514b] bg-transparent focus:outline-none placeholder:text-slate-300"
+              placeholder="Ingresa tu sueldo bruto"
+              className="w-full pl-10 pr-4 py-3.5 rounded-2xl text-[20px] font-bold text-[#0f514b] bg-transparent focus:outline-none placeholder:text-slate-300 placeholder:font-normal placeholder:text-[15px]"
               aria-label="Sueldo bruto imponible"
             />
           </div>
@@ -178,22 +207,67 @@ export default function SevenPercentCalculator() {
           })}
         </div>
 
+        {/* Tu edad (cotizante) */}
+        <label className="block mt-4">
+          <span className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-[#5a6b6a] mb-2 block">
+            Tu edad
+          </span>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={userAgeInput}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '').slice(0, 3);
+                setUserAgeInput(raw);
+                if (userAgeError) setUserAgeError(false);
+              }}
+              onBlur={() => commitUserAge(userAgeInput)}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              placeholder="34"
+              aria-label="Tu edad"
+              className={`w-full px-4 pr-28 py-3 rounded-2xl border-2 text-[18px] font-bold text-[#0f514b] tabular-nums placeholder:text-slate-300 focus:outline-none focus:ring-4 transition-all ${
+                userAgeError
+                  ? 'border-red-300 focus:border-red-400 focus:ring-red-200/40'
+                  : 'border-slate-200 focus:border-[#14dcb4] focus:ring-[#14dcb4]/12'
+              }`}
+            />
+            {hasUserAge && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-[#14dcb4]/15 text-[11px] font-bold uppercase tracking-[0.08em] text-[#0f9d8a] tabular-nums">
+                F {getFactor(userAge!, 'cotizante').toFixed(2)}
+              </div>
+            )}
+          </div>
+          {userAgeError && (
+            <div className="mt-1 text-[11px] text-red-600 font-semibold">Edad inválida (0-110)</div>
+          )}
+        </label>
+
         <div className="mt-5 rounded-2xl bg-gradient-to-br from-[#0f514b] to-[#092e2a] text-white p-5 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[#14dcb4]/15 blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#14dcb4]/85 mb-1.5">
               · Tu 7% disponible ·
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-[36px] sm:text-[42px] font-extrabold tracking-tight tabular-nums leading-none">
-                ${sevenPct.toLocaleString("es-CL")}
-              </span>
-              <span className="text-[13px] font-medium text-white/55">/mes</span>
-            </div>
-            <div className="mt-1 text-[12.5px] text-white/65 tabular-nums">
-              ≈ <strong className="text-[#14dcb4] font-semibold">UF {inUF.toFixed(2)}</strong> al mes · UF ${STATS.ufValueCLP.toLocaleString("es-CL")}
-            </div>
+            {salary <= 0 ? (
+              <div className="text-[14px] text-white/55 leading-relaxed py-2">
+                Ingresa tu sueldo bruto arriba para calcular tu 7% legal y ver cuántos planes te calzan.
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[36px] sm:text-[42px] font-extrabold tracking-tight tabular-nums leading-none">
+                    ${sevenPct.toLocaleString("es-CL")}
+                  </span>
+                  <span className="text-[13px] font-medium text-white/55">/mes</span>
+                </div>
+                <div className="mt-1 text-[12.5px] text-white/65 tabular-nums">
+                  ≈ <strong className="text-[#14dcb4] font-semibold">UF {inUF.toFixed(2)}</strong> al mes · UF ${STATS.ufValueCLP.toLocaleString("es-CL")}
+                </div>
+              </>
+            )}
 
+            {salary > 0 && (
             <div className="mt-4 pt-4 border-t border-white/10">
               {insufficientBudget ? (
                 <div className="flex items-start gap-2.5">
@@ -205,7 +279,7 @@ export default function SevenPercentCalculator() {
                     </svg>
                   </div>
                   <div className="text-[12.5px] text-white/85 leading-relaxed">
-                    Tu 7% no alcanza para {N > 0 ? `tu grupo de ${N + 1}` : 'ningún plan'}.
+                    Tu 7% no alcanza{cargas.length > 0 ? ` para tu grupo de ${N}` : hasUserAge ? '' : ' para ningún plan'}.
                     Necesitas un sueldo bruto de{' '}
                     <strong className="text-[#14dcb4] font-bold">${suggestedSalary.toLocaleString('es-CL')}</strong>{' '}
                     o más para acceder al plan más barato.
@@ -215,7 +289,10 @@ export default function SevenPercentCalculator() {
                 <div className="flex items-baseline justify-between">
                   <div>
                     <div className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-white/55">
-                      Planes a tu alcance{N > 0 && <span className="text-[#14dcb4]/85"> · con {N} {N === 1 ? 'ben.' : 'bens.'}</span>}
+                      Planes a tu alcance
+                      {N > 1 && (
+                        <span className="text-[#14dcb4]/85"> · grupo de {N}</span>
+                      )}
                     </div>
                     <div className="text-[26px] font-extrabold text-[#14dcb4] tabular-nums leading-tight">
                       {plansAvailable.toLocaleString("es-CL")}{" "}
@@ -234,14 +311,15 @@ export default function SevenPercentCalculator() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
 
-        {/* Beneficiarios (opcional) */}
-        <div className="mt-3.5 rounded-2xl border border-slate-200 p-3.5">
+        {/* Cargas (opcional) — solo disponible cuando hay edad del cotizante */}
+        <div className={`mt-3.5 rounded-2xl border border-slate-200 p-3.5 ${!hasUserAge ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between mb-2.5">
             <div className="text-[10.5px] font-bold tracking-[0.16em] uppercase text-[#5a6b6a]">
-              Beneficiarios{' '}
+              Cargas{' '}
               <span className="text-slate-400 font-semibold normal-case tracking-normal">
                 (opcional)
               </span>
@@ -253,81 +331,78 @@ export default function SevenPercentCalculator() {
             )}
           </div>
 
-          <div className="grid grid-cols-[68px_1fr_1fr] gap-1.5">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={edadInput}
-              onChange={(e) => {
-                setEdadInput(e.target.value.replace(/\D/g, '').slice(0, 3));
-                if (edadError) setEdadError(false);
-              }}
-              placeholder="Edad"
-              className={`rounded-lg border px-2.5 py-2 text-[13px] font-bold text-[#0f514b] tabular-nums focus:outline-none focus:ring-2 transition-all placeholder:text-slate-300 ${
-                edadError
-                  ? 'border-red-300 focus:border-red-400 focus:ring-red-200'
-                  : 'border-slate-200 focus:border-[#14dcb4] focus:ring-[#14dcb4]/15'
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => addBeneficiario('cotizante')}
-              disabled={!edadInput}
-              className="rounded-lg px-2 py-2 text-[11.5px] font-bold bg-[#0f514b]/8 hover:bg-[#0f514b]/15 text-[#0f514b] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              + Cotizante
-            </button>
-            <button
-              type="button"
-              onClick={() => addBeneficiario('carga')}
-              disabled={!edadInput}
-              className="rounded-lg px-2 py-2 text-[11.5px] font-bold bg-[#14dcb4]/15 hover:bg-[#14dcb4]/25 text-[#0f9d8a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              + Carga
-            </button>
-          </div>
-
-          {beneficiarios.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {beneficiarios.map((b) => {
-                const isCot = b.tipo === 'cotizante';
-                const factor = getFactor(b.edad, b.tipo);
-                return (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => removeBeneficiario(b.id)}
-                    title="Quitar"
-                    className={`inline-flex items-center gap-1.5 rounded-lg pl-2 pr-1.5 py-1 text-[11px] font-bold transition-all hover:-translate-y-px ${
-                      isCot
-                        ? 'bg-[#0f514b]/10 text-[#0f514b] hover:bg-[#0f514b]/15'
-                        : 'bg-[#14dcb4]/20 text-[#0f9d8a] hover:bg-[#14dcb4]/30'
-                    }`}
-                  >
-                    <span className="tabular-nums">{b.edad}</span>
-                    <span className="text-[9.5px] font-extrabold uppercase tracking-[0.08em]">
-                      {isCot ? 'COT' : 'CRG'}
-                    </span>
-                    <span className="text-[10px] opacity-65 tabular-nums">{factor.toFixed(1)}</span>
-                    <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                );
-              })}
+          {!hasUserAge ? (
+            <div className="text-[11.5px] text-slate-500 leading-relaxed">
+              Ingresa tu edad arriba para poder agregar cargas (hijos, cónyuge, etc.).
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-[1fr_auto] gap-1.5">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cargaInput}
+                  onChange={(e) => {
+                    setCargaInput(e.target.value.replace(/\D/g, '').slice(0, 3));
+                    if (cargaError) setCargaError(false);
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCarga(); } }}
+                  placeholder="Edad de la carga"
+                  className={`rounded-lg border px-2.5 py-2 text-[13px] font-bold text-[#0f514b] tabular-nums focus:outline-none focus:ring-2 transition-all placeholder:text-slate-300 ${
+                    cargaError
+                      ? 'border-red-300 focus:border-red-400 focus:ring-red-200'
+                      : 'border-slate-200 focus:border-[#14dcb4] focus:ring-[#14dcb4]/15'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={addCarga}
+                  disabled={!cargaInput}
+                  className="rounded-lg px-3 py-2 text-[11.5px] font-bold bg-[#14dcb4]/15 hover:bg-[#14dcb4]/25 text-[#0f9d8a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  + Carga
+                </button>
+              </div>
+
+              {cargas.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {cargas.map((c) => {
+                    const factor = getFactor(c.edad, 'carga');
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => removeCarga(c.id)}
+                        title="Quitar"
+                        className="inline-flex items-center gap-1.5 rounded-lg pl-2 pr-1.5 py-1 text-[11px] font-bold bg-[#14dcb4]/20 text-[#0f9d8a] hover:bg-[#14dcb4]/30 hover:-translate-y-px transition-all"
+                      >
+                        <span className="tabular-nums">{c.edad}</span>
+                        <span className="text-[9.5px] font-extrabold uppercase tracking-[0.08em]">CRG</span>
+                        <span className="text-[10px] opacity-65 tabular-nums">{factor.toFixed(1)}</span>
+                        <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
 
         <button
           type="button"
           onClick={handleGoToComparar}
-          className="mt-4 w-full px-5 py-4 rounded-2xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] font-bold text-[15px] shadow-[0_14px_30px_rgba(20,220,180,0.4)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group"
+          disabled={salary <= 0}
+          className="mt-4 w-full px-5 py-4 rounded-2xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] font-bold text-[15px] shadow-[0_14px_30px_rgba(20,220,180,0.4)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none"
         >
-          {insufficientBudget
-            ? 'Ver planes con pago adicional'
-            : `Ver mis ${plansAvailable.toLocaleString('es-CL')} planes disponibles`}
+          {salary <= 0
+            ? 'Ingresa tu sueldo para continuar'
+            : insufficientBudget
+              ? 'Ver planes con pago adicional'
+              : `Ver mis ${plansAvailable.toLocaleString('es-CL')} planes disponibles`}
           <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>

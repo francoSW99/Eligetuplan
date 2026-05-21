@@ -8,17 +8,15 @@ function BodyFallback() {
   return (
     <>
       {/* PageHeader skeleton */}
-      <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] pt-8 pb-5 md:pt-10 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#14dcb4]" aria-hidden />
-        <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
-            <div className="min-w-0 space-y-2">
-              <div className="h-3 w-32 bg-white/15 rounded animate-pulse" />
-              <div className="h-6 w-72 sm:w-96 bg-white/15 rounded animate-pulse" />
+      <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] py-3 sm:py-3.5 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2px] bg-[#14dcb4]" aria-hidden />
+        <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <div className="h-2.5 w-28 bg-white/15 rounded animate-pulse" />
+              <div className="h-4 w-56 bg-white/15 rounded animate-pulse" />
             </div>
-            <div className="shrink-0">
-              <div className="h-14 w-44 rounded-2xl bg-white/8 border border-[#14dcb4]/20 animate-pulse" />
-            </div>
+            <div className="h-7 w-40 rounded-xl bg-white/8 border border-[#14dcb4]/20 animate-pulse" />
           </div>
         </div>
       </section>

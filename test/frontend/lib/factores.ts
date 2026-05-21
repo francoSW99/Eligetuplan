@@ -54,18 +54,19 @@ export function serializeBeneficiarios(arr: Beneficiario[]): string {
 
 export function parseBeneficiarios(raw: string | null): Beneficiario[] {
   if (!raw) return [];
-  return raw
-    .split(',')
-    .map((token, idx) => {
-      const m = token.trim().match(/^([cr])(\d{1,3})([MF])?$/i);
-      if (!m) return null;
-      const tipo: TipoBeneficiario = m[1].toLowerCase() === 'c' ? 'cotizante' : 'carga';
-      const edad = parseInt(m[2], 10);
-      const sexo = m[3]?.toUpperCase() as 'M' | 'F' | undefined;
-      if (!Number.isFinite(edad) || edad < 0 || edad > 120) return null;
-      return { id: `${idx}-${token}`, edad, tipo, sexo };
-    })
-    .filter((b): b is Beneficiario => b !== null);
+  const out: Beneficiario[] = [];
+  raw.split(',').forEach((token, idx) => {
+    const m = token.trim().match(/^([cr])(\d{1,3})([MF])?$/i);
+    if (!m) return;
+    const tipo: TipoBeneficiario = m[1].toLowerCase() === 'c' ? 'cotizante' : 'carga';
+    const edad = parseInt(m[2], 10);
+    if (!Number.isFinite(edad) || edad < 0 || edad > 120) return;
+    const sexo = m[3]?.toUpperCase() as 'M' | 'F' | undefined;
+    const b: Beneficiario = { id: `${idx}-${token}`, edad, tipo };
+    if (sexo) b.sexo = sexo;
+    out.push(b);
+  });
+  return out;
 }
 
 // Fórmula EXACTA usada por tu7.cl (extraída de su bundle JS):

@@ -576,43 +576,44 @@ export function ClinicasFilter({
         )}
       </div>
 
-      <ul className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1">
+      <ul className="space-y-1 max-h-[280px] overflow-y-auto pr-1">
         {visible.map((c) => {
           const checked = selected.includes(c.id);
           return (
             <li key={c.id}>
-              <label className="flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <label className="flex items-start gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+                <span
+                  className={`shrink-0 w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center transition-all ${
+                    checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
+                  }`}
+                >
+                  {checked && (
+                    <svg className="w-3 h-3 text-[#0f514b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  )}
+                </span>
+                <input type="checkbox" checked={checked} onChange={() => toggle(c.id)} className="sr-only" />
+                <div className="flex-1 min-w-0">
                   <span
-                    className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                      checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
-                    }`}
-                  >
-                    {checked && (
-                      <svg className="w-3 h-3 text-[#0f514b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    )}
-                  </span>
-                  <input type="checkbox" checked={checked} onChange={() => toggle(c.id)} className="sr-only" />
-                  <span
-                    className={`text-[13px] truncate transition-colors ${
+                    className={`block text-[13px] leading-snug transition-colors break-words ${
                       checked ? "text-[#0f514b] font-semibold" : "text-[#1e2a2a]"
                     }`}
                   >
                     {c.name}
                   </span>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {c.zonas &&
-                    c.zonas.map((z) => (
-                      <span
-                        key={z}
-                        className="text-[9.5px] font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-md bg-[#0f514b]/5 text-[#5a6b6a]"
-                      >
-                        {ZONA_LABELS[z] || z}
-                      </span>
-                    ))}
+                  {c.zonas && c.zonas.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                      {c.zonas.map((z) => (
+                        <span
+                          key={z}
+                          className="text-[9.5px] font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-md bg-[#0f514b]/5 text-[#5a6b6a]"
+                        >
+                          {ZONA_LABELS[z] || z}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </label>
             </li>
