@@ -102,9 +102,80 @@ export default function IsapresClient({
 
   const [searchText, setSearchText] = useState(currentSearch);
   const [grossSalaryInput, setGrossSalaryInput] = useState(currentGrossSalary);
-  const [selectedClinicas, setSelectedClinicas] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // ───────── Draft de filtros (batching) ─────────
+  // Los checkboxes/radios/segmented del sidebar NO se aplican al instante.
+  // Acumulan cambios en `draft` hasta que el usuario presione "Aplicar filtros".
+  type DraftState = {
+    isapres: string[];
+    zonas: string[];
+    modalidad: string;
+    cobHosp: string | null;
+    cobAmb: string | null;
+    prestadorIds: string[];
+  };
+
+  const urlState = useMemo<DraftState>(() => ({
+    isapres: search.get('isapre')?.split(',').filter(Boolean) ?? [],
+    zonas: search.get('zona')?.split(',').filter(Boolean) ?? [],
+    modalidad: search.get('modalidad') ?? '',
+    cobHosp: search.get('cobertura_hosp_min'),
+    cobAmb: search.get('cobertura_amb_min'),
+    prestadorIds: search.get('prestador_ids')?.split(',').filter(Boolean) ?? [],
+  }), [search]);
+
+  const [draft, setDraft] = useState<DraftState>(urlState);
+
+  // Sync draft cuando la URL cambia desde fuera (Apply, ClearAll, navegación, etc.)
+  useEffect(() => {
+    setDraft(urlState);
+  }, [urlState]);
+
+  // Aplicar cambios del draft (con override opcional para acciones explícitas como chip-X o buscador)
+  function applyDraft(override?: Partial<DraftState>, extraParams?: Record<string, string | null>) {
+    const merged: DraftState = { ...draft, ...override };
+    pushParams({
+      isapre: merged.isapres.length ? merged.isapres.join(',') : null,
+      zona: merged.zonas.length ? merged.zonas.join(',') : null,
+      modalidad: merged.modalidad || null,
+      cobertura_hosp_min: merged.cobHosp,
+      cobertura_amb_min: merged.cobAmb,
+      prestador_ids: merged.prestadorIds.length ? merged.prestadorIds.join(',') : null,
+      prestador: null,
+      ...(extraParams ?? {}),
+    });
+  }
+
+  function cancelDraft() {
+    setDraft(urlState);
+  }
+
+  const hasPendingChanges = useMemo(() => {
+    const cmpArr = (a: string[], b: string[]) =>
+      a.length === b.length && a.slice().sort().every((v, i) => v === b.slice().sort()[i]);
+    return (
+      !cmpArr(draft.isapres, urlState.isapres) ||
+      !cmpArr(draft.zonas, urlState.zonas) ||
+      draft.modalidad !== urlState.modalidad ||
+      draft.cobHosp !== urlState.cobHosp ||
+      draft.cobAmb !== urlState.cobAmb ||
+      !cmpArr(draft.prestadorIds, urlState.prestadorIds)
+    );
+  }, [draft, urlState]);
+
+  const pendingChangesCount = useMemo(() => {
+    let count = 0;
+    const inDraftNotUrl = (a: string[], b: string[]) => a.filter((x) => !b.includes(x)).length;
+    count += inDraftNotUrl(draft.isapres, urlState.isapres) + inDraftNotUrl(urlState.isapres, draft.isapres);
+    count += inDraftNotUrl(draft.zonas, urlState.zonas) + inDraftNotUrl(urlState.zonas, draft.zonas);
+    count += inDraftNotUrl(draft.prestadorIds, urlState.prestadorIds) + inDraftNotUrl(urlState.prestadorIds, draft.prestadorIds);
+    if (draft.modalidad !== urlState.modalidad) count++;
+    if (draft.cobHosp !== urlState.cobHosp) count++;
+    if (draft.cobAmb !== urlState.cobAmb) count++;
+    return count;
+  }, [draft, urlState]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
@@ -125,24 +196,9 @@ export default function IsapresClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 
-  function submitPlanSearch() {
-    const q = searchText.trim();
-    pushParams({ search: q || null });
-    setSearchOpen(false);
-  }
-
   useEffect(() => {
     setGrossSalaryInput(currentGrossSalary);
   }, [currentGrossSalary]);
-
-  useEffect(() => {
-    const ids = search.get('prestador_ids');
-    if (ids) {
-      setSelectedClinicas(ids.split(',').filter(Boolean));
-    } else {
-      setSelectedClinicas([]);
-    }
-  }, [search]);
 
   useEffect(() => {
     if (!selectedPlan && !selectedPdfPlan) return;
@@ -172,19 +228,39 @@ export default function IsapresClient({
     };
   }, [searchOpen]);
 
+  // Handlers que actualizan SOLO el draft (no la URL).
   function toggleIsapre(slug: string) {
-    const set = new Set(currentIsapres);
-    if (set.has(slug)) set.delete(slug);
-    else set.add(slug);
-    pushParams({ isapre: set.size ? Array.from(set).join(',') : null });
+    setDraft((d) => ({
+      ...d,
+      isapres: d.isapres.includes(slug) ? d.isapres.filter((s) => s !== slug) : [...d.isapres, slug],
+    }));
   }
 
   function toggleZona(id: number) {
-    const set = new Set(currentZonas);
     const str = String(id);
-    if (set.has(str)) set.delete(str);
-    else set.add(str);
-    pushParams({ zona: set.size ? Array.from(set).join(',') : null });
+    setDraft((d) => ({
+      ...d,
+      zonas: d.zonas.includes(str) ? d.zonas.filter((s) => s !== str) : [...d.zonas, str],
+    }));
+  }
+
+  function toggleClinicaDraft(id: string) {
+    setDraft((d) => ({
+      ...d,
+      prestadorIds: d.prestadorIds.includes(id) ? d.prestadorIds.filter((x) => x !== id) : [...d.prestadorIds, id],
+    }));
+  }
+
+  function setDraftModalidad(v: string) {
+    setDraft((d) => ({ ...d, modalidad: v }));
+  }
+
+  function setDraftCobHosp(v: number | null) {
+    setDraft((d) => ({ ...d, cobHosp: v != null ? String(v) : null }));
+  }
+
+  function setDraftCobAmb(v: number | null) {
+    setDraft((d) => ({ ...d, cobAmb: v != null ? String(v) : null }));
   }
 
   const [localPriceMin, setLocalPriceMin] = useState(priceMin);
@@ -222,25 +298,12 @@ export default function IsapresClient({
     });
   }
 
-  function toggleClinica(id: string) {
-    setSelectedClinicas((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      pushParams({ prestador_ids: next.length ? next.join(',') : null, prestador: null });
-      return next;
-    });
-  }
-
-  // Selección de clínica desde el dropdown del buscador principal
+  // Click en clínica del buscador principal: aplica de inmediato (incluyendo el draft pendiente)
   function selectClinicFromSearch(id: string) {
-    setSelectedClinicas((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      pushParams({
-        prestador_ids: next.length ? next.join(',') : null,
-        prestador: null,
-        search: null,
-      });
-      return next;
-    });
+    const newIds = draft.prestadorIds.includes(id)
+      ? draft.prestadorIds.filter((x) => x !== id)
+      : [...draft.prestadorIds, id];
+    applyDraft({ prestadorIds: newIds }, { search: null });
     setSearchText('');
     setSearchOpen(false);
   }
@@ -250,31 +313,70 @@ export default function IsapresClient({
     if (!q) return [];
     return initialPrestadores
       .filter((c) => normalizeText(c.name).includes(q))
-      .slice(0, 6);
+      .slice(0, 5);
   }, [searchText, initialPrestadores]);
+
+  const isapreSuggestions = useMemo(() => {
+    const q = normalizeText(searchText.trim());
+    if (!q) return [];
+    return activeIsapres
+      .filter((i) => normalizeText(i.name).includes(q) || normalizeText(i.slug ?? '').includes(q))
+      .slice(0, 4);
+  }, [searchText, activeIsapres]);
+
+  function selectIsapreFromSearch(slug: string) {
+    const newIsapres = draft.isapres.includes(slug)
+      ? draft.isapres.filter((s) => s !== slug)
+      : [...draft.isapres, slug];
+    applyDraft({ isapres: newIsapres }, { search: null });
+    setSearchText('');
+    setSearchOpen(false);
+  }
 
   function clearAll() {
     setSearchText('');
     setGrossSalaryInput('');
-    setSelectedClinicas([]);
     setLocalPriceMin(priceFloor);
     setLocalPriceMax(priceCeiling);
+    setDraft({ isapres: [], zonas: [], modalidad: '', cobHosp: null, cobAmb: null, prestadorIds: [] });
     startTransition(() => {
       router.push('?');
     });
   }
 
-  function addBeneficiario(b: Omit<Beneficiario, 'id'>) {
+  // Beneficiarios = 1 cotizante (el usuario, su edad) + N cargas. Sin cotizante no hay cargas.
+  const cotizante = beneficiarios.find((b) => b.tipo === 'cotizante') ?? null;
+  const cargas = beneficiarios.filter((b) => b.tipo === 'carga');
+  const cotizanteAge = cotizante?.edad ?? null;
+
+  function setCotizanteAge(edad: number | null) {
+    if (edad == null) {
+      // Sin cotizante: limpiar todo (cargas no tienen sentido sin cotizante)
+      pushParams({ ben: null });
+      return;
+    }
     const next: Beneficiario[] = [
-      ...beneficiarios,
-      { ...b, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
+      { id: `cot-${edad}`, edad, tipo: 'cotizante' },
+      ...cargas,
     ];
     pushParams({ ben: serializeBeneficiarios(next) });
   }
 
-  function removeBeneficiario(id: string) {
-    const next = beneficiarios.filter((b) => b.id !== id);
-    pushParams({ ben: next.length ? serializeBeneficiarios(next) : null });
+  function addCarga(edad: number) {
+    if (!cotizante) return; // no se puede agregar carga sin cotizante
+    const next: Beneficiario[] = [
+      cotizante,
+      ...cargas,
+      { id: `crg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, edad, tipo: 'carga' },
+    ];
+    pushParams({ ben: serializeBeneficiarios(next) });
+  }
+
+  function removeCarga(id: string) {
+    if (!cotizante) return;
+    const nextCargas = cargas.filter((c) => c.id !== id);
+    const next = [cotizante, ...nextCargas];
+    pushParams({ ben: serializeBeneficiarios(next) });
   }
 
   function clearBeneficiarios() {
@@ -290,18 +392,21 @@ export default function IsapresClient({
     (priceMin > priceFloor ? 1 : 0) +
     (priceMax < priceCeiling ? 1 : 0);
 
+  // FilterGroup headers muestran el conteo del DRAFT (lo que el usuario tiene seleccionado),
+  // no de la URL. Así el badge se actualiza en vivo al marcar checkboxes.
   const coverageGroupCount =
-    (currentCobHosp !== null ? 1 : 0) +
-    (currentCobAmb !== null ? 1 : 0);
+    (draft.cobHosp !== null ? 1 : 0) +
+    (draft.cobAmb !== null ? 1 : 0);
+
+  const isapresGroupCount = draft.isapres.length;
 
   const prefsGroupCount =
-    currentIsapres.length +
-    currentZonas.length +
-    (currentModalidad ? 1 : 0);
+    draft.zonas.length +
+    (draft.modalidad ? 1 : 0);
 
-  const clinicasGroupCount = selectedClinicas.length;
+  const clinicasGroupCount = draft.prestadorIds.length;
 
-  const totalActiveCount = budgetGroupCount + coverageGroupCount + prefsGroupCount + clinicasGroupCount;
+  const totalActiveCount = budgetGroupCount + coverageGroupCount + isapresGroupCount + prefsGroupCount + clinicasGroupCount;
 
   // ── Active filter chips ────────────────────────────────────────────
   const chips = useMemo<Chip[]>(() => {
@@ -328,13 +433,13 @@ export default function IsapresClient({
       arr.push({
         k: 'covH',
         l: `Hospitalaria ≥ ${currentCobHosp}%`,
-        clear: () => pushParams({ cobertura_hosp_min: null }),
+        clear: () => applyDraft({ cobHosp: null }),
       });
     if (currentCobAmb !== null)
       arr.push({
         k: 'covA',
         l: `Ambulatoria ≥ ${currentCobAmb}%`,
-        clear: () => pushParams({ cobertura_amb_min: null }),
+        clear: () => applyDraft({ cobAmb: null }),
       });
     currentIsapres.forEach((slug) => {
       const i = initialIsapres.find((x) => x.slug === slug);
@@ -342,7 +447,7 @@ export default function IsapresClient({
         arr.push({
           k: `isa-${slug}`,
           l: i.name,
-          clear: () => toggleIsapre(slug),
+          clear: () => applyDraft({ isapres: draft.isapres.filter((s) => s !== slug) }),
         });
     });
     currentZonas.forEach((id) => {
@@ -351,21 +456,21 @@ export default function IsapresClient({
         arr.push({
           k: `zona-${id}`,
           l: z.nombre,
-          clear: () => toggleZona(z.id),
+          clear: () => applyDraft({ zonas: draft.zonas.filter((s) => s !== String(z.id)) }),
         });
     });
     if (currentModalidad)
       arr.push({
         k: 'mod',
         l: `Modalidad: ${currentModalidad}`,
-        clear: () => pushParams({ modalidad: null }),
+        clear: () => applyDraft({ modalidad: '' }),
       });
-    selectedClinicas.forEach((cid) => {
+    urlState.prestadorIds.forEach((cid) => {
       const clinica = initialPrestadores.find((c) => c.id === cid);
       arr.push({
         k: `clin-${cid}`,
         l: clinica?.name ?? cid,
-        clear: () => toggleClinica(cid),
+        clear: () => applyDraft({ prestadorIds: draft.prestadorIds.filter((x) => x !== cid) }),
       });
     });
     if (currentSearch)
@@ -391,7 +496,8 @@ export default function IsapresClient({
     currentIsapres.join(','),
     currentZonas.join(','),
     currentModalidad,
-    selectedClinicas.join(','),
+    urlState.prestadorIds.join(','),
+    draft,
     currentSearch,
     initialIsapres,
     initialZonas,
@@ -415,9 +521,12 @@ export default function IsapresClient({
         }
       >
         <BeneficiariosBlock
-          beneficiarios={beneficiarios}
-          onAdd={addBeneficiario}
-          onRemove={removeBeneficiario}
+          cotizanteAge={cotizanteAge}
+          cargas={cargas}
+          totalFactor={totalFactor}
+          onSetCotizanteAge={setCotizanteAge}
+          onAddCarga={addCarga}
+          onRemoveCarga={removeCarga}
           onClear={clearBeneficiarios}
         />
       </FilterGroup>
@@ -469,13 +578,13 @@ export default function IsapresClient({
       >
         <CoverageStepper
           label="Hospitalaria mínima"
-          value={currentCobHosp ? parseInt(currentCobHosp, 10) : null}
-          onChange={(v) => pushParams({ cobertura_hosp_min: v ? String(v) : null })}
+          value={draft.cobHosp ? parseInt(draft.cobHosp, 10) : null}
+          onChange={setDraftCobHosp}
         />
         <CoverageStepper
           label="Ambulatoria mínima"
-          value={currentCobAmb ? parseInt(currentCobAmb, 10) : null}
-          onChange={(v) => pushParams({ cobertura_amb_min: v ? String(v) : null })}
+          value={draft.cobAmb ? parseInt(draft.cobAmb, 10) : null}
+          onChange={setDraftCobAmb}
         />
       </FilterGroup>
 
@@ -491,10 +600,24 @@ export default function IsapresClient({
       >
         <ClinicasFilter
           clinicas={initialPrestadores}
-          selected={selectedClinicas}
-          toggle={toggleClinica}
+          selected={draft.prestadorIds}
+          toggle={toggleClinicaDraft}
           activeCount={clinicasGroupCount}
         />
+      </FilterGroup>
+
+      <FilterGroup
+        title="Isapres"
+        defaultOpen={false}
+        activeCount={isapresGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6z" />
+            <path d="M9 12h6M12 9v6" />
+          </svg>
+        }
+      >
+        <IsapresFilter isapres={activeIsapres} selected={draft.isapres} toggle={toggleIsapre} />
       </FilterGroup>
 
       <FilterGroup
@@ -507,12 +630,11 @@ export default function IsapresClient({
           </svg>
         }
       >
-        <IsapresFilter isapres={activeIsapres} selected={currentIsapres} toggle={toggleIsapre} />
-        <ZonasFilter zonas={initialZonas} selected={currentZonas} toggle={toggleZona} />
+        <ZonasFilter zonas={initialZonas} selected={draft.zonas} toggle={toggleZona} />
         <ModalidadFilter
           options={MODALIDADES}
-          value={currentModalidad}
-          onChange={(v) => pushParams({ modalidad: v || null })}
+          value={draft.modalidad}
+          onChange={setDraftModalidad}
         />
       </FilterGroup>
     </>
@@ -525,17 +647,46 @@ export default function IsapresClient({
       <div className="grid lg:grid-cols-[300px_1fr] gap-4 sm:gap-6 lg:gap-8">
         {/* ─── Desktop sidebar ─── */}
         <aside
-          className="hidden lg:block space-y-3 sticky top-[80px] self-start"
-          style={{ maxHeight: 'calc(100vh - 92px)', overflowY: 'auto' }}
+          className="hidden lg:flex flex-col space-y-3 sticky top-[80px] self-start"
+          style={{ maxHeight: 'calc(100vh - 92px)' }}
         >
-          {SidebarContent()}
-          {totalActiveCount > 0 && (
-            <button
-              onClick={clearAll}
-              className="w-full px-4 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[12px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
-            >
-              Limpiar todos los filtros ({totalActiveCount})
-            </button>
+          <div className="flex-1 overflow-y-auto space-y-3 pb-1">
+            {SidebarContent()}
+            {totalActiveCount > 0 && (
+              <button
+                onClick={clearAll}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[12px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
+              >
+                Limpiar todos los filtros ({totalActiveCount})
+              </button>
+            )}
+          </div>
+
+          {/* Footer sticky con Aplicar / Cancelar */}
+          {hasPendingChanges && (
+            <div className="shrink-0 rounded-2xl border-2 border-[#14dcb4]/40 bg-white p-2.5 shadow-[0_10px_24px_-10px_rgba(15,81,75,0.25)] flex items-center gap-2">
+              <button
+                type="button"
+                onClick={cancelDraft}
+                className="px-3 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[11.5px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
+                title="Descartar cambios pendientes"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDraft()}
+                className="flex-1 px-3 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[12.5px] font-bold shadow-[0_8px_18px_rgba(20,220,180,0.35)] hover:-translate-y-px transition-all inline-flex items-center justify-center gap-1.5"
+              >
+                Aplicar filtros
+                <span className="bg-[#0f2826]/15 text-[#0f2826] text-[10px] font-extrabold px-1.5 py-0.5 rounded tabular-nums">
+                  {pendingChangesCount}
+                </span>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
           )}
         </aside>
 
@@ -556,10 +707,17 @@ export default function IsapresClient({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    submitPlanSearch();
+                    // Si hay exactamente 1 sugerencia, selecciónala. Sino, cierra dropdown.
+                    if (isapreSuggestions.length === 1 && clinicSuggestions.length === 0) {
+                      selectIsapreFromSearch(isapreSuggestions[0].slug ?? '');
+                    } else if (clinicSuggestions.length === 1 && isapreSuggestions.length === 0) {
+                      selectClinicFromSearch(clinicSuggestions[0].id);
+                    } else {
+                      setSearchOpen(false);
+                    }
                   }
                 }}
-                placeholder="Buscar por clínica, plan o código..."
+                placeholder="Busca por isapre o clínica..."
                 className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13.5px] text-[#0f514b] placeholder:text-slate-400 transition-all"
               />
               {searchText && (
@@ -578,15 +736,68 @@ export default function IsapresClient({
               )}
 
               {searchOpen && searchText.trim().length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-[0_16px_40px_-12px_rgba(15,81,75,0.22)] z-50 overflow-hidden">
-                  {clinicSuggestions.length > 0 ? (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-[0_16px_40px_-12px_rgba(15,81,75,0.22)] z-50 overflow-hidden max-h-[480px] overflow-y-auto">
+                  {isapreSuggestions.length === 0 && clinicSuggestions.length === 0 && (
+                    <div className="px-3.5 py-3 text-[12.5px] text-[#5a6b6a]">
+                      No encontramos isapres ni clínicas con &quot;<strong className="text-[#0f514b]">{searchText}</strong>&quot;.
+                    </div>
+                  )}
+
+                  {isapreSuggestions.length > 0 && (
                     <>
                       <div className="px-3.5 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] bg-slate-50/70 border-b border-slate-100">
+                        Isapres
+                      </div>
+                      <ul className="py-1">
+                        {isapreSuggestions.map((i) => {
+                          const slug = i.slug ?? '';
+                          const isSelected = currentIsapres.includes(slug);
+                          return (
+                            <li key={i.id}>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => selectIsapreFromSearch(slug)}
+                                className="w-full px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#14dcb4]/[0.07] transition-colors text-left"
+                              >
+                                <span
+                                  className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                                    isSelected ? 'bg-[#14dcb4] border-[#14dcb4]' : 'border-slate-300 bg-white'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <svg className="w-3 h-3 text-[#0f514b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                  )}
+                                </span>
+                                <span className={`flex-1 text-[13px] ${isSelected ? 'text-[#0f514b] font-semibold' : 'text-[#1e2a2a]'}`}>
+                                  {i.name}
+                                </span>
+                                <span className="text-[10px] font-bold text-[#5a6b6a] tabular-nums bg-[#0f514b]/5 px-1.5 py-0.5 rounded">
+                                  {i.plan_count}
+                                </span>
+                                {isSelected && (
+                                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f9d8a]">
+                                    Activa
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  )}
+
+                  {clinicSuggestions.length > 0 && (
+                    <>
+                      <div className="px-3.5 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] bg-slate-50/70 border-y border-slate-100">
                         Clínicas y hospitales
                       </div>
                       <ul className="py-1">
                         {clinicSuggestions.map((c) => {
-                          const isSelected = selectedClinicas.includes(c.id);
+                          const isSelected = draft.prestadorIds.includes(c.id);
                           return (
                             <li key={c.id}>
                               <button
@@ -601,24 +812,12 @@ export default function IsapresClient({
                                   }`}
                                 >
                                   {isSelected && (
-                                    <svg
-                                      className="w-3 h-3 text-[#0f514b]"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="3"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
+                                    <svg className="w-3 h-3 text-[#0f514b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                       <path d="M20 6L9 17l-5-5" />
                                     </svg>
                                   )}
                                 </span>
-                                <span
-                                  className={`flex-1 truncate text-[13px] ${
-                                    isSelected ? 'text-[#0f514b] font-semibold' : 'text-[#1e2a2a]'
-                                  }`}
-                                >
+                                <span className={`flex-1 text-[13px] leading-snug ${isSelected ? 'text-[#0f514b] font-semibold' : 'text-[#1e2a2a]'}`}>
                                   {c.name}
                                 </span>
                                 {isSelected && (
@@ -632,25 +831,7 @@ export default function IsapresClient({
                         })}
                       </ul>
                     </>
-                  ) : (
-                    <div className="px-3.5 py-3 text-[12.5px] text-[#5a6b6a]">
-                      No encontramos clínicas con &quot;<strong className="text-[#0f514b]">{searchText}</strong>&quot;.
-                    </div>
                   )}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={submitPlanSearch}
-                    className="w-full border-t border-slate-100 px-3.5 py-2.5 bg-slate-50/60 hover:bg-[#14dcb4]/[0.08] text-[12px] text-[#0f514b] flex items-center gap-2 transition-colors text-left"
-                  >
-                    <Search className="w-3.5 h-3.5 shrink-0 text-[#0f9d8a]" />
-                    <span className="truncate">
-                      Buscar planes con &quot;<strong>{searchText}</strong>&quot; en nombre o código
-                    </span>
-                    <span className="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a] border border-slate-200 rounded px-1.5 py-0.5 bg-white">
-                      Enter
-                    </span>
-                  </button>
                 </div>
               )}
             </div>
@@ -778,10 +959,22 @@ export default function IsapresClient({
                 Limpiar
               </button>
               <button
-                onClick={() => setMobileFiltersOpen(false)}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f514b] text-[13px] font-bold"
+                onClick={() => {
+                  if (hasPendingChanges) applyDraft();
+                  setMobileFiltersOpen(false);
+                }}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[13px] font-bold inline-flex items-center justify-center gap-1.5"
               >
-                Ver {initialData.total} planes
+                {hasPendingChanges ? (
+                  <>
+                    Aplicar
+                    <span className="bg-[#0f2826]/15 text-[#0f2826] text-[10px] font-extrabold px-1.5 py-0.5 rounded tabular-nums">
+                      {pendingChangesCount}
+                    </span>
+                  </>
+                ) : (
+                  <>Ver {initialData.total} planes</>
+                )}
               </button>
             </div>
           </div>

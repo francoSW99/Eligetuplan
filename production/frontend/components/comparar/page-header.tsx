@@ -9,56 +9,51 @@ type Props = {
 
 export default function PageHeader({ totalShowing, totalFiltered, totalGlobal }: Props) {
   return (
-    <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] text-white pt-8 pb-5 md:pt-10 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] text-white py-3 sm:py-3.5 overflow-hidden">
       <div
-        className="absolute -top-20 -right-10 w-[320px] h-[320px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(20,220,180,.14) 0%, transparent 60%)" }}
+        className="absolute -top-12 -right-6 w-[200px] h-[200px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(20,220,180,.12) 0%, transparent 60%)" }}
       />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-[#14dcb4]" aria-hidden />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2px] bg-[#14dcb4]" aria-hidden />
 
-      <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
-          <div className="min-w-0">
-            <nav className="text-[11px] text-white/55 mb-1.5 flex items-center gap-1.5 font-medium" aria-label="Breadcrumb">
+      <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+          <div className="min-w-0 flex items-baseline gap-3 flex-wrap">
+            <nav className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45 flex items-center gap-1.5" aria-label="Breadcrumb">
               <Link href="/" className="hover:text-[#14dcb4] transition-colors no-underline">
                 Inicio
               </Link>
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
+              <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <path d="M9 6l6 6-6 6" />
               </svg>
-              <span className="text-white/85">Comparar planes</span>
+              <span className="text-white/75">Comparar planes</span>
             </nav>
-            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-extrabold tracking-[-0.02em] leading-[1.2] text-balance">
+            <h1 className="text-[15px] sm:text-[16px] md:text-[17px] font-extrabold tracking-[-0.01em] leading-tight">
               Compara los{" "}
               <span className="text-[#14dcb4] serif font-medium italic">
                 {totalGlobal.toLocaleString("es-CL")}
               </span>{" "}
-              planes vigentes del mercado.
+              planes vigentes
             </h1>
           </div>
 
-          <div className="shrink-0 flex items-center gap-3 self-stretch md:self-auto">
-            <div className="flex-1 md:flex-none flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/8 backdrop-blur-md border border-[#14dcb4]/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse shrink-0" />
-              <div className="min-w-0">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[22px] font-extrabold text-white tabular-nums leading-none">
-                    {totalShowing}
-                  </span>
-                  <span className="text-[12px] text-white/45 tabular-nums">
-                    / {totalFiltered.toLocaleString("es-CL")}
-                  </span>
-                </div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#14dcb4]/85 mt-0.5">
-                  Planes filtrados
-                </div>
-              </div>
-              <div className="hidden md:block w-px h-7 bg-white/15" />
-              <div className="hidden md:block text-[10px] text-white/55 leading-tight">
-                <div className="font-mono text-[#14dcb4]/80 mb-0.5">LIVE</div>
-                <div>al {STATS.lastUpdate}</div>
-              </div>
+          <div className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/8 backdrop-blur-md border border-[#14dcb4]/25">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse shrink-0" />
+            <div className="flex items-baseline gap-1">
+              <span className="text-[15px] font-extrabold text-white tabular-nums leading-none">
+                {totalShowing}
+              </span>
+              <span className="text-[10.5px] text-white/45 tabular-nums">
+                / {totalFiltered.toLocaleString("es-CL")}
+              </span>
             </div>
+            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#14dcb4]/80">
+              filtrados
+            </span>
+            <span className="hidden sm:inline-block w-px h-3.5 bg-white/15" />
+            <span className="hidden sm:inline text-[9.5px] text-white/45 leading-none">
+              al {STATS.lastUpdate}
+            </span>
           </div>
         </div>
       </div>
