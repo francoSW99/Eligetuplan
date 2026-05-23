@@ -28,6 +28,116 @@
 - Si solo cambia `production/backend/`, Cloud Run rebuilda Docker pero Vercel sirve el frontend cacheado.
 - El `.env` de cada entorno vive solo en su servidor respectivo (Vercel env vars + Cloud Run env vars), nunca en GitHub.
 
+---
+
+## ⚡ Deploy diario — usa el script `deploy_to_prod.ps1`
+
+Ya está hecho el script que automatiza todo: validación → copia → 2 commits → push. Vive en la raíz del proyecto: `C:\Users\Hp\Documents\Eligetuplan\deploy_to_prod.ps1`.
+
+### Ejemplo paso a paso (caso típico)
+
+Imagina que pasaste la tarde mejorando la calculadora del 7% en `test/`. Ya validaste manualmente que funciona en `http://localhost:3000`. Ahora quieres pasarlo a producción.
+
+**1. Abrir PowerShell en la raíz del proyecto:**
+
+```powershell
+cd C:\Users\Hp\Documents\Eligetuplan
+```
+
+**2. Ver qué tienes pendiente:**
+
+```powershell
+git status
+```
+
+Deberías ver algo como:
+```
+modified:   test/frontend/components/home/seven-percent-calculator.tsx
+modified:   test/frontend/lib/factores.ts
+```
+
+**3. Correr el script con tu mensaje de commit:**
+
+```powershell
+.\deploy_to_prod.ps1 -Message "feat(home): mejoras en calculadora 7%"
+```
+
+El script va a hacer todo esto automáticamente y te lo va mostrando:
+
+```
+==> Verificando estado del repo
+  [OK] 2 archivo(s) modificado(s) en test/:
+    test/frontend/components/home/seven-percent-calculator.tsx
+    test/frontend/lib/factores.ts
+
+==> Validando test/frontend (tsc + build)
+  [OK] TypeScript limpio
+  [OK] Build de Next.js OK
+
+==> Copiando archivos a production/
+    test/frontend/components/home/seven-percent-calculator.tsx -> production/frontend/components/home/seven-percent-calculator.tsx
+    test/frontend/lib/factores.ts -> production/frontend/lib/factores.ts
+  [OK] 2 archivo(s) copiado(s)
+
+==> Validando production/frontend (build)
+  [OK] Build de production OK
+
+==> Creando commits
+  [OK] Commit test/: a1b2c3d  feat(home): mejoras en calculadora 7%
+  [OK] Commit prod : e4f5g6h  deploy: promocion de cambios de test a produccion
+
+==> Pusheando a origin/main
+  [OK] Push completado.
+
+Deploy en progreso:
+  Frontend  -> Vercel rebuild   (~1-2 min)  https://vercel.com/dashboard
+```
+
+**4. Esperar ~2 minutos y verificar en https://elige-tuplan.cl**
+
+Eso es todo. Tres líneas de PowerShell (`cd`, `git status`, `.\deploy_to_prod.ps1 -Message "..."`) y el deploy está live.
+
+### Variantes según la situación
+
+| Situación | Comando |
+|-----------|---------|
+| Deploy normal con mensaje | `.\deploy_to_prod.ps1 -Message "feat: X"` |
+| No sabes qué mensaje todavía (te lo pide) | `.\deploy_to_prod.ps1` |
+| Solo cambios menores y quieres saltar el build (más rápido) | `.\deploy_to_prod.ps1 -Message "fix typo" -SkipBuild` |
+| Quieres revisar los commits antes de pushear | `.\deploy_to_prod.ps1 -Message "..." -NoPush` |
+
+### Lo que el script previene
+
+- **Aborta si TypeScript falla** en `test/frontend` — no deploya código roto
+- **Aborta si `next build` falla** — el código pasa tipo pero rompe en build (ej: missing import)
+- **Aborta si `production/` ya tiene cambios sin commit** — evita mezclar promociones con edits manuales accidentales
+- **Aborta si no hay nada para promover** — no hace commits vacíos
+
+### Qué hacer cuando el script falla
+
+| Error del script | Qué hacer |
+|------------------|-----------|
+| `production/ ya tiene cambios sin commit` | Revisa con `git status`. Si los cambios son intencionales, commitealos primero. Si fueron accidentales, `git checkout production/` para descartarlos. |
+| `TypeScript fallo` | Corre `cd test\frontend; npx tsc --noEmit --skipLibCheck` para ver el error completo y arréglalo. |
+| `next build fallo` | Corre `cd test\frontend; npm run build` para ver el error completo. |
+| `Build de production fallo` | Algo raro pasó — los archivos test/ no son equivalentes a production/. Revisa diff manualmente. |
+| `git push fallo` | Alguien más pusheó. Corre `git pull --rebase` y luego `git push` manualmente. |
+
+### Si necesitas revertir un deploy a producción
+
+```powershell
+# Ver los últimos commits
+git log --oneline -5
+
+# Revertir el commit de promoción (crea un nuevo commit que deshace los cambios)
+git revert <sha-del-commit-deploy>
+
+# Push para que Vercel rebuilda con la versión anterior
+git push origin main
+```
+
+NO uses `git reset --hard` si ya pusheaste — usa `git revert`. Eso preserva el historial.
+
 ## PASO 1 — Comprar dominio .cl
 
 1. Ir a https://www.nic.cl o https://puntodenombre.cl
