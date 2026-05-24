@@ -23,6 +23,13 @@ function parseFilters(
   const precioMax = parseIntParam(params.precio_max_clp);
   const coberturaHospMin = parseIntParam(params.cobertura_hosp_min);
   const coberturaAmbMin = parseIntParam(params.cobertura_amb_min);
+
+  // El 7% legal es un MARCADOR visual, no un filtro estricto. Cuando aplicar_tope_legal=true
+  // se ignora el precio_max_clp en el backend → muestra todos los planes. Las cards muestran
+  // "Pagas $X extra sobre tu 7%" en los que exceden.
+  // Si en cambio el usuario movió el slider de precio (sin 7%), respetamos el cap estricto.
+  const isLegalBudgetSoft = params.aplicar_tope_legal === 'true';
+
   // Fórmula tu7: displayed = base × sumaF + ges × N. Para que displayed ≤ X →
   // base ≤ (X - gesAvg × N) / sumaF. Usamos GES promedio aprox 0.7 UF ≈ 28k CLP.
   const GES_AVG_CLP = 28_000;
@@ -30,12 +37,12 @@ function parseFilters(
     if (precioMin != null) {
       q.precio_min_clp = Math.max(0, Math.round((precioMin - GES_AVG_CLP * numBeneficiarios) / sumaFactores));
     }
-    if (precioMax != null) {
+    if (precioMax != null && !isLegalBudgetSoft) {
       q.precio_max_clp = Math.max(0, Math.round((precioMax - GES_AVG_CLP * numBeneficiarios) / sumaFactores));
     }
   } else {
     if (precioMin != null) q.precio_min_clp = precioMin;
-    if (precioMax != null) q.precio_max_clp = precioMax;
+    if (precioMax != null && !isLegalBudgetSoft) q.precio_max_clp = precioMax;
   }
   if (coberturaHospMin != null) q.cobertura_hosp_min = coberturaHospMin;
   if (coberturaAmbMin != null) q.cobertura_amb_min = coberturaAmbMin;

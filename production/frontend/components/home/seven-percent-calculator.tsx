@@ -123,11 +123,8 @@ export default function SevenPercentCalculator() {
     if (salary > 0) {
       params.set('sueldo_imponible_clp', String(salary));
       params.set('aplicar_tope_legal', 'true');
-      // Si el 7% no alcanza para el grupo, bumpeamos el cap al mínimo viable
-      // (mismo comportamiento del sidebar). Así el usuario ve las opciones más
-      // cercanas con la banda "Pagas $X extra sobre tu 7%" en cada card.
-      const cappedBudget = Math.max(sevenPct, minDisplayedCLP);
-      params.set('precio_max_clp', String(Math.round(cappedBudget)));
+      // No setear precio_max_clp: el 7% es un marcador visual, no un filtro estricto.
+      // El backend devuelve todos los planes y las cards marcan los que exceden el tope.
     }
     if (beneficiarios.length > 0) {
       params.set('ben', serializeBeneficiarios(beneficiarios));
@@ -155,7 +152,7 @@ export default function SevenPercentCalculator() {
           ¿Cuánto puedes destinar a tu plan?
         </h3>
         <p className="text-[13px] text-[#5a6b6a] mt-1.5 leading-relaxed">
-          La ley reserva el 7% de tu sueldo bruto para salud. Ingrésalo y vemos cuántos planes te calzan.
+          La ley reserva el 7% de tu sueldo bruto para salud. Ingrésalo para ver todos los planes y cuánto pagarías de adicional si excedes tu tope.
         </p>
 
         <label className="block mt-5">
@@ -401,8 +398,10 @@ export default function SevenPercentCalculator() {
           {salary <= 0
             ? 'Ingresa tu sueldo para continuar'
             : insufficientBudget
-              ? 'Ver planes con pago adicional'
-              : `Ver mis ${plansAvailable.toLocaleString('es-CL')} planes disponibles`}
+              ? 'Ver opciones cercanas (con adicional)'
+              : plansAvailable > 0
+                ? `Ver mis ${plansAvailable.toLocaleString('es-CL')} planes + opciones`
+                : 'Ver todas las opciones'}
           <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>

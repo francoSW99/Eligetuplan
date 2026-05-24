@@ -281,12 +281,14 @@ export default function IsapresClient({
 
   function applyLegalBudgetFilter() {
     if (!legalBudget) return;
-    const cappedBudget = Math.min(Math.max(legalBudget, priceFloor), priceCeiling);
+    // El 7% es un MARCADOR visual: las cards muestran "Pagas $X extra sobre tu 7%".
+    // No setear precio_max_clp para que el backend muestre TODOS los planes y el chip
+    // "Hasta $X" no aparezca duplicado con el chip "Mi 7%".
     pushParams({
       sueldo_imponible_clp: grossSalaryInput,
       aplicar_tope_legal: 'true',
       precio_min_clp: null,
-      precio_max_clp: String(cappedBudget),
+      precio_max_clp: null,
     });
   }
 
@@ -548,7 +550,6 @@ export default function IsapresClient({
           applyBudget={applyLegalBudgetFilter}
           clearBudget={clearLegalBudgetFilter}
           active={currentLegalBudgetActive}
-          total={initialData.total}
         />
         <div className="pt-3 border-t border-[#0f514b]/8">
           <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] mb-2.5">

@@ -80,14 +80,12 @@ export function SevenPercentBlock({
   applyBudget,
   clearBudget,
   active,
-  total,
 }: {
   salaryInput: string;
   setSalaryInput: (v: string) => void;
   applyBudget: () => void;
   clearBudget: () => void;
   active: boolean;
-  total: number;
 }) {
   const salary = salaryInput ? parseInt(salaryInput, 10) : 0;
   const sevenPct = salary > 0 ? Math.floor(salary * 0.07) : 0;
@@ -126,8 +124,8 @@ export function SevenPercentBlock({
   return (
     <div className="space-y-3">
       <p className="text-[12.5px] text-[#5a6b6a] leading-relaxed">
-        Ingresa tu sueldo bruto y filtramos solo los planes que tu{" "}
-        <strong className="text-[#0f514b] font-bold">7% legal</strong> puede pagar.
+        Ingresa tu sueldo bruto. Te mostramos <strong>todos los planes</strong> y marcamos cuáles superan tu{" "}
+        <strong className="text-[#0f514b] font-bold">7% legal</strong> y cuánto pagarías extra.
       </p>
 
       <div>
@@ -175,25 +173,31 @@ export function SevenPercentBlock({
         onClick={applyBudget}
         className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f514b] font-bold text-[13px] shadow-[0_8px_20px_rgba(20,220,180,0.3)] disabled:opacity-40 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all"
       >
-        {active ? "Actualizar filtro 7%" : "Filtrar por mi 7%"}
+        {active ? "Actualizar mi 7%" : "Activar mi 7%"}
       </button>
 
       {active && (
-        <div className="rounded-xl border border-[#14dcb4]/30 bg-[#14dcb4]/8 p-3 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f514b]/70 mb-0.5">
-            Con tu 7% puedes optar a
+        <div className="rounded-xl border border-[#14dcb4]/30 bg-[#14dcb4]/8 p-3 flex items-start gap-2.5">
+          <div className="shrink-0 w-7 h-7 rounded-lg bg-[#14dcb4]/25 flex items-center justify-center mt-0.5">
+            <svg className="w-3.5 h-3.5 text-[#0f9d8a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
           </div>
-          <div className="text-[22px] font-extrabold text-[#0f514b] tabular-nums leading-none">
-            {total.toLocaleString("es-CL")}
+          <div className="flex-1 min-w-0">
+            <div className="text-[11.5px] font-bold text-[#0f514b] leading-tight">
+              7% activo como referencia
+            </div>
+            <div className="text-[10.5px] text-[#5a6b6a] mt-0.5 leading-snug">
+              Marcamos los planes que superan <strong className="tabular-nums">{formatCLP(sevenPct)}/mes</strong> con el adicional necesario.
+            </div>
+            <button
+              type="button"
+              onClick={clearBudget}
+              className="mt-1.5 text-[11px] font-semibold text-[#0f9d8a] hover:underline"
+            >
+              Quitar
+            </button>
           </div>
-          <div className="text-[10.5px] text-[#5a6b6a] mt-1">planes vigentes</div>
-          <button
-            type="button"
-            onClick={clearBudget}
-            className="mt-2 text-[11px] font-semibold text-[#0f9d8a] hover:underline"
-          >
-            Quitar filtro
-          </button>
         </div>
       )}
     </div>
