@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { track } from '@/lib/analytics';
 
 const WHATSAPP_URL = 'https://wa.me/56968319807?text=Hola%2C%20quiero%20cotizar%20un%20plan%20de%20salud.';
 
@@ -11,6 +12,7 @@ export default function WhatsAppFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Contáctate por WhatsApp"
+      onClick={() => track.whatsappClick('fab')}
       className="fixed bottom-6 right-6 z-50 group"
     >
       <span className="absolute inset-0 rounded-full bg-[#25D366] animate-[wsp-ping_1.5s_ease-out_infinite]" />
