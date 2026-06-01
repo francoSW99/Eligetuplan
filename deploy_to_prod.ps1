@@ -34,8 +34,11 @@ if ($prodChanges) {
   exit 1
 }
 
-# 2. Listar cambios en test/
-$testChanges = git diff --name-only -- test/
+# 2. Listar cambios en test/ (tracked modificados + archivos NUEVOS untracked)
+#    git diff solo ve archivos ya rastreados; los nuevos se listan con ls-files --others.
+$testTracked   = git diff --name-only HEAD -- test/
+$testUntracked = git ls-files --others --exclude-standard -- test/
+$testChanges   = @($testTracked) + @($testUntracked) | Where-Object { $_ } | Select-Object -Unique
 if (-not $testChanges) {
   Write-Err "No hay cambios en test/ para promover."
   exit 1
@@ -50,11 +53,14 @@ if ($frontendChanges -and -not $SkipBuild) {
   Write-Step "Validando test/frontend (tsc + build)"
   Push-Location test/frontend
   try {
-    & npx tsc --noEmit --skipLibCheck
+    # Usar binarios locales directamente (npx desde PS es a veces inestable)
+    $tscBin = "node_modules\.bin\tsc.cmd"
+    if (-not (Test-Path $tscBin)) { Write-Err "No se encontro $tscBin. Corre 'npm install' en test/frontend."; exit 1 }
+    & $tscBin --noEmit --skipLibCheck
     if ($LASTEXITCODE -ne 0) { Write-Err "TypeScript fallo. Aborto."; exit 1 }
     Write-Ok "TypeScript limpio"
 
-    & npm run build 2>&1 | Out-Null
+    & npm.cmd run build | Out-Null
     if ($LASTEXITCODE -ne 0) { Write-Err "next build fallo. Aborto."; exit 1 }
     Write-Ok "Build de Next.js OK"
   } finally {
@@ -88,7 +94,11 @@ if ($prodFrontChanges -and -not $SkipBuild) {
   Write-Step "Validando production/frontend (build)"
   Push-Location production/frontend
   try {
-    & npm run build 2>&1 | Out-Null
+    # Instalar deps por si package.json cambio (ej: dependencia nueva). Idempotente.
+    & npm.cmd install | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Err "npm install en production fallo. Aborto."; exit 1 }
+
+    & npm.cmd run build | Out-Null
     if ($LASTEXITCODE -ne 0) { Write-Err "Build de production fallo. Revisa el estado y revierte si es necesario."; exit 1 }
     Write-Ok "Build de production OK"
   } finally {
