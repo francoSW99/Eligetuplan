@@ -19,6 +19,10 @@ const STATIC_ROUTES = [
   { path: "/buscar", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/como-funciona", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/faq", priority: 0.6, changeFrequency: "monthly" as const },
+  // Landings SEO
+  { path: "/asesor-isapre", priority: 0.9, changeFrequency: "weekly" as const },
+  { path: "/cambiar-isapre", priority: 0.9, changeFrequency: "weekly" as const },
+  { path: "/pasar-fonasa-a-isapre", priority: 0.9, changeFrequency: "weekly" as const },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

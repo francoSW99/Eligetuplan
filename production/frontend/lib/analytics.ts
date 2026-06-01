@@ -9,7 +9,10 @@ export type LeadSource =
   | "buscar"
   | "faq"
   | "footer"
-  | "fab";
+  | "fab"
+  | "asesor_isapre"
+  | "cambiar_isapre"
+  | "fonasa_isapre";
 
 export const track = {
   whatsappClick: (source: LeadSource) =>

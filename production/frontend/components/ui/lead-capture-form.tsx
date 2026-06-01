@@ -15,8 +15,9 @@ import {
   User,
   X,
 } from 'lucide-react';
+import { track } from '@/lib/analytics';
 
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxDO73TTXhYnwyeW4w_EA8fVNqg68I9PjDtO1Td50QPDhiOFkugnI1t0HPWszZGHfv5/exec';
+const SHEETS_URL ='https://script.google.com/macros/s/AKfycbxDO73TTXhYnwyeW4w_EA8fVNqg68I9PjDtO1Td50QPDhiOFkugnI1t0HPWszZGHfv5/exec';
 
 const REGIONES = [
   'Región de Arica y Parinacota',
@@ -69,6 +70,8 @@ type LeadCaptureFormProps = {
   compact?: boolean;
   onClose?: () => void;
   showHeader?: boolean;
+  /** Para distinguir en GA4 desde qué página se envió el lead. */
+  formType?: 'asesor' | 'buscar' | 'newsletter';
 };
 
 const EMPTY_FORM: FormData = {
@@ -87,6 +90,7 @@ export default function LeadCaptureForm({
   compact = false,
   onClose,
   showHeader = true,
+  formType = 'buscar',
 }: LeadCaptureFormProps) {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,6 +140,7 @@ export default function LeadCaptureForm({
         }),
       });
       setSubmitted(true);
+      track.formSubmit(formType);
     } catch {
       setError('Ocurrió un error al enviar. Intenta nuevamente.');
     } finally {
