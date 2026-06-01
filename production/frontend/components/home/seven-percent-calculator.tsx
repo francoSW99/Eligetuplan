@@ -9,6 +9,7 @@ import {
   getTotalFactor,
   serializeBeneficiarios,
 } from "@/lib/factores";
+import { track } from "@/lib/analytics";
 
 const PRESETS = [
   { label: "$700K", value: 700_000 },
@@ -119,6 +120,9 @@ export default function SevenPercentCalculator() {
   }
 
   function handleGoToComparar() {
+    if (salary > 0) {
+      track.calcUsed(salary, plansAvailable);
+    }
     const params = new URLSearchParams();
     if (salary > 0) {
       params.set('sueldo_imponible_clp', String(salary));

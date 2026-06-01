@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { FileText } from 'lucide-react';
+import { track } from '@/lib/analytics';
 
 const WHATSAPP_NUMBER = '56968319807';
 const WHATSAPP_BASE_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
@@ -26,11 +27,16 @@ export default function ContactOptions({
   );
   const whatsAppUrl = `${WHATSAPP_BASE_URL}?text=${whatsAppText}`;
 
+  const handleFormClick = () => {
+    track.asesorClick('comparar');
+    onChooseForm();
+  };
+
   if (!isConsalud) {
     return (
       <button
         type="button"
-        onClick={onChooseForm}
+        onClick={handleFormClick}
         className={`w-full py-3.5 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg ${className}`}
         style={{ background: 'linear-gradient(135deg, #14dcb4, #0f9d8a)' }}
       >
@@ -48,7 +54,7 @@ export default function ContactOptions({
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           type="button"
-          onClick={onChooseForm}
+          onClick={handleFormClick}
           className="flex-1 py-3 rounded-2xl font-bold text-sm border-2 border-[#14dcb4] text-[#0f514b] hover:bg-[#14dcb4]/10 transition-all flex items-center justify-center gap-2"
         >
           <FileText className="w-4 h-4" />
@@ -58,6 +64,7 @@ export default function ContactOptions({
           href={whatsAppUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => track.whatsappClick('comparar')}
           className="flex-1 py-3 rounded-2xl font-bold text-sm bg-[#25D366] text-white hover:bg-[#20bd5a] transition-all flex items-center justify-center gap-2 no-underline"
         >
           <Image src="/wsp2.png" alt="WhatsApp" width={24} height={24} className="w-6 h-6" />
