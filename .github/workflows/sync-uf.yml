@@ -1,0 +1,87 @@
+name: Sync UF diario → Producción
+
+# Mini-cron DIARIO: actualiza solo el valor de la UF y la fecha en app_meta.
+# La UF cambia todos los días, así que esto la mantiene siempre al día sin correr
+# los syncs pesados de planes (esos van en sync-data.yml, los días 1 y 15).
+#
+# Secrets requeridos (los mismos que sync-data.yml):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (de PRODUCCIÓN)
+
+on:
+  schedule:
+    - cron: '0 11 * * *'    # todos los días 11:00 UTC ≈ 07:00-08:00 Chile
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sync-uf
+  cancel-in-progress: false
+
+jobs:
+  sync-uf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r production/backend/requirements.txt
+
+      - name: Actualizar UF (sync_all.py --uf-only)
+        id: sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set +e
+          python production/backend/scripts/sync_all.py --uf-only > summary.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          echo "----- summary.json -----"
+          cat summary.json
+
+      - name: Resumen + aviso (solo si falla)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -s summary.json ]; then
+            echo "❌ El script no produjo summary.json." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          ok=$(jq -r '.ok'           summary.json)
+          aborted=$(jq -r '.aborted' summary.json)
+          reason=$(jq -r '.reason // "—"'     summary.json)
+          uf=$(jq -r '.uf // "—"'             summary.json)
+          uf_fecha=$(jq -r '.uf_fecha // "—"' summary.json)
+
+          {
+            echo "## Sync UF diario — $(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "| Campo | Valor |"
+            echo "|---|---|"
+            echo "| OK | $ok |"
+            echo "| Abortado | $aborted |"
+            echo "| UF del día | \$$uf ($uf_fecha) |"
+            echo "| Motivo | $reason |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A diferencia del cron de planes, acá NO abrimos issue en cada corrida
+          # (la UF cambia a diario = sería spam). Solo avisamos si algo FALLA.
+          code="${{ steps.sync.outputs.exit_code }}"
+          if [ "$aborted" = "true" ] || [ "$code" != "0" ]; then
+            title="[sync-uf] ⚠️ fallo al actualizar UF — $(date -u +'%Y-%m-%d')"
+            body=$(printf '**UF:** $%s (%s)\n**Motivo:** %s\n\nRun: %s/%s/actions/runs/%s' \
+              "$uf" "$uf_fecha" "$reason" \
+              "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}")
+            printf '%s' "$body" | gh issue create --title "$title" || true
+            exit 1
+          fi
