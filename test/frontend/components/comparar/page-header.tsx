@@ -32,11 +32,11 @@ export default function PageHeader({ totalShowing, totalFiltered, totalGlobal }:
               <span className="text-white/75">Comparar planes</span>
             </nav>
             <h1 className="text-[15px] sm:text-[16px] md:text-[17px] font-extrabold tracking-[-0.01em] leading-tight">
-              Compara los{" "}
+              Compara{" "}
               <span className="text-[#14dcb4] serif font-medium italic">
                 {totalGlobal.toLocaleString("es-CL")}
               </span>{" "}
-              planes vigentes
+              planes de salud Isapre vigentes
             </h1>
           </div>
 

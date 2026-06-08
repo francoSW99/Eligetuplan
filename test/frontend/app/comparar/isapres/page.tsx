@@ -1,8 +1,31 @@
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ResultsSkeleton, { SidebarSkeleton } from '@/components/comparar/results-skeleton';
 import CompareBody from './compare-body';
+
+export const metadata: Metadata = {
+  title: { absolute: 'Planes de Salud Isapre: Compara las 7 Isapres de Chile' },
+  description:
+    'Compara los planes de salud de las 7 Isapres de Chile en un solo lugar. Filtra por precio, cobertura hospitalaria y ambulatoria y clínica, con datos oficiales de la Superintendencia. 100% gratis.',
+  keywords: [
+    'planes de salud isapre',
+    'planes isapre',
+    'comparar planes isapre',
+    'planes de salud',
+    'isapres chile',
+    'plan isapre',
+  ],
+  alternates: { canonical: 'https://www.elige-tuplan.cl/comparar/isapres' },
+  openGraph: {
+    title: 'Planes de Salud Isapre: Compara las 7 Isapres de Chile',
+    description:
+      'Compara los planes de salud de las 7 Isapres de Chile por precio, cobertura y clínica. Datos oficiales de la Superintendencia. 100% gratis.',
+    url: 'https://www.elige-tuplan.cl/comparar/isapres',
+    type: 'website',
+  },
+};
 
 function BodyFallback() {
   return (
@@ -46,6 +69,43 @@ export default async function CompararIsapresPage({
       <Suspense key={JSON.stringify(params)} fallback={<BodyFallback />}>
         <CompareBody params={params} />
       </Suspense>
+
+      {/* Contenido SEO — texto indexable (el catálogo se renderiza en el cliente) */}
+      <section className="bg-[#fbf8f3] px-5 sm:px-6 lg:px-10 pt-10 md:pt-14 pb-2">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#0f514b] tracking-tight mb-4">
+            Compara planes de salud Isapre en Chile, en un solo lugar
+          </h2>
+          <div className="space-y-3.5 text-[14.5px] sm:text-[15px] leading-relaxed text-slate-600">
+            <p>
+              En <strong>EligeTuPlan</strong> reunimos los <strong>planes de salud de las 7 Isapres
+              abiertas</strong> de Chile —Banmédica, Colmena, Consalud, Cruz Blanca, Nueva Más Vida,
+              Vida Tres y Esencial— para que los compares en un mismo lugar. Filtra por precio en UF,
+              cobertura hospitalaria y ambulatoria, clínica de preferencia y modalidad, con{' '}
+              <strong>datos oficiales de la Superintendencia de Salud</strong> actualizados
+              periódicamente.
+            </p>
+            <p>
+              ¿No sabes por dónde empezar? La ley reserva el <strong>7% de tu sueldo bruto</strong>{' '}
+              para salud. Calcula cuánto te corresponde y descubre qué planes de salud Isapre están
+              realmente a tu alcance, sin formularios ni cuentas. Si prefieres una recomendación
+              personalizada, nuestro{' '}
+              <Link href="/tu-mejor-plan" className="text-[#0f9d8a] font-semibold hover:underline no-underline">
+                buscador con IA
+              </Link>{' '}
+              te muestra el plan que mejor calza con tu perfil.
+            </p>
+            <p>
+              Comparar es <strong>100% gratis</strong>: cobramos una comisión regulada directamente a
+              la Isapre, así que el precio final de tu plan no cambia. ¿Tienes dudas sobre cómo
+              cambiarte o qué cubre cada plan? Revisa nuestras{' '}
+              <Link href="/faq" className="text-[#0f9d8a] font-semibold hover:underline no-underline">
+                preguntas frecuentes
+              </Link>.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* CTA Bottom — static, renders immediately */}
       <section className="bg-[#fbf8f3] px-5 sm:px-6 lg:px-10 pt-6 pb-16 md:pt-10 md:pb-24">
