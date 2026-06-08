@@ -4,8 +4,9 @@ todo reflejado en Supabase (única fuente de verdad para el frontend y backend).
 
 Uso:
     cd test/backend
-    python scripts/sync_all.py            # corrida real (escribe en Supabase)
-    python scripts/sync_all.py --dry-run  # solo lee: UF del día + conteo, sin mutar nada
+    python scripts/sync_all.py            # corrida completa: planes + UF (cron 1 y 15)
+    python scripts/sync_all.py --uf-only  # solo UF + fecha del día (cron DIARIO, liviano)
+    python scripts/sync_all.py --dry-run  # solo lee, sin mutar nada (combinable con --uf-only)
 
 Variables de entorno requeridas (en .env local o inyectadas por el workflow):
     SUPABASE_URL
@@ -183,14 +184,52 @@ def emit(summary: dict) -> None:
     print(json.dumps(summary, ensure_ascii=False))
 
 
+def run_uf_only(sb: Client, summary: dict, dry_run: bool) -> int:
+    """Modo liviano: solo actualiza la UF del día + fecha en app_meta.
+
+    No corre los syncs de planes. Pensado para el cron DIARIO (la UF cambia todos
+    los días). Guardarraíl: solo valida que la UF esté en rango sano.
+    """
+    summary["mode"] = "uf-only"
+    uf_valor, uf_fecha = fetch_uf()
+    summary["uf"] = round(uf_valor, 2)
+    summary["uf_fecha"] = uf_fecha
+
+    if not (UF_MIN_CLP <= uf_valor <= UF_MAX_CLP):
+        summary["aborted"] = True
+        summary["reason"] = f"UF fuera de rango sano (${uf_valor:,.0f}) — no se actualiza."
+        logger.error(summary["reason"])
+        emit(summary)
+        return 2
+
+    if dry_run:
+        logger.info("DRY-RUN (uf-only): no se escribe app_meta.")
+        summary["ok"] = True
+        emit(summary)
+        return 0
+
+    upsert_meta(sb, {
+        "valor_uf":       int(round(uf_valor)),
+        "valor_uf_fecha": uf_fecha,
+        "last_sync":      fecha_es(uf_fecha),
+    })
+    logger.info(f"app_meta: UF actualizada a ${uf_valor:,.0f} ({uf_fecha}).")
+    summary["ok"] = True
+    emit(summary)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true",
-                        help="Solo lee UF + conteo actual; no corre syncs ni escribe app_meta.")
+                        help="Solo lee; no corre syncs ni escribe app_meta.")
+    parser.add_argument("--uf-only", action="store_true",
+                        help="Solo actualiza UF + fecha en app_meta (no corre los syncs de planes). Para el cron diario.")
     args = parser.parse_args()
 
     summary: dict = {
         "ok": False,
+        "mode": "full",
         "dry_run": args.dry_run,
         "aborted": False,
         "reason": None,
@@ -204,6 +243,9 @@ def main() -> int:
 
     try:
         sb = get_supabase()
+
+        if args.uf_only:
+            return run_uf_only(sb, summary, args.dry_run)
 
         # 1. Snapshot previo
         before = active_plan_codes(sb)
