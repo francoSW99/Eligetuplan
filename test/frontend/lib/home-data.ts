@@ -19,6 +19,7 @@ export const NAV_ITEMS = [
   { label: "Comparar planes", href: "/comparar/isapres" },
   { label: "Plan ideal con IA", href: "/tu-mejor-plan" },
   { label: "Cotiza con asesor", href: "/buscar" },
+  { label: "Blog", href: "/blog" },
   { label: "FAQ", href: "/faq" },
 ];
 
