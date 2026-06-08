@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import type { Plan, Cobertura } from '@/lib/api';
 import { formatCLP, formatUF } from '@/lib/api';
-import { STATS } from '@/lib/home-data';
+import { useMeta } from '@/lib/meta-context';
 
 function coverageColor(pct: number) {
   if (pct < 60) return { fg: '#c8401a', bg: 'rgba(200,64,26,0.10)' };
@@ -101,6 +101,7 @@ export default function PlanCard({
   numBeneficiarios?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { ufValueCLP } = useMeta();
   const hasFactor = numBeneficiarios > 0;
   const baseUf = plan.base_plan_uf ?? plan.price_uf;
   const gesUf = plan.ges_isapre_uf ?? 0;
@@ -109,7 +110,7 @@ export default function PlanCard({
     ? baseUf * totalFactor + gesUf * numBeneficiarios
     : plan.price_uf;
   const displayCLP = hasFactor
-    ? Math.round(displayUf * STATS.ufValueCLP)
+    ? Math.round(displayUf * ufValueCLP)
     : plan.price_clp;
   const fits = !budgetCLP || (displayCLP != null && displayCLP <= budgetCLP);
   const adicionalCLP =

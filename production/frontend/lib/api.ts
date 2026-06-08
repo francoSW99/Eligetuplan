@@ -1,3 +1,5 @@
+import { STATS } from "@/lib/home-data";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -95,7 +97,51 @@ export interface PlansQuery {
   sort?: string;
 }
 
+// Metadatos vivos del backend (tabla app_meta, mantenida por el cron quincenal).
+export interface Meta {
+  valor_uf: number;
+  valor_uf_fecha: string | null;
+  total_planes: number | null;
+  last_update: string | null;
+}
+
+// Forma normalizada que consume el frontend (con fallback a STATS).
+export interface SiteMeta {
+  ufValueCLP: number;
+  plansTotal: number;
+  lastUpdate: string;
+}
+
 // ── Fetch helpers ────────────────────────────────────────────────────────────
+
+export async function getMeta(): Promise<Meta> {
+  const res = await fetch(`${API_BASE}/api/v1/meta`, {
+    next: { revalidate: 21600 }, // 6h: el cron corre 2x al mes.
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Versión segura para Server Components: nunca lanza. Si el backend falla,
+ * cae a los valores estáticos de STATS para que el render no se rompa.
+ */
+export async function getSiteMeta(): Promise<SiteMeta> {
+  try {
+    const m = await getMeta();
+    return {
+      ufValueCLP: m.valor_uf || STATS.ufValueCLP,
+      plansTotal: m.total_planes ?? STATS.plansTotal,
+      lastUpdate: m.last_update || STATS.lastUpdate,
+    };
+  } catch {
+    return {
+      ufValueCLP: STATS.ufValueCLP,
+      plansTotal: STATS.plansTotal,
+      lastUpdate: STATS.lastUpdate,
+    };
+  }
+}
 
 export async function getIsapres(): Promise<Isapre[]> {
   const res = await fetch(`${API_BASE}/api/v1/isapres`, {

@@ -1,13 +1,18 @@
-import { STATS } from "@/lib/home-data";
+'use client';
 
-const ITEMS = [
-  { v: STATS.plansTotal.toLocaleString("es-CL"), l: "Planes vigentes" },
-  { v: String(STATS.isapres),                    l: "Isapres comparadas" },
-  { v: String(STATS.regiones),                   l: "Regiones cubiertas" },
-  { v: `$${STATS.ufValueCLP.toLocaleString("es-CL")}`, l: "UF de hoy" },
-];
+import { STATS } from "@/lib/home-data";
+import { useMeta } from "@/lib/meta-context";
 
 export default function LiveDataStrip() {
+  const { plansTotal, ufValueCLP, lastUpdate } = useMeta();
+
+  const ITEMS = [
+    { v: plansTotal.toLocaleString("es-CL"),       l: "Planes vigentes" },
+    { v: String(STATS.isapres),                    l: "Isapres comparadas" },
+    { v: String(STATS.regiones),                   l: "Regiones cubiertas" },
+    { v: `$${ufValueCLP.toLocaleString("es-CL")}`, l: "UF de hoy" },
+  ];
+
   return (
     <section className="relative bg-[#f5f0e8] border-y border-[#0f514b]/10">
       <div className="mx-auto max-w-[1280px] px-6 lg:px-10 py-5">
@@ -33,7 +38,7 @@ export default function LiveDataStrip() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse" />
             <span>
               Datos oficiales · Superintendencia de Salud · actualizado al{" "}
-              <strong className="text-[#0f514b] font-semibold">{STATS.lastUpdate}</strong>
+              <strong className="text-[#0f514b] font-semibold">{lastUpdate}</strong>
             </span>
           </div>
           <a

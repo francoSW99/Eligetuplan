@@ -5,6 +5,8 @@ import "./globals.css";
 import SiteHeader from "@/components/ui/site-header";
 import SiteFooter from "@/components/ui/site-footer";
 import WhatsAppFab from "@/components/ui/whatsapp-fab";
+import { MetaProvider } from "@/lib/meta-context";
+import { getSiteMeta } from "@/lib/api";
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import { WebSiteSchema } from "@/components/seo/WebSiteSchema";
 import { LocalBusinessSchema } from "@/components/seo/LocalBusinessSchema";
@@ -83,11 +85,14 @@ export const viewport = {
   themeColor: "#0f514b",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // UF del día + stats en vivo desde app_meta (fallback a STATS si el backend falla).
+  const meta = await getSiteMeta();
+
   return (
     <html lang="es" className={`scroll-smooth ${fraunces.variable}`}>
       <head>
@@ -96,23 +101,25 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={`${poppins.className} antialiased bg-[#fbf8f3] text-[#1e2a2a] min-h-screen flex flex-col`}>
-        <OrganizationSchema />
-        <WebSiteSchema />
-        <LocalBusinessSchema />
+        <MetaProvider value={meta}>
+          <OrganizationSchema />
+          <WebSiteSchema />
+          <LocalBusinessSchema />
 
-        <SiteHeader />
+          <SiteHeader />
 
-        <main className="flex-grow">
-          {children}
-        </main>
+          <main className="flex-grow">
+            {children}
+          </main>
 
-        <WhatsAppFab />
+          <WhatsAppFab />
 
-        <SiteFooter />
+          <SiteFooter />
 
-        {process.env.NEXT_PUBLIC_GA_ID && (
-          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-        )}
+          {process.env.NEXT_PUBLIC_GA_ID && (
+            <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+          )}
+        </MetaProvider>
       </body>
     </html>
   );

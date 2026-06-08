@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { STATS } from "@/lib/home-data";
+import { useMeta } from "@/lib/meta-context";
 
 type Props = {
   totalShowing: number;
@@ -8,6 +8,7 @@ type Props = {
 };
 
 export default function PageHeader({ totalShowing, totalFiltered, totalGlobal }: Props) {
+  const { lastUpdate } = useMeta();
   return (
     <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] text-white py-3 sm:py-3.5 overflow-hidden">
       <div
@@ -52,7 +53,7 @@ export default function PageHeader({ totalShowing, totalFiltered, totalGlobal }:
             </span>
             <span className="hidden sm:inline-block w-px h-3.5 bg-white/15" />
             <span className="hidden sm:inline text-[9.5px] text-white/45 leading-none">
-              al {STATS.lastUpdate}
+              al {lastUpdate}
             </span>
           </div>
         </div>

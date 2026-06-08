@@ -6,6 +6,7 @@ import { ArrowRight, ArrowLeft, User, Users, Check, Zap, MapPin, Mail, Plus, X, 
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
 import type { LeadContextPlan } from '@/components/ui/lead-capture-form';
 import ContactOptions from '@/components/ui/contact-options';
+import { useMeta } from '@/lib/meta-context';
 
 type Carga = { sexo: string; edad: string };
 type PlanOption = {
@@ -51,7 +52,6 @@ type MatchResult = {
 type Preference = 'savings' | 'balanced' | 'coverage';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-const UF_CLP = 40374;
 
 const ISAPRE_SLUGS: Record<string, string> = {
   banmedica: 'Banmédica',
@@ -98,10 +98,6 @@ function formatCLP(n: number | null | undefined): string {
   return '$' + Math.abs(n).toLocaleString('es-CL');
 }
 
-function ufToCLP(uf: number): number {
-  return Math.round(uf * UF_CLP);
-}
-
 export default function TuMejorPlanPage() {
   const [step, setStep] = useState(1);
   const [tipo, setTipo] = useState<'solo' | 'pareja'>('solo');
@@ -137,6 +133,10 @@ export default function TuMejorPlanPage() {
 
   // Preferencia para el ranking. Default = 3B (balanced).
   const [preference, setPreference] = useState<Preference>('balanced');
+
+  // UF del día en vivo desde app_meta (fallback a STATS dentro del provider).
+  const UF_CLP = useMeta().ufValueCLP;
+  const ufToCLP = (uf: number): number => Math.round(uf * UF_CLP);
 
   const steps = [
     { num: 1, label: 'Tu Plan Actual' },

@@ -1,13 +1,17 @@
-import { STATS } from "@/lib/home-data";
+'use client';
 
-const FACTS = [
-  { v: STATS.plansTotal.toLocaleString("es-CL"), l: "planes verificados" },
-  { v: "24 h",  l: "tiempo de respuesta" },
-  { v: "100%",  l: "gratis · sin compromiso" },
-  { v: "0",     l: "spam · llamadas no solicitadas" },
-];
+import { useMeta } from "@/lib/meta-context";
 
 export default function TrustBand() {
+  const { plansTotal, lastUpdate } = useMeta();
+
+  const FACTS = [
+    { v: plansTotal.toLocaleString("es-CL"), l: "planes verificados" },
+    { v: "24 h",  l: "tiempo de respuesta" },
+    { v: "100%",  l: "gratis · sin compromiso" },
+    { v: "0",     l: "spam · llamadas no solicitadas" },
+  ];
+
   return (
     <section className="bg-[#0f514b] py-14 md:py-16 relative overflow-hidden text-white">
       <div
@@ -51,7 +55,7 @@ export default function TrustBand() {
             <a href="https://www.isapresdechile.cl/" target="_blank" rel="noopener noreferrer" className="text-[#14dcb4] font-semibold hover:underline no-underline">
               AICH
             </a>{" "}
-            · Actualizado al {STATS.lastUpdate}
+            · Actualizado al {lastUpdate}
           </span>
           <span className="font-mono text-[10.5px] tracking-wider text-white/35">
             UF · CLP · OFICIAL · LIVE
