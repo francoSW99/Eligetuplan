@@ -1,7 +1,11 @@
+'use client';
+
 import Image from "next/image";
-import { ISAPRES, STATS } from "@/lib/home-data";
+import { ISAPRES } from "@/lib/home-data";
+import { useMeta } from "@/lib/meta-context";
 
 export default function IsapresMarquee() {
+  const { plansTotal } = useMeta();
   const marquee = [...ISAPRES, ...ISAPRES];
   return (
     <section id="isapres" className="bg-[#fbf8f3] py-12 md:py-14 relative overflow-hidden">
@@ -62,7 +66,7 @@ export default function IsapresMarquee() {
           href="/comparar/isapres"
           className="inline-flex items-center gap-2 text-[13.5px] font-bold text-[#0f514b] hover:text-[#0f9d8a] transition-colors no-underline"
         >
-          Ver las {STATS.plansTotal.toLocaleString("es-CL")} planes del catálogo completo
+          Ver las {plansTotal.toLocaleString("es-CL")} planes del catálogo completo
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>

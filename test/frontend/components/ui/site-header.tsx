@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { NAV_ITEMS, BRAND, STATS } from '@/lib/home-data';
+import { NAV_ITEMS, BRAND } from '@/lib/home-data';
+import { useMeta } from '@/lib/meta-context';
 
 export default function SiteHeader() {
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const { ufValueCLP, lastUpdate } = useMeta();
 
   const [scrolled, setScrolled] = useState(!isHome);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -110,10 +112,10 @@ export default function SiteHeader() {
               <div className="flex items-center gap-5">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse" />
-                  Datos actualizados al {STATS.lastUpdate}
+                  Datos actualizados al {lastUpdate}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  UF de hoy:&nbsp;<strong className="text-white/80 font-semibold">${STATS.ufValueCLP.toLocaleString('es-CL')}</strong>
+                  UF de hoy:&nbsp;<strong className="text-white/80 font-semibold">${ufValueCLP.toLocaleString('es-CL')}</strong>
                 </span>
                 <span className="hidden lg:inline-flex items-center gap-1.5">
                   Fuente:&nbsp;<strong className="text-white/80 font-semibold">Superintendencia de Salud</strong>

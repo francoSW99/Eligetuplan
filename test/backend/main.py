@@ -283,7 +283,7 @@ def _score_plans_against_market(
     if tipo == "pareja" and payload.ingreso_pareja_clp:
         household_income_clp += payload.ingreso_pareja_clp
 
-    income_uf = household_income_clp / UF_VALUE_CLP
+    income_uf = household_income_clp / _get_uf_value()
     legal_floor = income_uf * 0.07
     affordable_max = income_uf * 0.15
 
@@ -485,7 +485,7 @@ def _build_plan_response(
     if payload and payload.current_price_uf is not None and payload.current_price_uf > 0:
         diff = payload.current_price_uf - price
         savings_uf = round(diff, 2)
-        savings_clp = int(round(diff * UF_VALUE_CLP))
+        savings_clp = int(round(diff * _get_uf_value()))
         savings_pct = round(diff / payload.current_price_uf * 100, 1)
 
     # Deltas vs plan actual (cobertura)
@@ -807,8 +807,42 @@ ZONA_MAP: dict[int, str] = {
 }
 
 # Valor UF en CLP para conversión precio UF → pesos mensuales.
-# Configurable vía env var UF_VALUE_CLP. Default: UF oficial 17 may 2026 ≈ $40,374.
-UF_VALUE_CLP = int(os.getenv("UF_VALUE_CLP", "40374"))
+# Fuente de verdad: tabla app_meta (key='valor_uf'), actualizada por el cron quincenal
+# (scripts/sync_all.py). Se lee con caché TTL para no pegarle a la BD en cada request.
+# Si la BD/clave no está disponible, cae al env var UF_VALUE_CLP (default 40374).
+_UF_FALLBACK_CLP = int(os.getenv("UF_VALUE_CLP", "40374"))
+_UF_CACHE_TTL_S = 3600  # 1h: el cron corre 2x al mes, no hace falta más fresco.
+_uf_cache: dict[str, float] = {"value": float(_UF_FALLBACK_CLP), "ts": 0.0}
+_uf_lock = threading.Lock()
+
+
+def _get_uf_value() -> int:
+    """Valor UF en CLP desde app_meta, cacheado 1h. Fallback al env var UF_VALUE_CLP."""
+    now = time.time()
+    with _uf_lock:
+        if _uf_cache["ts"] > 0 and now - _uf_cache["ts"] < _UF_CACHE_TTL_S:
+            return int(round(_uf_cache["value"]))
+
+    value = float(_UF_FALLBACK_CLP)
+    if supabase:
+        try:
+            resp = (
+                supabase.table("app_meta")
+                .select("value")
+                .eq("key", "valor_uf")
+                .limit(1)
+                .execute()
+            )
+            if resp.data and resp.data[0].get("value"):
+                value = float(resp.data[0]["value"])
+        except Exception as e:
+            print(f"WARN [uf-resolver] No se pudo leer app_meta.valor_uf: {e}. "
+                  f"Fallback ${_UF_FALLBACK_CLP}.")
+
+    with _uf_lock:
+        _uf_cache["value"] = value
+        _uf_cache["ts"] = now
+    return int(round(value))
 
 # Base URL para servir PDFs descargados
 PDF_BASE_URL = os.getenv("PDF_BASE_URL", "http://localhost:8000") + "/pdfs"
@@ -906,13 +940,47 @@ def _max_pct(cobs: list[Cobertura]) -> Optional[int]:
 def _uf_to_clp(uf: Optional[float]) -> Optional[int]:
     if uf is None:
         return None
-    return int(round(float(uf) * UF_VALUE_CLP))
+    return int(round(float(uf) * _get_uf_value()))
 
 
 def _pdf_url(pdf_plan: Optional[str]) -> Optional[str]:
     if not pdf_plan:
         return None
     return f"{PDF_BASE_URL}/{pdf_plan}"
+
+
+class MetaResponse(BaseModel):
+    valor_uf: int
+    valor_uf_fecha: Optional[str] = None
+    total_planes: Optional[int] = None
+    last_update: Optional[str] = None
+
+
+@app.get("/api/v1/meta", response_model=MetaResponse)
+def get_meta():
+    """Metadatos vivos para el frontend: valor UF del día, total de planes y última
+    actualización. Fuente: tabla app_meta (la mantiene el cron quincenal scripts/sync_all.py).
+    """
+    data: dict[str, str] = {}
+    if supabase:
+        try:
+            resp = supabase.table("app_meta").select("key,value").execute()
+            data = {r["key"]: r["value"] for r in (resp.data or []) if r.get("key")}
+        except Exception as e:
+            print(f"WARN [meta] No se pudo leer app_meta: {e}")
+
+    def _as_int(v: Optional[str]) -> Optional[int]:
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+
+    return MetaResponse(
+        valor_uf=_get_uf_value(),                       # cacheado, consistente con el scorer
+        valor_uf_fecha=data.get("valor_uf_fecha"),
+        total_planes=_as_int(data.get("total_planes")),
+        last_update=data.get("last_sync"),
+    )
 
 
 def _build_plan_item(row: dict) -> PlanListItem:
@@ -1539,8 +1607,9 @@ def list_planes(
     )
 
     # ── 3. Apply filters on cached PlanListItem objects ───────────────────
-    precio_min_uf = (precio_min_clp / UF_VALUE_CLP) if precio_min_clp is not None else None
-    precio_max_uf = (precio_max_clp / UF_VALUE_CLP) if precio_max_clp is not None else None
+    _uf = _get_uf_value()
+    precio_min_uf = (precio_min_clp / _uf) if precio_min_clp is not None else None
+    precio_max_uf = (precio_max_clp / _uf) if precio_max_clp is not None else None
     zona_ids = [int(z.strip()) for z in zona.split(",") if z.strip().isdigit()] if zona else None
     prestador_q = prestador.replace(",", "").strip() if prestador else None
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { STATS } from "@/lib/home-data";
+import { useMeta } from "@/lib/meta-context";
 import {
   type Beneficiario,
   getFactor,
@@ -25,7 +25,7 @@ const MIN_BASE_CLP = 38_000; // plan más barato del mercado (base_plan_uf × UF
 // Distribución calibrada con consultas reales al backend (mayo 2026).
 // El backend filtra por price_clp = base_plan_uf × UF, así que `effectiveBudget`
 // representa el cap sobre el precio base (no el precio mostrado al usuario).
-function plansAvailableFor(effectiveBudget: number): number {
+function plansAvailableFor(effectiveBudget: number, maxPlans: number): number {
   if (effectiveBudget < 38_000)  return 0;
   if (effectiveBudget < 45_000)  return 5;
   if (effectiveBudget < 50_000)  return 35;
@@ -42,11 +42,12 @@ function plansAvailableFor(effectiveBudget: number): number {
   if (effectiveBudget < 175_000) return 1736;
   if (effectiveBudget < 200_000) return 1899;
   if (effectiveBudget < 250_000) return 2031;
-  return STATS.plansTotal;
+  return maxPlans;
 }
 
 export default function SevenPercentCalculator() {
   const router = useRouter();
+  const { plansTotal, ufValueCLP } = useMeta();
   const [salary, setSalary] = useState(0);
   const [focused, setFocused] = useState(false);
   // El usuario es el cotizante. Solo guardamos su edad y la lista de cargas.
@@ -58,7 +59,7 @@ export default function SevenPercentCalculator() {
   const [cargaError, setCargaError] = useState(false);
 
   const sevenPct = Math.floor(salary * 0.07);
-  const inUF = sevenPct / STATS.ufValueCLP;
+  const inUF = sevenPct / ufValueCLP;
 
   // Construye el array completo de beneficiarios para serializar URL y calcular factor
   const beneficiarios = useMemo<Beneficiario[]>(() => {
@@ -74,8 +75,8 @@ export default function SevenPercentCalculator() {
     ? Math.max(0, (sevenPct - GES_AVG_CLP * N) / totalFactor)
     : sevenPct;
 
-  const plansAvailable = useMemo(() => plansAvailableFor(effectiveBudget), [effectiveBudget]);
-  const pct = Math.round((plansAvailable / STATS.plansTotal) * 100);
+  const plansAvailable = useMemo(() => plansAvailableFor(effectiveBudget, plansTotal), [effectiveBudget, plansTotal]);
+  const pct = Math.round((plansAvailable / plansTotal) * 100);
 
   // Si no alcanza ningún plan, calcular sueldo bruto sugerido para alcanzar el más barato
   const insufficientBudget = plansAvailable === 0 && salary > 0;
@@ -263,7 +264,7 @@ export default function SevenPercentCalculator() {
                   <span className="text-[13px] font-medium text-white/55">/mes</span>
                 </div>
                 <div className="mt-1 text-[12.5px] text-white/65 tabular-nums">
-                  ≈ <strong className="text-[#14dcb4] font-semibold">UF {inUF.toFixed(2)}</strong> al mes · UF ${STATS.ufValueCLP.toLocaleString("es-CL")}
+                  ≈ <strong className="text-[#14dcb4] font-semibold">UF {inUF.toFixed(2)}</strong> al mes · UF ${ufValueCLP.toLocaleString("es-CL")}
                 </div>
               </>
             )}
@@ -297,7 +298,7 @@ export default function SevenPercentCalculator() {
                     </div>
                     <div className="text-[26px] font-extrabold text-[#14dcb4] tabular-nums leading-tight">
                       {plansAvailable.toLocaleString("es-CL")}{" "}
-                      <span className="text-[13px] font-medium text-white/45">de {STATS.plansTotal.toLocaleString("es-CL")}</span>
+                      <span className="text-[13px] font-medium text-white/45">de {plansTotal.toLocaleString("es-CL")}</span>
                     </div>
                   </div>
                   <div className="hidden sm:block w-[80px]">

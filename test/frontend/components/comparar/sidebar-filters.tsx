@@ -4,9 +4,7 @@ import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import type { Isapre, Zona, PrestadorItem } from "@/lib/api";
 import { formatCLP } from "@/lib/api";
-import { STATS } from "@/lib/home-data";
-
-const UF_VALUE_CLP = STATS.ufValueCLP;
+import { useMeta } from "@/lib/meta-context";
 
 function formatUF2(n: number) {
   return n.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -87,6 +85,7 @@ export function SevenPercentBlock({
   clearBudget: () => void;
   active: boolean;
 }) {
+  const UF_VALUE_CLP = useMeta().ufValueCLP;
   const salary = salaryInput ? parseInt(salaryInput, 10) : 0;
   const sevenPct = salary > 0 ? Math.floor(salary * 0.07) : 0;
   const uf = sevenPct / UF_VALUE_CLP;

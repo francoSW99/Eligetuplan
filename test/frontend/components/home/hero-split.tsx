@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SevenPercentCalculator from "./seven-percent-calculator";
-import { STATS } from "@/lib/home-data";
+import { useMeta } from "@/lib/meta-context";
 
 const HERO_SLIDES = ["/familia.jpeg", "/kine.jpeg", "/cirugia.png"];
 const SLIDE_DURATION_MS = 4200;
@@ -94,25 +94,27 @@ function HeroBackground() {
   );
 }
 
-const TRUST_ROWS = [
-  {
-    icon: "shield" as const,
-    t: "Datos oficiales de la Superintendencia de Salud",
-    s: `actualizado al ${STATS.lastUpdate}`,
-  },
-  {
-    icon: "eye" as const,
-    t: "Sin pedir email para ver tus resultados",
-    s: "preview transparente antes de cualquier formulario",
-  },
-  {
-    icon: "no" as const,
-    t: "Sin costo y sin spam",
-    s: "cobramos comisión legal directo de las Isapres",
-  },
-];
-
 export default function HeroSplit() {
+  const { plansTotal, lastUpdate } = useMeta();
+
+  const TRUST_ROWS = [
+    {
+      icon: "shield" as const,
+      t: "Datos oficiales de la Superintendencia de Salud",
+      s: `actualizado al ${lastUpdate}`,
+    },
+    {
+      icon: "eye" as const,
+      t: "Sin pedir email para ver tus resultados",
+      s: "preview transparente antes de cualquier formulario",
+    },
+    {
+      icon: "no" as const,
+      t: "Sin costo y sin spam",
+      s: "cobramos comisión legal directo de las Isapres",
+    },
+  ];
+
   return (
     <section
       id="top"
@@ -126,7 +128,7 @@ export default function HeroSplit() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14dcb4]/12 border border-[#14dcb4]/30 mb-5 sm:mb-7">
               <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse" />
               <span className="text-[10.5px] sm:text-[11px] font-bold tracking-[0.18em] uppercase text-[#14dcb4]">
-                Comparador 100% gratuito · {STATS.plansTotal.toLocaleString("es-CL")} planes
+                Comparador 100% gratuito · {plansTotal.toLocaleString("es-CL")} planes
               </span>
             </div>
 
