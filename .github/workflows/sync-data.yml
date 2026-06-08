@@ -1,0 +1,102 @@
+name: Sync de datos (tu7 + UF) → Producción
+
+# Cron quincenal: refresca planes desde tu7.cl y la UF del día contra la base de
+# PRODUCCIÓN (Supabase). Corre los días 1 y 15 de cada mes. Los cambios se reflejan
+# en la app sin redeploy: el backend lee Supabase en vivo (UF con caché de 1h) y el
+# frontend revalida cada 6h.
+#
+# Secrets requeridos (GitHub → Settings → Secrets):
+#   SUPABASE_URL                  (la de PRODUCCIÓN — ya existe para el deploy)
+#   SUPABASE_SERVICE_ROLE_KEY     (la de PRODUCCIÓN — agregar; bypassea RLS)
+
+on:
+  schedule:
+    - cron: '0 11 1,15 * *'   # 11:00 UTC ≈ 07:00-08:00 Chile, días 1 y 15
+  workflow_dispatch: {}        # permite correrlo a mano para probar
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sync-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r production/backend/requirements.txt
+
+      - name: Correr sync_all.py
+        id: sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set +e
+          python production/backend/scripts/sync_all.py > summary.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          echo "----- summary.json -----"
+          cat summary.json
+
+      - name: Resumen + aviso
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -s summary.json ]; then
+            echo "❌ El script no produjo summary.json (falló antes de imprimir)." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          ok=$(jq -r '.ok'            summary.json)
+          aborted=$(jq -r '.aborted'  summary.json)
+          reason=$(jq -r '.reason // "—"'        summary.json)
+          uf=$(jq -r '.uf // "—"'                summary.json)
+          uf_fecha=$(jq -r '.uf_fecha // "—"'    summary.json)
+          before=$(jq -r '.total_before // "—"'  summary.json)
+          after=$(jq -r '.total_after // "—"'    summary.json)
+          add=$(jq -r '.agregados // 0'          summary.json)
+          rem=$(jq -r '.quitados // 0'           summary.json)
+
+          {
+            echo "## Sync de datos — $(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "| Campo | Valor |"
+            echo "|---|---|"
+            echo "| OK | $ok |"
+            echo "| Abortado (guardarraíl) | $aborted |"
+            echo "| UF del día | \$$uf ($uf_fecha) |"
+            echo "| Planes (antes → después) | $before → $after |"
+            echo "| Agregados / Quitados | +$add / -$rem |"
+            echo "| Motivo | $reason |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Aviso: abrir issue si abortó el guardarraíl o si hubo cambios de planes.
+          changed=0
+          if [ "$add" != "0" ] || [ "$rem" != "0" ]; then changed=1; fi
+          if [ "$aborted" = "true" ] || [ "$changed" = "1" ]; then
+            if [ "$aborted" = "true" ]; then estado="⚠️ ABORTADO"; else estado="✅ cambios aplicados"; fi
+            title="[sync-data] $estado — $(date -u +'%Y-%m-%d')"
+            body=$(printf '**UF:** $%s (%s)\n**Planes:** %s → %s (+%s / -%s)\n**Motivo:** %s\n\nRun: %s/%s/actions/runs/%s' \
+              "$uf" "$uf_fecha" "$before" "$after" "$add" "$rem" "$reason" \
+              "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}")
+            printf '%s' "$body" | gh issue create --title "$title" --body-file - || true
+          fi
+
+          # Propagar el código de salida del script (2 = guardarraíl, 1 = error).
+          if [ "${{ steps.sync.outputs.exit_code }}" != "0" ]; then
+            echo "sync_all.py terminó con código ${{ steps.sync.outputs.exit_code }}"
+            exit 1
+          fi
