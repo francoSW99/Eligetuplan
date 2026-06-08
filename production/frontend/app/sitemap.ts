@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getAllArticles } from "@/lib/blog";
 
 const BASE = "https://www.elige-tuplan.cl";
 
@@ -19,6 +20,7 @@ const STATIC_ROUTES = [
   { path: "/buscar", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/como-funciona", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/faq", priority: 0.6, changeFrequency: "monthly" as const },
+  { path: "/blog", priority: 0.8, changeFrequency: "weekly" as const },
   // Landings SEO
   { path: "/asesor-isapre", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/cambiar-isapre", priority: 0.9, changeFrequency: "weekly" as const },
@@ -42,5 +44,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority,
   }));
 
-  return [...staticRoutes, ...isapreRoutes];
+  const blogRoutes = getAllArticles().map((a) => ({
+    url: `${BASE}/blog/${a.slug}`,
+    lastModified: a.date ? new Date(a.date + "T00:00:00") : now,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...isapreRoutes, ...blogRoutes];
 }
