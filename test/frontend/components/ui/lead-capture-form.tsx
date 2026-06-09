@@ -149,12 +149,12 @@ export default function LeadCaptureForm({
   };
 
   const inputClass =
-    'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4] transition-all bg-white placeholder:text-slate-400';
+    'w-full border border-slate-300 rounded-xl px-4 py-3 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4] transition-all bg-white placeholder:text-slate-400';
   const labelClass =
-    'flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500 mb-2';
+    'flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 mb-1.5';
   const wrapperClass = compact
     ? 'bg-white rounded-[28px] border border-slate-200 shadow-[0_24px_80px_rgba(15,81,75,0.18)] p-5 md:p-6'
-    : 'bg-white rounded-3xl border border-slate-200 shadow-lg p-6 md:p-8';
+    : 'bg-white rounded-3xl border border-slate-200 shadow-[0_20px_55px_-18px_rgba(15,81,75,0.28)] p-5 md:p-7';
 
   return (
     <AnimatePresence mode="wait">
@@ -224,15 +224,8 @@ export default function LeadCaptureForm({
             </div>
           )}
 
-          <div className="mb-4 rounded-xl bg-[#0f514b]/5 border border-[#0f514b]/10 px-4 py-3 flex items-center gap-3">
-            <Send className="w-4 h-4 text-[#14dcb4] shrink-0" />
-            <p className="text-sm text-[#0f514b] font-medium">
-              Rellena el formulario y te contactaremos inmediatamente.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <div className="grid sm:grid-cols-2 gap-5">
+          <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
               <div>
                 <label className={labelClass}>
                   <User className="w-3.5 h-3.5" /> Nombre Completo *
@@ -247,7 +240,7 @@ export default function LeadCaptureForm({
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-5">
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
               <div>
                 <label className={labelClass}>
                   <Mail className="w-3.5 h-3.5" /> Correo Electrónico *
@@ -262,7 +255,7 @@ export default function LeadCaptureForm({
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-5">
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
               <div>
                 <label className={labelClass}>
                   <MapPin className="w-3.5 h-3.5" /> Región *
@@ -284,7 +277,7 @@ export default function LeadCaptureForm({
               </div>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+            <div className="grid gap-x-4 gap-y-3.5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
               <div>
                 <label className={labelClass}>
                   <Shield className="w-3.5 h-3.5" /> ¿Cuál es tu plan actual?
@@ -308,7 +301,7 @@ export default function LeadCaptureForm({
                   onChange={set('observaciones')}
                   placeholder={contextPlan ? `Ej: Quiero cotizar el plan ${contextPlan.name} y revisar otras alternativas similares...` : 'Ej: Necesito plan familiar, tengo 2 cargas, busco cobertura dental...'}
                   rows={2}
-                  className={`${inputClass} min-h-[98px] resize-none`}
+                  className={`${inputClass} min-h-[52px] resize-none`}
                 />
               </div>
             </div>
@@ -338,10 +331,9 @@ export default function LeadCaptureForm({
               )}
             </button>
 
-            <p className="text-center text-[11px] text-slate-400 leading-relaxed">
-              ✅ 100% Gratis &nbsp;•&nbsp; ✅ Sin Compromiso &nbsp;•&nbsp; ✅ Te contactamos en 24h
-              <br />
-              Al enviar aceptas que te contactemos para asesoría personalizada.
+            <p className="text-center text-[11.5px] text-slate-400 leading-relaxed flex items-center justify-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-[#14dcb4] shrink-0" />
+              Tus datos están seguros · 100% gratis · Sin spam. Al enviar aceptas que te contactemos.
             </p>
           </form>
         </motion.div>
