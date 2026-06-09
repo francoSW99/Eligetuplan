@@ -20,7 +20,7 @@ export const NAV_ITEMS = [
   { label: "Plan ideal con IA", href: "/tu-mejor-plan" },
   { label: "Cotiza con asesor", href: "/buscar" },
   { label: "Blog", href: "/blog" },
-  { label: "FAQ", href: "/faq" },
+  { label: "Quiénes somos", href: "/faq" },
 ];
 
 export type Isapre = {

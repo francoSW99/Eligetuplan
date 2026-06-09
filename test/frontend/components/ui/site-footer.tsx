@@ -13,7 +13,8 @@ const COLS: FooterCol[] = [
       { l: "Plan ideal con IA",     h: "/tu-mejor-plan" },
       { l: "Cotiza con asesor",     h: "/buscar" },
       { l: "Cómo funciona",         h: "/como-funciona" },
-      { l: "Preguntas frecuentes",  h: "/faq" },
+      { l: "Blog",                  h: "/blog" },
+      { l: "Quiénes somos",         h: "/faq" },
     ],
   },
   {
