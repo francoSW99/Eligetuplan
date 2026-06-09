@@ -428,13 +428,13 @@ export default function TuMejorPlanPage() {
 
   return (
     <div className="bg-[#fbf8f3] min-h-screen">
-      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
         {/* Stepper */}
-        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8 sm:mb-10">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-4 sm:mb-6">
           {steps.map((s, i) => (
             <div key={s.num} className="flex items-center gap-1 sm:gap-2">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= s.num ? 'bg-[#14dcb4] text-white' : 'bg-slate-200 text-slate-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= s.num ? 'bg-[#14dcb4] text-white' : 'bg-slate-200 text-slate-400'}`}>
                 {step > s.num ? <Check className="w-4 h-4" /> : s.num}
               </div>
               <span className={`text-xs sm:text-sm font-medium ${step >= s.num ? 'text-[#0f514b]' : 'text-slate-400'}`}>
@@ -451,17 +451,17 @@ export default function TuMejorPlanPage() {
           {/* ===== STEP 1 ===== */}
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3 }}>
-              <div className="text-center mb-8">
-                <span className="inline-block bg-[#14dcb4]/10 text-[#14dcb4] text-xs font-bold uppercase tracking-wider px-4 py-1.5 rounded-full mb-4">Paso 1 de 3</span>
-                <h2 className="text-2xl md:text-3xl font-bold text-[#1e293b]">
+              <div className="text-center mb-4">
+                <span className="inline-block bg-[#14dcb4]/10 text-[#14dcb4] text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-2">Paso 1 de 3</span>
+                <h2 className="text-xl md:text-[26px] font-bold text-[#1e293b] leading-tight">
                   Cuéntanos sobre <span className="text-[#0f514b]">tu plan actual</span>
                 </h2>
-                <p className="text-slate-500 mt-2 max-w-md mx-auto">
+                <p className="text-slate-500 text-[13.5px] mt-1.5 max-w-md mx-auto">
                   Para comparar, necesitamos saber tu situación actual. Si no tienes Isapre, puedes omitir este paso.
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
                 {/* Isapre Actual */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Isapre Actual</label>
@@ -555,13 +555,13 @@ export default function TuMejorPlanPage() {
           {/* ===== STEP 2 ===== */}
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3 }}>
-              <div className="text-center mb-8">
-                <span className="inline-block bg-[#14dcb4]/10 text-[#14dcb4] text-xs font-bold uppercase tracking-wider px-4 py-1.5 rounded-full mb-4">Paso 2 de 3</span>
-                <h2 className="text-2xl md:text-3xl font-bold text-[#1e293b]">Ingresa <span className="text-[#0f514b]">tu perfil</span></h2>
-                <p className="text-slate-500 mt-2 max-w-lg mx-auto">Último paso antes de comparar. Necesitamos estos datos para buscar las mejores alternativas.</p>
+              <div className="text-center mb-4">
+                <span className="inline-block bg-[#14dcb4]/10 text-[#14dcb4] text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-2">Paso 2 de 3</span>
+                <h2 className="text-xl md:text-[26px] font-bold text-[#1e293b] leading-tight">Ingresa <span className="text-[#0f514b]">tu perfil</span></h2>
+                <p className="text-slate-500 text-[13.5px] mt-1.5 max-w-lg mx-auto">Último paso antes de comparar. Necesitamos estos datos para buscar las mejores alternativas.</p>
               </div>
 
-              <div className="flex justify-center gap-3 mb-8">
+              <div className="flex justify-center gap-3 mb-5">
                 <button onClick={() => setTipo('solo')} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all ${tipo === 'solo' ? 'bg-[#0f514b] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600'}`}>
                   <User className="w-4 h-4" /> Solo
                 </button>
