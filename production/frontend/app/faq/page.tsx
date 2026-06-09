@@ -84,14 +84,14 @@ export default function QuienesSomosPage() {
           style={{ background: "radial-gradient(circle, rgba(20,220,180,.16) 0%, transparent 60%)" }}
           aria-hidden
         />
-        <div className="relative mx-auto max-w-[920px] px-5 sm:px-6 lg:px-10 py-6 md:py-8">
-          <div className="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#14dcb4] mb-1.5">
+        <div className="relative mx-auto max-w-[920px] px-5 sm:px-6 lg:px-10 py-3.5 md:py-5">
+          <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#14dcb4] mb-1">
             · Quiénes somos ·
           </div>
-          <h1 className="text-2xl md:text-[32px] font-extrabold tracking-[-0.02em] leading-[1.1] max-w-[24ch]">
+          <h1 className="text-xl md:text-[26px] font-extrabold tracking-[-0.02em] leading-[1.12] max-w-[26ch]">
             Comparar tu plan de salud, <span className="serif italic font-medium text-[#14dcb4]">sin letra chica</span>
           </h1>
-          <p className="mt-2 text-white/72 text-[14px] md:text-[15px] leading-relaxed max-w-[640px]">
+          <p className="mt-1.5 text-white/65 text-[13px] md:text-[13.5px] leading-snug max-w-[640px]">
             EligeTuPlan es un comparador independiente de planes de las 7 Isapres de Chile. Reunimos los datos oficiales en un solo lugar para que elijas con información real.
           </p>
         </div>
