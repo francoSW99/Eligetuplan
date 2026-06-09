@@ -38,14 +38,14 @@ export default function BlogIndexPage() {
           style={{ background: "radial-gradient(circle, rgba(20,220,180,.16) 0%, transparent 60%)" }}
           aria-hidden
         />
-        <div className="relative mx-auto max-w-[1100px] px-5 sm:px-6 lg:px-10 py-6 md:py-8">
-          <div className="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#14dcb4] mb-1.5">
+        <div className="relative mx-auto max-w-[1100px] px-5 sm:px-6 lg:px-10 py-3.5 md:py-5">
+          <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#14dcb4] mb-1">
             · Blog ·
           </div>
-          <h1 className="text-2xl md:text-[30px] font-extrabold tracking-[-0.02em] leading-[1.1] max-w-[22ch]">
+          <h1 className="text-xl md:text-[25px] font-extrabold tracking-[-0.02em] leading-[1.12] max-w-[24ch]">
             Todo sobre <span className="serif italic font-medium text-[#14dcb4]">Isapres</span> y planes de salud
           </h1>
-          <p className="mt-2 text-white/70 text-[14px] md:text-[15px] leading-relaxed max-w-[600px]">
+          <p className="mt-1.5 text-white/65 text-[13px] md:text-[13.5px] leading-snug max-w-[600px]">
             Guías claras y novedades para que entiendas tu plan, sepas cómo cambiarte y elijas con información real.
           </p>
         </div>
