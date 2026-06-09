@@ -8,7 +8,7 @@ export const BRAND = {
 };
 
 export const STATS = {
-  plansTotal: 2072,
+  plansTotal: 2160, // solo fallback si el backend no responde; los dinámicos usan el valor en vivo
   isapres: 7,
   regiones: 16,
   ufValueCLP: 40374,
@@ -63,7 +63,7 @@ export const PATHS: PathItem[] = [
   {
     id: "comparar",
     kicker: "Explora",
-    title: "Comparar 2.072 planes",
+    title: "Comparar más de 2.000 planes",
     desc: "Filtra por precio, cobertura, modalidad y clínicas. Datos en tiempo real desde la Superintendencia de Salud.",
     cta: "Ver el catálogo",
     href: "/comparar/isapres",
@@ -82,7 +82,7 @@ export const PATHS: PathItem[] = [
 
 export const STEPS = [
   { n: "01", t: "Cuéntanos sobre ti",       d: "Tu edad, sueldo y cargas. 30 segundos." },
-  { n: "02", t: "Compara con datos reales", d: "2.072 planes activos, actualizados mensualmente." },
+  { n: "02", t: "Compara con datos reales", d: "Más de 2.000 planes activos, actualizados periódicamente." },
   { n: "03", t: "Cierra con tranquilidad",  d: "Un asesor certificado te acompaña hasta la firma. Sin costo." },
 ];
 

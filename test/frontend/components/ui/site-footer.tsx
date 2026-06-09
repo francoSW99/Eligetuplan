@@ -9,7 +9,7 @@ const COLS: FooterCol[] = [
   {
     t: "Comparador",
     items: [
-      { l: "Comparar 2.072 planes", h: "/comparar/isapres" },
+      { l: "Comparar más de 2.000 planes", h: "/comparar/isapres" },
       { l: "Plan ideal con IA",     h: "/tu-mejor-plan" },
       { l: "Cotiza con asesor",     h: "/buscar" },
       { l: "Cómo funciona",         h: "/como-funciona" },

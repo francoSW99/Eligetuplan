@@ -767,7 +767,7 @@ export default function TuMejorPlanPage() {
                 </div>
                 <h2 className="text-2xl md:text-3xl font-bold text-[#1e293b] mb-2">¡Encontramos el plan ideal para ti!</h2>
                 <p className="text-slate-500">
-                  Comparamos los <strong className="text-[#0f514b]">{recommendedPlan.market_total_plans?.toLocaleString('es-CL') ?? '2.072'} planes activos de las 7 Isapres</strong> y estas son las mejores opciones para ti
+                  Comparamos <strong className="text-[#0f514b]">{recommendedPlan.market_total_plans ? `los ${recommendedPlan.market_total_plans.toLocaleString('es-CL')}` : 'más de 2.000'} planes activos de las 7 Isapres</strong> y estas son las mejores opciones para ti
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
                   Ranking ponderado segun tu preferencia: <strong className="text-[#14dcb4]">{preference === 'savings' ? 'Ahorrar' : preference === 'coverage' ? 'Mas Cobertura' : 'Bueno · Bonito · Barato'}</strong>

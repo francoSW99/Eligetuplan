@@ -12,7 +12,7 @@ const URL = "https://www.elige-tuplan.cl/cambiar-isapre";
 export const metadata: Metadata = {
   title: "Cómo Cambiar de Isapre — Guía y Asesoría Gratis",
   description:
-    "Cámbiate de Isapre sin líos. Te acompañamos paso a paso y comparamos 2.072 planes con datos oficiales para que no pierdas cobertura. Asesoría 100% gratuita.",
+    "Cámbiate de Isapre sin líos. Te acompañamos paso a paso y comparamos más de 2.000 planes con datos oficiales para que no pierdas cobertura. Asesoría 100% gratuita.",
   alternates: { canonical: URL },
   openGraph: {
     title: "Cómo Cambiar de Isapre — Guía y Asesoría Gratis",
@@ -48,7 +48,7 @@ const ESCENARIOS = [
 
 const PASOS = [
   { n: "01", t: "Reúne tu plan actual", d: "Tu cartola o contrato vigente. Con eso vemos qué cobertura tienes hoy y cuánto pagas." },
-  { n: "02", t: "Comparamos alternativas", d: "Cruzamos tu perfil con los 2.072 planes vigentes de las 7 Isapres, datos oficiales de la Superintendencia." },
+  { n: "02", t: "Comparamos alternativas", d: "Cruzamos tu perfil con más de 2.000 planes vigentes de las 7 Isapres, datos oficiales de la Superintendencia." },
   { n: "03", t: "Cotizas con la nueva Isapre", d: "Te mostramos las mejores opciones a tu precio y resolvemos tus dudas, sin compromiso." },
   { n: "04", t: "Declaración de salud", d: "La nueva Isapre evalúa tu declaración. Te orientamos antes para que sepas qué esperar y evites sorpresas." },
   { n: "05", t: "Firma y traspaso", d: "Firmas online y la nueva Isapre gestiona el cambio. Nosotros te acompañamos hasta el final. Sin costo." },
@@ -89,7 +89,7 @@ export default function CambiarIsaprePage() {
     <>
       <ServiceSchema
         name="Asesoría para cambiar de Isapre"
-        description="Te acompañamos paso a paso para cambiarte de Isapre sin perder cobertura, comparando 2.072 planes con datos oficiales. Sin costo."
+        description="Te acompañamos paso a paso para cambiarte de Isapre sin perder cobertura, comparando más de 2.000 planes con datos oficiales. Sin costo."
         url={URL}
       />
       <FAQPageSchema items={FAQS} />
@@ -119,7 +119,7 @@ export default function CambiarIsaprePage() {
             Cambia de Isapre sin líos y sin perder cobertura
           </h1>
           <p className="mt-5 text-[16px] sm:text-[18px] text-white/85 leading-relaxed max-w-2xl">
-            Comparamos tu plan actual con los 2.072 planes vigentes y te acompañamos en todo el
+            Comparamos tu plan actual con más de 2.000 planes vigentes y te acompañamos en todo el
             proceso, de principio a fin. Datos oficiales de la Superintendencia. 100% gratis.
           </p>
 
@@ -129,7 +129,7 @@ export default function CambiarIsaprePage() {
               href="/comparar/isapres"
               className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl font-bold text-base bg-white/10 border border-white/25 text-white hover:bg-white/15 transition-all no-underline"
             >
-              Ver los 2.072 planes
+              Ver más de 2.000 planes
             </Link>
           </div>
         </div>
