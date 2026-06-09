@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s | EligeTuPlan",
   },
   description:
-    "Compara 2.072 planes de las 7 Isapres con datos oficiales de la Superintendencia. Asesoría 100% gratuita, sin spam, sin formularios eternos.",
+    "Compara más de 2.000 planes de las 7 Isapres con datos oficiales de la Superintendencia. Asesoría 100% gratuita, sin spam, sin formularios eternos.",
   keywords: [
     "planes de salud",
     "isapres chile",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     siteName: "EligeTuPlan",
     title: "EligeTuPlan - Compara Planes de Salud Isapre en Chile",
     description:
-      "Compara 2.072 planes de las 7 Isapres con datos oficiales. Asesoría 100% gratis.",
+      "Compara más de 2.000 planes de las 7 Isapres con datos oficiales. Asesoría 100% gratis.",
     images: [
       { url: "/icon.png", width: 512, height: 512, alt: "EligeTuPlan" },
     ],
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "EligeTuPlan - Compara Planes de Salud Isapre en Chile",
     description:
-      "Compara 2.072 planes con datos oficiales. Asesoría gratis por WhatsApp.",
+      "Compara más de 2.000 planes con datos oficiales. Asesoría gratis por WhatsApp.",
     images: ["/icon.png"],
   },
   robots: {

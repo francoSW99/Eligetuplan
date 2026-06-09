@@ -158,7 +158,7 @@ function CompareVisual() {
 
       <div className="absolute bottom-4 left-6 right-6 text-center">
         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#14dcb4]/85">
-          Filtra 2.072 planes en segundos
+          Filtra más de 2.000 planes en segundos
         </div>
       </div>
     </div>

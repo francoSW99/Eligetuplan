@@ -12,7 +12,7 @@ const URL = "https://www.elige-tuplan.cl/asesor-isapre";
 export const metadata: Metadata = {
   title: "Asesor Isapre Gratis — Te Llamamos en 24 Horas",
   description:
-    "Asesor certificado de Isapre te contacta en menos de 24h. Sin spam, sin llamadas no solicitadas, 100% gratuito. Compara 2.072 planes con datos oficiales de la Superintendencia.",
+    "Asesor certificado de Isapre te contacta en menos de 24h. Sin spam, sin llamadas no solicitadas, 100% gratuito. Compara más de 2.000 planes con datos oficiales de la Superintendencia.",
   alternates: { canonical: URL },
   openGraph: {
     title: "Asesor Isapre Gratis — Te Llamamos en 24 Horas",
@@ -42,7 +42,7 @@ const FAQS = [
   {
     question: "¿Con qué Isapres trabajan?",
     answer:
-      "Comparamos las 7 Isapres del sistema con datos oficiales de la Superintendencia de Salud: 2.072 planes vigentes que se actualizan cada mes.",
+      "Comparamos las 7 Isapres del sistema con datos oficiales de la Superintendencia de Salud: más de 2.000 planes vigentes que se actualizan periódicamente.",
   },
   {
     question: "¿Tengo que ir a una oficina?",
@@ -59,7 +59,7 @@ const PASOS = [
   },
   {
     icon: Search,
-    title: "Analizamos los 2.072 planes",
+    title: "Analizamos más de 2.000 planes",
     desc: "Cruzamos tu perfil con los planes vigentes de las 7 Isapres usando datos oficiales de la Superintendencia.",
   },
   {
@@ -131,7 +131,7 @@ export default function AsesorIsaprePage() {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-white/70">
-            <span className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#14dcb4]" /> 2.072 planes comparados</span>
+            <span className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#14dcb4]" /> Más de 2.000 planes comparados</span>
             <span className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#14dcb4]" /> Respuesta en 24h</span>
             <span className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#14dcb4]" /> Sin compromiso</span>
           </div>
