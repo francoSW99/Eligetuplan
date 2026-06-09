@@ -81,9 +81,12 @@ if (-not $Message) {
 Write-Step "Copiando archivos a production/"
 foreach ($f in $testChanges) {
   $dst = $f -replace '^test/', 'production/'
+  # Split-Path -Parent es solo string (sin -LiteralPath: en PS 5.1 choca con -Parent).
   $dstDir = Split-Path $dst -Parent
-  if (-not (Test-Path $dstDir)) { New-Item -ItemType Directory -Force -Path $dstDir | Out-Null }
-  Copy-Item $f $dst -Force
+  # -LiteralPath en Test-Path/Copy-Item es obligatorio: rutas con corchetes (ej.
+  # app/blog/[slug]/) se interpretarian como comodin y el archivo NO se copiaria.
+  if (-not (Test-Path -LiteralPath $dstDir)) { New-Item -ItemType Directory -Force -Path $dstDir | Out-Null }
+  Copy-Item -LiteralPath $f -Destination $dst -Force
   Write-Host "    $f -> $dst"
 }
 Write-Ok ("{0} archivo(s) copiado(s)" -f $testChanges.Count)
