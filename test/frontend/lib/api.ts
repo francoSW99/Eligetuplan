@@ -116,7 +116,7 @@ export interface SiteMeta {
 
 export async function getMeta(): Promise<Meta> {
   const res = await fetch(`${API_BASE}/api/v1/meta`, {
-    next: { revalidate: 21600 }, // 6h: el cron corre 2x al mes.
+    next: { revalidate: 3600 }, // 1h: tras cada cron quincenal el sitio se pone al día en ≤1h.
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
