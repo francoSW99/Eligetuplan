@@ -11,8 +11,8 @@ export const STATS = {
   plansTotal: 2160, // solo fallback si el backend no responde; los dinámicos usan el valor en vivo
   isapres: 7,
   regiones: 16,
-  ufValueCLP: 40374,
-  lastUpdate: "17 may 2026",
+  ufValueCLP: 40766,
+  lastUpdate: "10 jun 2026",
 };
 
 export const NAV_ITEMS = [

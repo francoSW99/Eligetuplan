@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import SevenPercentCalculator from "./seven-percent-calculator";
 import { useMeta } from "@/lib/meta-context";
+import { track } from "@/lib/analytics";
 
 const HERO_SLIDES = ["/familia.jpeg", "/kine.jpeg", "/cirugia.png"];
 const SLIDE_DURATION_MS = 4200;
@@ -95,81 +97,120 @@ function HeroBackground() {
 }
 
 export default function HeroSplit() {
-  const { plansTotal, lastUpdate } = useMeta();
-
-  const TRUST_ROWS = [
-    {
-      icon: "shield" as const,
-      t: "Datos oficiales de la Superintendencia de Salud",
-      s: `actualizado al ${lastUpdate}`,
-    },
-    {
-      icon: "eye" as const,
-      t: "Sin pedir email para ver tus resultados",
-      s: "preview transparente antes de cualquier formulario",
-    },
-    {
-      icon: "no" as const,
-      t: "Sin costo y sin spam",
-      s: "cobramos comisión legal directo de las Isapres",
-    },
-  ];
+  const { plansTotal } = useMeta();
 
   return (
     <section
       id="top"
-      className="relative overflow-hidden text-white pt-[100px] pb-14 sm:pt-[120px] sm:pb-20 lg:pt-[160px] lg:pb-28"
+      className="relative overflow-hidden text-white pt-[84px] pb-10 sm:pt-[92px] sm:pb-12 md:pt-[116px] lg:pt-[124px] lg:pb-14"
       style={{ animation: "hero-fade-in 0.7s cubic-bezier(.2,.8,.2,1)" }}
     >
       <HeroBackground />
       <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-10">
-        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-8 sm:gap-10 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-6 sm:gap-8 lg:gap-12 items-start">
           <div className="max-w-[620px]">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14dcb4]/12 border border-[#14dcb4]/30 mb-5 sm:mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#14dcb4] animate-pulse" />
-              <span className="text-[10.5px] sm:text-[11px] font-bold tracking-[0.18em] uppercase text-[#14dcb4]">
-                Comparador 100% gratuito · {plansTotal.toLocaleString("es-CL")} planes
-              </span>
-            </div>
+            <Link
+              href="/comparar/isapres"
+              onClick={() => track.comparadorClick("hero_cta")}
+              className="group inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full mb-3 sm:mb-4 font-extrabold text-[12px] sm:text-[13px] uppercase tracking-[0.1em] text-[#0f2826] shadow-[0_10px_28px_rgba(20,220,180,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(20,220,180,0.6)] no-underline"
+              style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
+            >
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              ¡Compara y cotiza {plansTotal.toLocaleString("es-CL")} planes de salud AQUÍ!
+              <svg
+                className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
 
             <h1
-              className="font-extrabold tracking-[-0.025em] leading-[1] sm:leading-[0.98] mb-5 sm:mb-6"
-              style={{ fontSize: "clamp(32px,7.5vw,72px)" }}
+              className="font-extrabold tracking-[-0.025em] leading-[1.05] sm:leading-[1] mb-3 sm:mb-4"
+              style={{ fontSize: "clamp(28px,5.2vw,54px)" }}
             >
-              ¿Cuánto{" "}
-              <span className="text-[#14dcb4] serif font-medium italic">deberías</span>{" "}
-              pagar por tu plan de salud?
+              ¿Buscas el{" "}
+              <span className="text-[#14dcb4] serif font-medium italic">plan de salud ideal</span>{" "}
+              para ti y tu familia?
             </h1>
 
-            <p className="text-[15px] sm:text-[17px] lg:text-[18px] text-white/72 leading-relaxed max-w-[540px] mb-6 sm:mb-8">
-              La ley te reserva el <strong className="text-white font-semibold">7% de tu sueldo bruto</strong> para salud. Ingrésalo aquí y te mostramos cuántos planes vigentes están realmente a tu alcance — sin formularios, sin cuentas, sin promesas raras.
+            <p className="text-[15px] sm:text-[16px] lg:text-[17px] text-white/72 leading-relaxed max-w-[540px] mb-4 sm:mb-5">
+              En <strong className="text-white font-semibold">EligeTuPlan</strong> te ayudamos de 3 formas distintas — tú escoges la que más te acomode:
             </p>
 
             <div className="space-y-2.5">
-              {TRUST_ROWS.map((row) => (
-                <div key={row.t} className="flex items-start gap-3">
-                  <div className="shrink-0 w-7 h-7 rounded-lg bg-[#14dcb4]/12 border border-[#14dcb4]/25 flex items-center justify-center mt-0.5">
-                    <svg className="w-3.5 h-3.5 text-[#14dcb4]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                      {row.icon === "shield" && <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />}
-                      {row.icon === "eye" && (
-                        <>
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </>
+              {[
+                {
+                  href: "/comparar/isapres",
+                  label: "Compara todos los planes tú mismo",
+                  sub: "Más de 2.000 planes · filtra por precio, cobertura y según tu 7% disponible",
+                  badge: null as string | null,
+                  onClick: () => track.comparadorClick("hero_cta"),
+                  icon: (
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                    </svg>
+                  ),
+                },
+                {
+                  href: "/buscar",
+                  label: "Solicita ayuda a un asesor certificado",
+                  sub: "Verificados por la Superintendencia · te contactan inmediatamente",
+                  badge: "Sin costo" as string | null,
+                  onClick: () => track.asesorClick("hero_cta"),
+                  icon: (
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  ),
+                },
+                {
+                  href: "/tu-mejor-plan",
+                  label: "Deja que la IA encuentre tu plan ideal",
+                  sub: "3 preguntas · 90 segundos · resultado al instante",
+                  badge: null as string | null,
+                  onClick: () => track.iaClick("hero_cta"),
+                  icon: (
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3l1.9 5.7L19.6 10l-5.7 1.9L12 17.6l-1.9-5.7L4.4 10l5.7-1.9L12 3z" />
+                      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
+                    </svg>
+                  ),
+                },
+              ].map((opt, i) => (
+                <Link
+                  key={opt.href}
+                  href={opt.href}
+                  onClick={opt.onClick}
+                  style={{ animation: `hero-fade-in 0.55s cubic-bezier(.2,.8,.2,1) ${0.12 + i * 0.1}s backwards` }}
+                  className="group flex items-center gap-3.5 px-3.5 py-3 sm:py-3.5 rounded-xl border backdrop-blur-[2px] transition-all duration-200 no-underline bg-white/[0.07] border-white/10 hover:-translate-y-0.5 hover:bg-[#14dcb4]/[0.14] hover:border-[#14dcb4]/55 hover:shadow-[0_12px_28px_rgba(20,220,180,0.25)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14dcb4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f514b]"
+                >
+                  <div className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all duration-200 bg-[#14dcb4]/12 border-[#14dcb4]/25 text-[#14dcb4] group-hover:scale-105 group-hover:bg-[#14dcb4] group-hover:border-[#14dcb4] group-hover:text-[#0f2826] group-hover:shadow-[0_4px_14px_rgba(20,220,180,0.4)]">
+                    {opt.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-white text-[14px] sm:text-[14.5px] leading-snug">{opt.label}</span>
+                      {opt.badge && (
+                        <span className="text-[9.5px] font-extrabold uppercase tracking-[0.08em] px-2 py-[3px] rounded-full leading-none bg-[#14dcb4]/15 text-[#14dcb4] border border-[#14dcb4]/30">
+                          {opt.badge}
+                        </span>
                       )}
-                      {row.icon === "no" && (
-                        <>
-                          <circle cx="12" cy="12" r="9" />
-                          <path d="M5 5l14 14" />
-                        </>
-                      )}
+                    </div>
+                    <div className="text-white/50 text-[12px] sm:text-[12.5px] mt-0.5">{opt.sub}</div>
+                  </div>
+                  <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 bg-white/[0.06] text-white/35 group-hover:translate-x-1 group-hover:bg-[#14dcb4]/25 group-hover:text-[#14dcb4]">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18l6-6-6-6" />
                     </svg>
                   </div>
-                  <div className="text-[14px] leading-snug">
-                    <div className="font-semibold text-white/95">{row.t}</div>
-                    <div className="text-white/45 text-[12.5px]">{row.s}</div>
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

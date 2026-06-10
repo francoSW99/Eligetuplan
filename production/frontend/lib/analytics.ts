@@ -27,6 +27,9 @@ export const track = {
       planes_disponibles: planesDisponibles,
     }),
 
+  iaClick: (source: LeadSource) =>
+    sendGAEvent("event", "ia_click", { source }),
+
   iaRecomendadorStart: () => sendGAEvent("event", "ia_recomendador_start"),
 
   iaRecomendadorComplete: (planRecomendado: string) =>
@@ -36,6 +39,9 @@ export const track = {
 
   filtroIsapre: (isapre: string) =>
     sendGAEvent("event", "filtro_isapre", { isapre }),
+
+  comparadorClick: (source: LeadSource) =>
+    sendGAEvent("event", "comparador_click", { source }),
 
   formSubmit: (formType: "asesor" | "buscar" | "newsletter") =>
     sendGAEvent("event", "form_submit", { form_type: formType, lead_value: 1 }),
