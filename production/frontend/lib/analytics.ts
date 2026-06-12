@@ -21,6 +21,12 @@ export const track = {
   asesorClick: (source: LeadSource) =>
     sendGAEvent("event", "asesor_click", { source }),
 
+  leadFormOpen: (source: LeadSource) =>
+    sendGAEvent("event", "lead_form_open", { source }),
+
+  leadFormClose: (source: LeadSource) =>
+    sendGAEvent("event", "lead_form_close", { source }),
+
   calcUsed: (sueldoBruto: number, planesDisponibles: number) =>
     sendGAEvent("event", "calc_7_used", {
       sueldo_bruto_clp: sueldoBruto,
