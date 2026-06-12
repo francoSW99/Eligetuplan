@@ -278,24 +278,24 @@ export default function LeadCaptureForm({
             </div>
 
             <div className="grid gap-x-4 gap-y-3.5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-              <div>
-                <label className={labelClass}>
-                  <Shield className="w-3.5 h-3.5" /> ¿Cuál es tu plan actual?
-                </label>
-                <select value={form.planActual} onChange={set('planActual')} className={inputClass}>
-                  <option value="">Selecciona tu Isapre actual</option>
-                  {ISAPRES.map((isapre) => (
-                    <option key={isapre} value={isapre}>
+                <div>
+                  <label className={labelClass}>
+                    <Shield className="w-3.5 h-3.5" /> ¿Cual es tu sistema de salud actual? Isapre, Fonasa o ninguno (opcional)
+                  </label>
+                  <select value={form.planActual} onChange={set('planActual')} className={inputClass}>
+                    <option value="">Selecciona tu sistema de salud actual</option>
+                    {ISAPRES.map((isapre) => (
+                      <option key={isapre} value={isapre}>
                       {isapre}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className={labelClass}>
-                  <FileText className="w-3.5 h-3.5" /> Observaciones
-                </label>
+                <div>
+                  <label className={labelClass}>
+                    <FileText className="w-3.5 h-3.5" /> Observaciones (opcional)
+                  </label>
                 <textarea
                   value={form.observaciones}
                   onChange={set('observaciones')}
