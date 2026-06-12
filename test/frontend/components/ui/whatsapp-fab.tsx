@@ -75,7 +75,7 @@ export default function WhatsAppFab() {
                     <Sparkles className="h-3.5 w-3.5 shrink-0" />
                     Asesoría gratuita
                   </div>
-                  <h2 id="fab-lead-title" className="mt-1 truncate text-lg font-extrabold leading-tight md:text-2xl">
+                  <h2 id="fab-lead-title" className="mt-1 max-w-[760px] text-lg font-extrabold leading-tight md:text-2xl">
                     Asesorate para hacer la mejor cotizacion posible
                   </h2>
                 </div>
