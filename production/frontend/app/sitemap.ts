@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAllArticles } from "@/lib/blog";
+import { PROFILE_LANDING_SLUGS } from "@/lib/seo-landings";
 
 const BASE = "https://www.elige-tuplan.cl";
 
@@ -22,6 +23,8 @@ const STATIC_ROUTES = [
   { path: "/faq", priority: 0.6, changeFrequency: "monthly" as const },
   { path: "/blog", priority: 0.8, changeFrequency: "weekly" as const },
   // Landings SEO
+  { path: "/planes-isapre", priority: 0.9, changeFrequency: "weekly" as const },
+  { path: "/comparar-planes-isapre", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/asesor-isapre", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/cambiar-isapre", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/pasar-fonasa-a-isapre", priority: 0.9, changeFrequency: "weekly" as const },
@@ -44,6 +47,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority,
   }));
 
+  const profileRoutes = PROFILE_LANDING_SLUGS.map((slug) => ({
+    url: `${BASE}/planes-isapre/${slug}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.82,
+  }));
+
   const blogRoutes = getAllArticles().map((a) => ({
     url: `${BASE}/blog/${a.slug}`,
     lastModified: a.date ? new Date(a.date + "T00:00:00") : now,
@@ -51,5 +61,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...isapreRoutes, ...blogRoutes];
+  return [...staticRoutes, ...isapreRoutes, ...profileRoutes, ...blogRoutes];
 }

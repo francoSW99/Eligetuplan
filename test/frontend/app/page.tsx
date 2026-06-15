@@ -1,6 +1,7 @@
 import HeroSplit from "@/components/home/hero-split";
 import LiveDataStrip from "@/components/home/live-data-strip";
 import IsapresMarquee from "@/components/home/isapres-marquee";
+import SeoGuidesSection from "@/components/home/seo-guides-section";
 import PathsSection from "@/components/home/paths-section";
 import HowItWorks from "@/components/home/how-it-works";
 import TrustBand from "@/components/home/trust-band";
@@ -22,6 +23,7 @@ export default function Home() {
         <LiveDataStrip />
         <IsapresMarquee />
         <PathsSection />
+        <SeoGuidesSection />
         <HowItWorks />
         <TrustBand />
         <FaqSection />
