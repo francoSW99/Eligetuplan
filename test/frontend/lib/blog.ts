@@ -59,6 +59,20 @@ export function getAllArticles(): ArticleMeta[] {
     .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
+/**
+ * Otros artículos para la sección "Sigue leyendo".
+ * Prioriza la misma categoría; completa con los más recientes.
+ */
+export function getRelatedArticles(slug: string, limit = 3): ArticleMeta[] {
+  const all = getAllArticles();
+  const current = all.find((a) => a.slug === slug);
+  const others = all.filter((a) => a.slug !== slug);
+  if (!current) return others.slice(0, limit);
+  const sameCat = others.filter((a) => a.category === current.category);
+  const rest = others.filter((a) => a.category !== current.category);
+  return [...sameCat, ...rest].slice(0, limit);
+}
+
 /** Un artículo completo (con cuerpo markdown) o null si no existe. */
 export function getArticleBySlug(slug: string): Article | null {
   const candidates = [
