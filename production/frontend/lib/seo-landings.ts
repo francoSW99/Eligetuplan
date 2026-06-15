@@ -31,6 +31,19 @@ export type ProfileLanding = {
   icon: GuideIcon;
   audience: string;
   whatsappMessage: string;
+  planQuery: {
+    label: string;
+    description: string;
+    compareHref: string;
+    params: {
+      con_parto?: boolean;
+      precio_max_clp?: number;
+      cobertura_hosp_min?: number;
+      cobertura_amb_min?: number;
+      modalidad?: string;
+      sort?: string;
+    };
+  };
   bullets: string[];
   comparePoints: {
     title: string;
@@ -145,6 +158,13 @@ export const PROFILE_LANDINGS: Record<string, ProfileLanding> = {
     icon: "family",
     audience: "Familias con hijos, cargas o pareja que buscan equilibrar precio y cobertura.",
     whatsappMessage: "Hola, quiero comparar planes de Isapre para mi familia.",
+    planQuery: {
+      label: "planes con cobertura robusta",
+      description:
+        "Muestra inicial de planes con al menos 70% hospitalario y 60% ambulatorio. No reemplaza una cotización familiar con edades y cargas.",
+      compareHref: "/comparar/isapres?cobertura_hosp_min=70&cobertura_amb_min=60",
+      params: { cobertura_hosp_min: 70, cobertura_amb_min: 60, sort: "precio_asc" },
+    },
     bullets: [
       "Cuántas cargas tendrá el contrato y sus edades.",
       "Cobertura hospitalaria y ambulatoria para el grupo completo.",
@@ -197,6 +217,13 @@ export const PROFILE_LANDINGS: Record<string, ProfileLanding> = {
     icon: "pregnancy",
     audience: "Personas que están planificando embarazo o quieren revisar cobertura de maternidad.",
     whatsappMessage: "Hola, quiero revisar planes de Isapre pensando en embarazo o maternidad.",
+    planQuery: {
+      label: "planes con parto",
+      description:
+        "Muestra de planes marcados con parto en la base del comparador. La cobertura final debe confirmarse en el contrato y documentos oficiales.",
+      compareHref: "/comparar/isapres?con_parto=true",
+      params: { con_parto: true, sort: "precio_asc" },
+    },
     bullets: [
       "Cobertura hospitalaria para parto y maternidad.",
       "Clínicas disponibles según el plan y la Isapre.",
@@ -249,6 +276,13 @@ export const PROFILE_LANDINGS: Record<string, ProfileLanding> = {
     icon: "independent",
     audience: "Trabajadores independientes, freelancers, emprendedores y personas con ingresos variables.",
     whatsappMessage: "Hola, soy independiente y quiero comparar planes de Isapre.",
+    planQuery: {
+      label: "planes de menor precio inicial",
+      description:
+        "Muestra ordenada por precio base para revisar alternativas sostenibles si tus ingresos son variables.",
+      compareHref: "/comparar/isapres?sort=precio_asc",
+      params: { sort: "precio_asc" },
+    },
     bullets: [
       "Presupuesto mensual realista, no solo el valor base del plan.",
       "Cómo calza tu 7% con el adicional de salud.",
@@ -301,6 +335,13 @@ export const PROFILE_LANDINGS: Record<string, ProfileLanding> = {
     icon: "young",
     audience: "Personas jóvenes que cotizan por primera vez o quieren bajar su costo mensual.",
     whatsappMessage: "Hola, quiero comparar planes de Isapre para una persona joven.",
+    planQuery: {
+      label: "planes bajo $90.000 aprox.",
+      description:
+        "Muestra inicial de planes bajo $90.000 aproximadamente, pensada para revisar alternativas de entrada al sistema privado.",
+      compareHref: "/comparar/isapres?precio_max_clp=90000",
+      params: { precio_max_clp: 90000, sort: "precio_asc" },
+    },
     bullets: [
       "Precio base y adicional mensual.",
       "Urgencias y atención ambulatoria.",
@@ -353,6 +394,13 @@ export const PROFILE_LANDINGS: Record<string, ProfileLanding> = {
     icon: "senior",
     audience: "Personas mayores o familias que ayudan a revisar la continuidad de cobertura.",
     whatsappMessage: "Hola, quiero revisar alternativas de Isapre para un adulto mayor.",
+    planQuery: {
+      label: "planes con cobertura robusta",
+      description:
+        "Muestra inicial con cobertura hospitalaria y ambulatoria reforzada. En adultos mayores, la continuidad y evaluación de salud son clave.",
+      compareHref: "/comparar/isapres?cobertura_hosp_min=70&cobertura_amb_min=60",
+      params: { cobertura_hosp_min: 70, cobertura_amb_min: 60, sort: "precio_asc" },
+    },
     bullets: [
       "Precio mensual total y variación esperada.",
       "Red de clínicas y especialistas ya utilizados.",

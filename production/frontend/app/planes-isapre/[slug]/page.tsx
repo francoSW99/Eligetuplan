@@ -14,11 +14,14 @@ import {
 } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
+import { FeaturedPlans, MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
+import { getIsapres, getPlanes, getSiteMeta, type Isapre, type Plan, type PlansResponse } from "@/lib/api";
 import {
   getProfileLanding,
   PROFILE_LANDING_SLUGS,
+  type ProfileLanding,
   type GuideIcon,
 } from "@/lib/seo-landings";
 
@@ -34,6 +37,37 @@ const ICONS: Record<GuideIcon, LucideIcon> = {
   switch: ShieldCheck,
   fonasa: HeartPulse,
 };
+
+type ProfileData = {
+  meta: Awaited<ReturnType<typeof getSiteMeta>>;
+  isapres: Isapre[];
+  plans: Plan[];
+  response: Pick<PlansResponse, "total" | "price_min_clp" | "price_max_clp"> | null;
+};
+
+async function getProfileData(landing: ProfileLanding): Promise<ProfileData> {
+  const meta = await getSiteMeta();
+
+  try {
+    const [isapres, plansResponse] = await Promise.all([
+      getIsapres(),
+      getPlanes({ ...landing.planQuery.params, limit: 6 }),
+    ]);
+
+    return {
+      meta,
+      isapres,
+      plans: plansResponse.items,
+      response: {
+        total: plansResponse.total,
+        price_min_clp: plansResponse.price_min_clp,
+        price_max_clp: plansResponse.price_max_clp,
+      },
+    };
+  } catch {
+    return { meta, isapres: [], plans: [], response: null };
+  }
+}
 
 export function generateStaticParams() {
   return PROFILE_LANDING_SLUGS.map((slug) => ({ slug }));
@@ -74,6 +108,7 @@ export default async function ProfileLandingPage({
 
   const url = `${BASE}/planes-isapre/${landing.slug}`;
   const Icon = ICONS[landing.icon];
+  const data = await getProfileData(landing);
 
   return (
     <>
@@ -145,6 +180,22 @@ export default async function ProfileLandingPage({
           </div>
         </section>
 
+        <MarketSnapshot
+          meta={data.meta}
+          isapres={data.isapres}
+          filteredTotal={data.response?.total}
+          priceMin={data.response?.price_min_clp}
+          priceMax={data.response?.price_max_clp}
+          filterLabel={landing.planQuery.label}
+        />
+
+        <FeaturedPlans
+          title={`Planes de muestra para ${landing.shortTitle.toLowerCase()}`}
+          description={landing.planQuery.description}
+          plans={data.plans}
+          compareHref={landing.planQuery.compareHref}
+        />
+
         <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
           <div className="mb-9 max-w-2xl">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
@@ -186,6 +237,8 @@ export default async function ProfileLandingPage({
             </div>
           </div>
         </section>
+
+        <OfficialSourcesPanel />
 
         <section className="mx-auto max-w-3xl px-6 py-16">
           <h2 className="mb-8 text-center text-2xl font-extrabold text-[#0f514b] sm:text-3xl">

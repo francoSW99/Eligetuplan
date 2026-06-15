@@ -3,8 +3,10 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, HeartPulse, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
+import { FeaturedPlans, MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
+import { getIsapres, getPlanes, getSiteMeta, type Isapre, type Plan, type PlansResponse } from "@/lib/api";
 import { HOME_SEO_GUIDES, SECONDARY_SEO_GUIDES } from "@/lib/seo-landings";
 
 const URL = "https://www.elige-tuplan.cl/comparar-planes-isapre";
@@ -64,10 +66,42 @@ const POINTS = [
   },
 ];
 
-export default function CompararPlanesIsaprePage() {
+type CompareLandingData = {
+  meta: Awaited<ReturnType<typeof getSiteMeta>>;
+  isapres: Isapre[];
+  plans: Plan[];
+  response: Pick<PlansResponse, "total" | "price_min_clp" | "price_max_clp"> | null;
+};
+
+async function getCompareLandingData(): Promise<CompareLandingData> {
+  const meta = await getSiteMeta();
+
+  try {
+    const [isapres, plansResponse] = await Promise.all([
+      getIsapres(),
+      getPlanes({ limit: 6, sort: "precio_asc" }),
+    ]);
+
+    return {
+      meta,
+      isapres,
+      plans: plansResponse.items,
+      response: {
+        total: plansResponse.total,
+        price_min_clp: plansResponse.price_min_clp,
+        price_max_clp: plansResponse.price_max_clp,
+      },
+    };
+  } catch {
+    return { meta, isapres: [], plans: [], response: null };
+  }
+}
+
+export default async function CompararPlanesIsaprePage() {
   const related = [...HOME_SEO_GUIDES, ...SECONDARY_SEO_GUIDES].filter(
     (item) => item.href !== "/comparar-planes-isapre"
   );
+  const data = await getCompareLandingData();
 
   return (
     <>
@@ -141,6 +175,22 @@ export default function CompararPlanesIsaprePage() {
           </div>
         </section>
 
+        <MarketSnapshot
+          meta={data.meta}
+          isapres={data.isapres}
+          filteredTotal={data.response?.total}
+          priceMin={data.response?.price_min_clp}
+          priceMax={data.response?.price_max_clp}
+          filterLabel="planes activos"
+        />
+
+        <FeaturedPlans
+          title="Planes de muestra desde el catálogo"
+          description="Muestra inicial ordenada por precio base. Entra al comparador para filtrar por Isapre, cobertura, clínica, modalidad y presupuesto."
+          plans={data.plans}
+          compareHref="/comparar/isapres"
+        />
+
         <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
           <div className="mb-9 max-w-2xl">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
@@ -162,6 +212,8 @@ export default function CompararPlanesIsaprePage() {
             ))}
           </div>
         </section>
+
+        <OfficialSourcesPanel />
 
         <section className="bg-white py-16">
           <div className="mx-auto max-w-6xl px-6 lg:px-10">

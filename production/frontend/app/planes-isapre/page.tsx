@@ -12,7 +12,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
+import { getIsapres, getPlanes, getSiteMeta, type Isapre, type PlansResponse } from "@/lib/api";
 import { ALL_SEO_GUIDES, type GuideIcon } from "@/lib/seo-landings";
 
 const URL = "https://www.elige-tuplan.cl/planes-isapre";
@@ -42,7 +44,38 @@ const ICONS: Record<GuideIcon, LucideIcon> = {
   fonasa: HeartPulse,
 };
 
-export default function PlanesIsapreHubPage() {
+type HubData = {
+  meta: Awaited<ReturnType<typeof getSiteMeta>>;
+  isapres: Isapre[];
+  response: Pick<PlansResponse, "total" | "price_min_clp" | "price_max_clp"> | null;
+};
+
+async function getHubData(): Promise<HubData> {
+  const meta = await getSiteMeta();
+
+  try {
+    const [isapres, plansResponse] = await Promise.all([
+      getIsapres(),
+      getPlanes({ limit: 1, sort: "precio_asc" }),
+    ]);
+
+    return {
+      meta,
+      isapres,
+      response: {
+        total: plansResponse.total,
+        price_min_clp: plansResponse.price_min_clp,
+        price_max_clp: plansResponse.price_max_clp,
+      },
+    };
+  } catch {
+    return { meta, isapres: [], response: null };
+  }
+}
+
+export default async function PlanesIsapreHubPage() {
+  const data = await getHubData();
+
   return (
     <>
       <ServiceSchema
@@ -94,6 +127,15 @@ export default function PlanesIsapreHubPage() {
           </div>
         </section>
 
+        <MarketSnapshot
+          meta={data.meta}
+          isapres={data.isapres}
+          filteredTotal={data.response?.total}
+          priceMin={data.response?.price_min_clp}
+          priceMax={data.response?.price_max_clp}
+          filterLabel="planes activos"
+        />
+
         <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
           <div className="mb-9 max-w-2xl">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
@@ -135,6 +177,8 @@ export default function PlanesIsapreHubPage() {
             })}
           </div>
         </section>
+
+        <OfficialSourcesPanel />
 
         <section className="bg-white py-16">
           <div className="mx-auto grid max-w-6xl gap-8 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-10">
