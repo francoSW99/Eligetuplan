@@ -58,6 +58,7 @@ type Preference = 'savings' | 'balanced' | 'coverage';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 const ISAPRE_SLUGS: Record<string, string> = {
+  ninguno: 'Aún no tengo Isapre',
   banmedica: 'Banmédica',
   consalud: 'Consalud',
   cruzblanca: 'Cruz Blanca',
@@ -67,6 +68,9 @@ const ISAPRE_SLUGS: Record<string, string> = {
   esencial: 'Esencial',
   fonasa: 'Fonasa',
 };
+
+// Opciones sin plan de Isapre con precio UF: no piden plan actual ni precio.
+const SIN_PLAN_ACTUAL = new Set(['ninguno', 'fonasa']);
 
 const ISAPRE_LOGOS: Record<string, string> = {
   banmedica: '/logos/banmedica-logo.png',
@@ -273,7 +277,7 @@ export default function TuMejorPlanClient() {
 
   // Fetch plans when isapre changes
   useEffect(() => {
-    if (!isapreActual || isapreActual === 'fonasa') {
+    if (!isapreActual || SIN_PLAN_ACTUAL.has(isapreActual)) {
       setPlanOptions([]);
       setSelectedPlanData(null);
       setPlanActual('');
@@ -309,11 +313,11 @@ export default function TuMejorPlanClient() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Scroll to top when step changes to 3
+  // Al cambiar de paso (Siguiente / Atrás / resultados) volver SIEMPRE arriba,
+  // para que la página empiece desde el inicio y el usuario no tenga que hacer
+  // scroll inverso.
   useEffect(() => {
-    if (step === 3) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
   const resetFlow = () => {
@@ -492,7 +496,7 @@ export default function TuMejorPlanClient() {
                 </div>
 
                 {/* Plan Actual — autocomplete with real data */}
-                {isapreActual && isapreActual !== 'fonasa' && (
+                {isapreActual && !SIN_PLAN_ACTUAL.has(isapreActual) && (
                   <div ref={planDropdownRef} className="relative">
                     <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Plan Actual</label>
                     <div className="relative">
@@ -549,17 +553,23 @@ export default function TuMejorPlanClient() {
                   </div>
                 )}
 
-                {/* Precio UF (editable, pre-filled si eligió plan) */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Precio Mensual (UF)</label>
-                  <div className="relative">
-                    <input type="number" value={precioUF} onChange={(e) => setPrecioUF(e.target.value)} placeholder="Ej: 3.5" step="0.1" className="w-full border border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4] transition-all" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">UF</span>
+                {/* Precio UF (editable, pre-filled si eligió plan). Oculto si no tiene plan actual. */}
+                {isapreActual && SIN_PLAN_ACTUAL.has(isapreActual) ? (
+                  <div className="rounded-xl border border-[#14dcb4]/20 bg-[#14dcb4]/5 px-4 py-3 text-sm text-[#0f514b]">
+                    Sin plan de Isapre actual. No hay problema: te recomendaremos el mejor plan según tu perfil en el siguiente paso.
                   </div>
-                  {parsedPrecioUF != null && parsedPrecioUF > 0 && (
-                    <p className="mt-1 text-xs text-slate-400">≈ {formatCLP(ufToCLP(parsedPrecioUF))}/mes</p>
-                  )}
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Precio Mensual (UF)</label>
+                    <div className="relative">
+                      <input type="number" value={precioUF} onChange={(e) => setPrecioUF(e.target.value)} placeholder="Ej: 3.5" step="0.1" className="w-full border border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4] transition-all" />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">UF</span>
+                    </div>
+                    {parsedPrecioUF != null && parsedPrecioUF > 0 && (
+                      <p className="mt-1 text-xs text-slate-400">≈ {formatCLP(ufToCLP(parsedPrecioUF))}/mes</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end mt-8">
