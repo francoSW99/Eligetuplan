@@ -52,13 +52,16 @@ class _TTLCache:
         self._times.pop(key, None)
 
 
-_LIST_PLANS_CACHE = _TTLCache(ttl=300)     # 5 min — plan list for /api/v1/planes
-_PRICES_CACHE = _TTLCache(ttl=300)         # 5 min — price histogram
+# TTL de 30 min para los cachés de datos pesados: los planes cambian ~2 veces al
+# mes (sync) — un TTL corto solo provocaba reconstrucciones frías innecesarias de
+# los ~2.160 PlanListItem. La UF tiene su propio caché (1h) aparte.
+_LIST_PLANS_CACHE = _TTLCache(ttl=1800)    # 30 min — plan list for /api/v1/planes
+_PRICES_CACHE = _TTLCache(ttl=1800)        # 30 min — price histogram
 _ISAPRES_CACHE = _TTLCache(ttl=3600)       # 1 h  — isapres + counts
 _ZONAS_CACHE = _TTLCache(ttl=3600)         # 1 h  — zonas + counts
 _PRESTADORES_CACHE = _TTLCache(ttl=3600)   # 1 h  — prestadores list
-_MATCH_PLANS_CACHE = _TTLCache(ttl=300)    # 5 min — plan list for match-plan
-_PLAN_ITEMS_CACHE = _TTLCache(ttl=300)     # 5 min — built PlanListItem list
+_MATCH_PLANS_CACHE = _TTLCache(ttl=1800)   # 30 min — plan list for match-plan
+_PLAN_ITEMS_CACHE = _TTLCache(ttl=1800)    # 30 min — built PlanListItem list
 
 
 # Load environment variables
@@ -101,6 +104,22 @@ try:
 except Exception as e:
     print(f"Warning: Supabase client initialization failed. {e}")
     supabase = None
+
+
+@app.on_event("startup")
+def _warm_caches() -> None:
+    """Precalienta en background los cachés pesados (lista de planes + precios) para
+    que la primera request tras un deploy/restart no pague la reconstrucción de los
+    ~2.160 PlanListItem. Corre en daemon thread: no bloquea el arranque ni el health
+    check. Las funciones referenciadas se resuelven al ejecutarse (post-import)."""
+    def _warm() -> None:
+        try:
+            _get_cached_plan_items()
+            _get_cached_prices()
+            print("INFO [warmup] cachés de planes precalentados.")
+        except Exception as e:
+            print(f"WARN [warmup] no se pudo precalentar cachés: {e}")
+    threading.Thread(target=_warm, daemon=True).start()
 
 # Pydantic models for request bodies
 class CargaInfo(BaseModel):
