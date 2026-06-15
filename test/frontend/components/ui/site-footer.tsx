@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BRAND, ISAPRES } from "@/lib/home-data";
+import { BRAND } from "@/lib/home-data";
+import { ISAPRE_LANDING_INFO } from "@/lib/isapre-landings";
 
 type FooterLink = { l: string; h: string; ext?: boolean };
 type FooterCol = { t: string; items: FooterLink[] };
@@ -19,9 +20,10 @@ const COLS: FooterCol[] = [
   },
   {
     t: "Isapres",
-    items: ISAPRES.map((i) => ({
+    items: Object.values(ISAPRE_LANDING_INFO).map((i) => ({
       l: i.name,
-      h: `/comparar/isapres?isapre=${i.slug}`,
+      h: i.officialUrl,
+      ext: true,
     })),
   },
   {
