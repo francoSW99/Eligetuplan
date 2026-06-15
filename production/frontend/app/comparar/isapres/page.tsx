@@ -5,6 +5,11 @@ import { ArrowRight } from 'lucide-react';
 import ResultsSkeleton, { SidebarSkeleton } from '@/components/comparar/results-skeleton';
 import CompareBody from './compare-body';
 
+// ISR: la vista por defecto se pre-renderiza y se sirve desde el edge de Vercel.
+// 600s es muchísimo más fresco que el ritmo de cambio de los datos (~2 veces al mes);
+// además se revalida on-demand tras cada sync. Las interacciones piden datos en vivo.
+export const revalidate = 600;
+
 export const metadata: Metadata = {
   title: { absolute: 'Planes de Salud Isapre: Compara las 7 Isapres de Chile' },
   description:
@@ -57,17 +62,11 @@ function BodyFallback() {
   );
 }
 
-export default async function CompararIsapresPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string>>;
-}) {
-  const params = await searchParams;
-
+export default function CompararIsapresPage() {
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
-      <Suspense key={JSON.stringify(params)} fallback={<BodyFallback />}>
-        <CompareBody params={params} />
+      <Suspense fallback={<BodyFallback />}>
+        <CompareBody />
       </Suspense>
 
       {/* Contenido SEO — texto indexable (el catálogo se renderiza en el cliente) */}

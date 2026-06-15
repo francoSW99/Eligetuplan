@@ -1,11 +1,13 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { Isapre, Zona, PrestadorItem, PlansResponse, Plan } from '@/lib/api';
-import { formatCLP } from '@/lib/api';
+import { formatCLP, getPlanes } from '@/lib/api';
+import { buildPlansQuery, isDefaultPlansView } from '@/lib/comparar-query';
+import PageHeader from '@/components/comparar/page-header';
 import {
   type Beneficiario,
   getTotalFactor,
@@ -40,15 +42,32 @@ export default function IsapresClient({
   initialZonas,
   initialPrestadores,
   initialData,
+  totalGlobal,
 }: {
   initialIsapres: Isapre[];
   initialZonas: Zona[];
   initialPrestadores: PrestadorItem[];
   initialData: PlansResponse;
+  totalGlobal: number;
 }) {
   const router = useRouter();
-  const search = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+
+  // ── Filtros desde la URL, manejados en cliente ──────────────────────────────
+  // NO usamos useSearchParams() a propósito: leerlo durante el render obliga a Next
+  // a pre-renderizar el fallback del Suspense en lugar del catálogo, lo que rompería
+  // el ISR. Hidratamos el estado desde window TRAS el montaje → el HTML estático
+  // contiene la vista por defecto (cacheable en el edge) y el cliente toma el control.
+  const [search, setSearch] = useState<URLSearchParams>(() => new URLSearchParams());
+  const [data, setData] = useState<PlansResponse>(initialData);
+  const [isFetching, setIsFetching] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setSearch(new URLSearchParams(window.location.search));
+    sync();
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
 
   const activeIsapres = useMemo(
     () => initialIsapres.filter((i) => i.plan_count > 0),
@@ -63,6 +82,26 @@ export default function IsapresClient({
     [search]
   );
   const totalFactor = useMemo(() => getTotalFactor(beneficiarios), [beneficiarios]);
+
+  // Filtrado en vivo: cuando cambia la URL (filtros/orden/página/beneficiarios) pedimos
+  // los planes al backend desde el navegador. La vista por defecto ya viene
+  // pre-renderizada (initialData), así que ahí no tocamos la red: reusamos el snapshot.
+  useEffect(() => {
+    if (isDefaultPlansView(search)) {
+      setData(initialData);
+      setIsFetching(false);
+      return;
+    }
+    const query = buildPlansQuery(search, beneficiarios);
+    let cancelled = false;
+    setIsFetching(true);
+    getPlanes(query)
+      .then((res) => { if (!cancelled) setData(res); })
+      .catch(() => { /* si el backend falla, conservamos los datos previos */ })
+      .finally(() => { if (!cancelled) setIsFetching(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   // Floor/ceiling user-facing: aplica fórmula tu7 (base × sumaF + gesAvg × N)
   // GES promedio aprox: 0.7 UF ≈ 28k CLP. Es una aproximación; cada plan tiene su GES exacto.
@@ -95,8 +134,9 @@ export default function IsapresClient({
       else next.set(k, v);
     });
     if (!('page' in updates)) next.delete('page');
+    setSearch(next); // dispara el fetch en vivo + actualiza la UI al instante
     startTransition(() => {
-      router.push(`?${next.toString()}`);
+      router.push(`?${next.toString()}`); // mantiene la URL/historial sincronizados
     });
   }
 
@@ -341,6 +381,7 @@ export default function IsapresClient({
     setLocalPriceMin(priceFloor);
     setLocalPriceMax(priceCeiling);
     setDraft({ isapres: [], zonas: [], modalidad: '', cobHosp: null, cobAmb: null, prestadorIds: [] });
+    setSearch(new URLSearchParams());
     startTransition(() => {
       router.push('?');
     });
@@ -385,8 +426,7 @@ export default function IsapresClient({
     pushParams({ ben: null });
   }
 
-  const items = initialData.items;
-  const totalGlobal = initialIsapres.reduce((sum, i) => sum + i.plan_count, 0);
+  const items = data.items;
 
   // ── Group active counts ────────────────────────────────────────────
   const budgetGroupCount =
@@ -642,7 +682,14 @@ export default function IsapresClient({
   );
 
   return (
-    <section className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10 py-4 sm:py-5 md:py-6">
+    <>
+      <PageHeader
+        totalShowing={items.length}
+        totalFiltered={data.total}
+        totalGlobal={totalGlobal}
+      />
+
+      <section className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10 py-4 sm:py-5 md:py-6">
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-4 sm:gap-6 lg:gap-8">
         {/* ─── Desktop sidebar ─── */}
@@ -866,26 +913,39 @@ export default function IsapresClient({
 
           <FilterChips chips={chips} clearAll={clearAll} />
 
-          <div className="text-[13px] text-[#5a6b6a]">
-            Mostrando <strong className="text-[#0f514b]">{items.length}</strong>{' '}
-            {items.length === 1 ? 'plan' : 'planes'}
-            {initialData.total !== items.length && (
-              <>
-                {' '}de <strong className="text-[#0f514b]">{initialData.total.toLocaleString('es-CL')}</strong>{' '}
-                que coinciden con tus filtros
-              </>
-            )}
-            {initialData.total_pages > 1 && (
-              <span className="ml-2 text-[#5a6b6a]/70">
-                · Página {initialData.page} de {initialData.total_pages}
-              </span>
+          <div className="text-[13px] text-[#5a6b6a] flex items-center gap-2">
+            <span>
+              Mostrando <strong className="text-[#0f514b]">{items.length}</strong>{' '}
+              {items.length === 1 ? 'plan' : 'planes'}
+              {data.total !== items.length && (
+                <>
+                  {' '}de <strong className="text-[#0f514b]">{data.total.toLocaleString('es-CL')}</strong>{' '}
+                  que coinciden con tus filtros
+                </>
+              )}
+              {data.total_pages > 1 && (
+                <span className="ml-2 text-[#5a6b6a]/70">
+                  · Página {data.page} de {data.total_pages}
+                </span>
+              )}
+            </span>
+            {(isFetching || isPending) && (
+              <span
+                className="inline-block w-3.5 h-3.5 rounded-full border-2 border-[#14dcb4]/30 border-t-[#14dcb4] animate-spin shrink-0"
+                aria-label="Actualizando planes"
+              />
             )}
           </div>
 
           {items.length === 0 ? (
             <EmptyState onClearAll={clearAll} activeFiltersCount={totalActiveCount} />
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div
+              className={`grid grid-cols-1 xl:grid-cols-2 gap-4 transition-opacity ${
+                isFetching ? 'opacity-50 pointer-events-none' : 'opacity-100'
+              }`}
+              aria-busy={isFetching}
+            >
               {items.map((p) => (
                 <PlanCard
                   key={p.id}
@@ -900,7 +960,7 @@ export default function IsapresClient({
             </div>
           )}
 
-          {initialData.total_pages > 1 && (
+          {data.total_pages > 1 && (
             <div className="flex items-center justify-center gap-3 pt-6">
               <button
                 type="button"
@@ -911,11 +971,11 @@ export default function IsapresClient({
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
               <span className="text-sm text-[#5a6b6a]">
-                {currentPage} / {initialData.total_pages}
+                {currentPage} / {data.total_pages}
               </span>
               <button
                 type="button"
-                disabled={currentPage >= initialData.total_pages}
+                disabled={currentPage >= data.total_pages}
                 onClick={() => pushParams({ page: String(currentPage + 1) })}
                 className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-[#0f514b] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#14dcb4] hover:text-[#0f9d8a]"
               >
@@ -973,7 +1033,7 @@ export default function IsapresClient({
                     </span>
                   </>
                 ) : (
-                  <>Ver {initialData.total} planes</>
+                  <>Ver {data.total} planes</>
                 )}
               </button>
             </div>
@@ -1122,6 +1182,7 @@ export default function IsapresClient({
           );
         })()}
       </AnimatePresence>
-    </section>
+      </section>
+    </>
   );
 }
