@@ -5,6 +5,7 @@ import "./globals.css";
 import SiteHeader from "@/components/ui/site-header";
 import SiteFooter from "@/components/ui/site-footer";
 import WhatsAppFab from "@/components/ui/whatsapp-fab";
+import ScrollToTop from "@/components/ui/scroll-to-top";
 import { MetaProvider } from "@/lib/meta-context";
 import { getSiteMeta } from "@/lib/api";
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
@@ -102,6 +103,7 @@ export default async function RootLayout({
       </head>
       <body className={`${poppins.className} antialiased bg-[#fbf8f3] text-[#1e2a2a] min-h-screen flex flex-col`}>
         <MetaProvider value={meta}>
+          <ScrollToTop />
           <OrganizationSchema />
           <WebSiteSchema />
           <LocalBusinessSchema />
