@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, ExternalLink, FileText, Search, ShieldCheck, Stethoscope } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
+import { InternalGuidesPanel } from "@/components/seo/internal-guides-panel";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
 import { getIsapres, getPlanes, getSiteMeta, type Plan } from "@/lib/api";
 import { formatCLP, formatUF } from "@/lib/api";
@@ -305,6 +306,12 @@ export default async function ConsaludLandingPage() {
             </div>
           </div>
         </section>
+
+        <InternalGuidesPanel
+          title="Guías relacionadas para comparar Consalud"
+          description="Si estás revisando Consalud, también puede servirte comparar por familia, embarazo, independientes o cambio de Isapre antes de cotizar."
+          currentHref="/isapres/consalud"
+        />
 
         <section className="mx-auto max-w-4xl px-5 py-16 sm:px-6 lg:px-10">
           <h2 className="mb-8 text-center text-2xl font-extrabold text-[#0f514b] sm:text-3xl">

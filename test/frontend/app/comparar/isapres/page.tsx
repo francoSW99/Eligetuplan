@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import ResultsSkeleton, { SidebarSkeleton } from '@/components/comparar/results-skeleton';
+import { InternalGuidesPanel } from '@/components/seo/internal-guides-panel';
 import CompareBody from './compare-body';
 
 // ISR: la vista por defecto se pre-renderiza y se sirve desde el edge de Vercel.
@@ -100,11 +101,22 @@ export default function CompararIsapresPage() {
               cambiarte o qué cubre cada plan? Revisa nuestras{' '}
               <Link href="/faq" className="text-[#0f9d8a] font-semibold hover:underline no-underline">
                 preguntas frecuentes
-              </Link>.
+              </Link>{' '}
+              o parte por una{' '}
+              <Link href="/comparar-planes-isapre" className="text-[#0f9d8a] font-semibold hover:underline no-underline">
+                guía para comparar planes de Isapre
+              </Link>{' '}
+              según precio, cobertura y red.
             </p>
           </div>
         </div>
       </section>
+
+      <InternalGuidesPanel
+        title="Guías para interpretar el comparador"
+        description="Usa estas páginas como apoyo si quieres comparar por familia, embarazo, independencia laboral o cambio desde Fonasa."
+        currentHref="/comparar/isapres"
+      />
 
       {/* CTA Bottom — static, renders immediately */}
       <section className="bg-[#fbf8f3] px-5 sm:px-6 lg:px-10 pt-6 pb-16 md:pt-10 md:pb-24">

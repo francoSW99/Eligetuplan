@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
+import { InternalGuidesPanel } from "@/components/seo/internal-guides-panel";
 import { FeaturedPlans, MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
@@ -239,6 +240,12 @@ export default async function ProfileLandingPage({
         </section>
 
         <OfficialSourcesPanel />
+
+        <InternalGuidesPanel
+          title="Otras formas de comparar planes de Isapre"
+          description="Cruza esta guía con otras rutas según presupuesto, grupo familiar o decisión de cambio para tomar una decisión más completa."
+          currentHref={`/planes-isapre/${landing.slug}`}
+        />
 
         <section className="mx-auto max-w-3xl px-6 py-16">
           <h2 className="mb-8 text-center text-2xl font-extrabold text-[#0f514b] sm:text-3xl">

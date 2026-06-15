@@ -75,3 +75,11 @@ El error más común es elegir solo por el precio o por la marca. Lo recomendabl
 En **EligeTuPlan** puedes [comparar los planes de salud de las 7 Isapres](/comparar/isapres) filtrando por precio, cobertura y clínica, con datos oficiales de la Superintendencia. Y si prefieres que te recomendemos el mejor según tu perfil, nuestro [buscador con IA](/tu-mejor-plan) lo hace en menos de 2 minutos.
 
 Comparar es **100% gratis**: no te cuesta nada y te ayuda a tomar una decisión informada.
+
+## Guías relacionadas para empezar
+
+- [Planes de Isapre en Chile: guías por perfil](/planes-isapre)
+- [Comparar planes de Isapre](/comparar-planes-isapre)
+- [Planes de Isapre para jóvenes](/planes-isapre/joven)
+- [Planes de Isapre para independientes](/planes-isapre/independiente)
+- [Pasar de Fonasa a Isapre](/pasar-fonasa-a-isapre)

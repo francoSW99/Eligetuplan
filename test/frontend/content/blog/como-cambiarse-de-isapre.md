@@ -59,6 +59,13 @@ En Fonasa quedas clasificado en un **tramo (A, B, C o D)** según tu situación:
 
 La decisión correcta depende de tu sueldo, tu edad, tus cargas y tus clínicas. En **EligeTuPlan** puedes [comparar los planes de las 7 Isapres](/comparar/isapres) por precio, cobertura y clínica, o dejar que nuestro [buscador con IA](/tu-mejor-plan) te recomiende el que mejor calza con tu perfil. Es **100% gratis**.
 
+## Guías relacionadas para decidir mejor
+
+- [Comparar planes de Isapre antes de cambiarte](/comparar-planes-isapre)
+- [Planes de Isapre para familias](/planes-isapre/familia)
+- [Planes de Isapre para embarazo y maternidad](/planes-isapre/embarazada)
+- [Pasar de Fonasa a Isapre](/pasar-fonasa-a-isapre)
+
 ## Fuentes oficiales
 
 - [Superintendencia de Salud — Aprende lo esencial antes de firmar un Contrato de Salud ante una isapre](https://www.superdesalud.gob.cl/orientacion-en-salud/aprende-lo-esencial-antes-de-firmar-un-contrato-de-salud-ante-una-isapre/)

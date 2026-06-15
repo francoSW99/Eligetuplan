@@ -19,6 +19,17 @@ const COLS: FooterCol[] = [
     ],
   },
   {
+    t: "Guías útiles",
+    items: [
+      { l: "Planes de Isapre", h: "/planes-isapre" },
+      { l: "Comparar planes de Isapre", h: "/comparar-planes-isapre" },
+      { l: "Planes para familias", h: "/planes-isapre/familia" },
+      { l: "Planes para embarazo", h: "/planes-isapre/embarazada" },
+      { l: "Planes para independientes", h: "/planes-isapre/independiente" },
+      { l: "Pasar de Fonasa a Isapre", h: "/pasar-fonasa-a-isapre" },
+    ],
+  },
+  {
     t: "Isapres",
     items: Object.values(ISAPRE_LANDING_INFO).map((i) => ({
       l: i.name,
@@ -41,7 +52,7 @@ export default function SiteFooter() {
   return (
     <footer className="bg-[#04181a] text-white">
       <div className="mx-auto max-w-[1280px] px-6 lg:px-10 pt-16 pb-10">
-        <div className="grid md:grid-cols-[1.4fr_repeat(3,1fr)] gap-10 md:gap-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-[1.25fr_repeat(4,minmax(0,1fr))] gap-10 lg:gap-8 xl:gap-12">
           <div>
             <Image
               src={BRAND.logo}

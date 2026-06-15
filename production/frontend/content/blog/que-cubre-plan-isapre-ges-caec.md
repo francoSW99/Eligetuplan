@@ -62,6 +62,13 @@ La [Superintendencia de Salud](https://www.superdesalud.gob.cl/orientacion-en-sa
 
 Ahora que sabes qué mirar, lo mejor es **comparar con datos reales**. En **EligeTuPlan** puedes [ver los planes de las 7 Isapres](/comparar/isapres) y filtrar por cobertura y clínica, o usar nuestro [buscador con IA](/tu-mejor-plan). Gratis y sin formularios eternos.
 
+## Guías relacionadas para comparar cobertura
+
+- [Comparar planes de Isapre por precio y cobertura](/comparar-planes-isapre)
+- [Planes de Isapre para familias](/planes-isapre/familia)
+- [Planes de Isapre para embarazo y maternidad](/planes-isapre/embarazada)
+- [Planes de Isapre para adultos mayores](/planes-isapre/adulto-mayor)
+
 ## Fuentes oficiales
 
 - [Superintendencia de Salud — Aprende lo esencial antes de firmar un Contrato de Salud ante una isapre](https://www.superdesalud.gob.cl/orientacion-en-salud/aprende-lo-esencial-antes-de-firmar-un-contrato-de-salud-ante-una-isapre/)
