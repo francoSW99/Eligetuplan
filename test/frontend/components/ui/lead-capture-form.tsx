@@ -107,8 +107,10 @@ export default function LeadCaptureForm({
   const validate = (): string => {
     if (!form.nombre.trim()) return 'El nombre es obligatorio.';
     if (!form.rut.trim()) return 'El RUT es obligatorio.';
-    if (!form.correo.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
-      return 'Ingresa un correo válido.';
+    // Correo OPCIONAL: solo validamos el formato si el usuario decide ingresarlo.
+    // El contacto real es por teléfono/WhatsApp, así que no bloqueamos el envío por email.
+    if (form.correo.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
+      return 'Si ingresas un correo, debe ser válido.';
     }
     if (!form.telefono.trim()) return 'El teléfono es obligatorio.';
     if (!form.region) return 'Selecciona tu región.';
@@ -243,31 +245,9 @@ export default function LeadCaptureForm({
             <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
               <div>
                 <label className={labelClass}>
-                  <Mail className="w-3.5 h-3.5" /> Correo Electrónico *
-                </label>
-                <input type="email" value={form.correo} onChange={set('correo')} placeholder="Ej: juan@gmail.com" className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>
                   <Phone className="w-3.5 h-3.5" /> Teléfono *
                 </label>
                 <input type="tel" value={form.telefono} onChange={set('telefono')} placeholder="Ej: +56 9 8765 4321" className={inputClass} />
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
-              <div>
-                <label className={labelClass}>
-                  <MapPin className="w-3.5 h-3.5" /> Región *
-                </label>
-                <select value={form.region} onChange={set('region')} className={inputClass}>
-                  <option value="">Selecciona tu región</option>
-                  {REGIONES.map((region) => (
-                    <option key={region} value={region}>
-                      {region}
-                    </option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className={labelClass}>
@@ -277,10 +257,39 @@ export default function LeadCaptureForm({
               </div>
             </div>
 
-            <div className="grid gap-x-4 gap-y-3.5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+            <div>
+              <label className={labelClass}>
+                <MapPin className="w-3.5 h-3.5" /> Región *
+              </label>
+              <select value={form.region} onChange={set('region')} className={inputClass}>
+                <option value="">Selecciona tu región</option>
+                {REGIONES.map((region) => (
+                  <option key={region} value={region}>
+                    {region}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ── Opcionales ── rotulados para que el usuario vea claramente que NO son
+                obligatorios y no abandone el formulario por "demasiados datos". */}
+            <div className="flex items-center gap-3 pt-1">
+              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                Opcional · puedes omitirlo
+              </span>
+              <span className="flex-1 h-px bg-slate-200" />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
+              <div>
+                <label className={labelClass}>
+                  <Mail className="w-3.5 h-3.5" /> Correo Electrónico
+                </label>
+                <input type="email" value={form.correo} onChange={set('correo')} placeholder="Ej: juan@gmail.com" className={inputClass} />
+              </div>
                 <div>
                   <label className={labelClass}>
-                    <Shield className="w-3.5 h-3.5" /> ¿Cual es tu sistema de salud actual? Isapre, Fonasa o ninguno (opcional)
+                    <Shield className="w-3.5 h-3.5" /> ¿Tu sistema de salud actual? (Isapre, Fonasa o ninguno)
                   </label>
                   <select value={form.planActual} onChange={set('planActual')} className={inputClass}>
                     <option value="">Selecciona tu sistema de salud actual</option>
@@ -292,9 +301,9 @@ export default function LeadCaptureForm({
                 </select>
               </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label className={labelClass}>
-                    <FileText className="w-3.5 h-3.5" /> Observaciones (opcional)
+                    <FileText className="w-3.5 h-3.5" /> Observaciones
                   </label>
                 <textarea
                   value={form.observaciones}

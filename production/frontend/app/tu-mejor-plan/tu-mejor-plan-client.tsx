@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, User, Users, Check, Zap, MapPin, Mail, Plus, X, TrendingDown, TrendingUp, Shield, Heart, Sparkles, Search, ChevronDown, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, User, Users, Check, Zap, MapPin, Plus, X, TrendingDown, TrendingUp, Shield, Heart, Sparkles, Search, ChevronDown, Loader2 } from 'lucide-react';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
 import type { LeadContextPlan } from '@/components/ui/lead-capture-form';
 import ContactOptions from '@/components/ui/contact-options';
@@ -133,7 +133,6 @@ export default function TuMejorPlanClient() {
   const [edad, setEdad] = useState('');
   const [ingreso, setIngreso] = useState('');
   const [region, setRegion] = useState('');
-  const [email, setEmail] = useState('');
 
   const [sexoPareja, setSexoPareja] = useState('femenino');
   const [edadPareja, setEdadPareja] = useState('');
@@ -727,10 +726,6 @@ export default function TuMejorPlanClient() {
                     <option value="loslagos">Los Lagos</option>
                     <option value="otra">Otra región</option>
                   </select>
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 mb-2"><Mail className="w-3.5 h-3.5" /> Email</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@email.com" className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/40 focus:border-[#14dcb4] transition-all" />
                 </div>
               </div>
 
