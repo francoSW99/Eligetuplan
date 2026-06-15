@@ -178,7 +178,10 @@ export async function getPlanes(q: PlansQuery = {}): Promise<PlansResponse> {
   if (q.sort) params.set("sort", q.sort);
 
   const res = await fetch(`${API_BASE}/api/v1/planes?${params}`, {
-    cache: "no-store",
+    // Cachear 5 min por combinación de filtros (la URL es la cache key). Los datos
+    // cambian ~2 veces al mes, así que la vista por defecto y cada filtro se sirven
+    // desde el edge de Vercel casi instantáneo tras la primera carga.
+    next: { revalidate: 300 },
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
