@@ -50,6 +50,27 @@ jobs:
           echo "----- summary.json -----"
           cat summary.json
 
+      - name: Invalidar caché del backend (freshness inmediata)
+        if: ${{ steps.sync.outputs.exit_code == '0' }}
+        env:
+          CACHE_FLUSH_TOKEN: ${{ secrets.CACHE_FLUSH_TOKEN }}
+        run: |
+          BASE="https://api.elige-tuplan.cl/api/v1"
+          if [ -z "$CACHE_FLUSH_TOKEN" ]; then
+            echo "⚠️ CACHE_FLUSH_TOKEN no configurado en Secrets; salto la invalidación." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Vaciar los cachés en memoria → el backend re-lee Supabase ya actualizado.
+          code=$(curl -s -o /tmp/flush.json -w "%{http_code}" -X POST \
+            -H "X-Admin-Token: $CACHE_FLUSH_TOKEN" --max-time 30 "$BASE/admin/flush-cache")
+          echo "flush-cache -> HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"
+          cat /tmp/flush.json 2>/dev/null || true; echo ""
+          # Re-calentar los cachés pesados para que el primer usuario no pague el rebuild.
+          for ep in "planes?limit=15" "isapres" "prestadores/v2" "zonas"; do
+            wc=$(curl -s -o /dev/null -w "%{http_code}" --max-time 40 "$BASE/$ep" || echo "000")
+            echo "  warm $ep -> $wc"
+          done
+
       - name: Resumen + aviso
         if: always()
         env:
