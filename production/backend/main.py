@@ -17,7 +17,7 @@ def _norm(s: Optional[str]) -> str:
     no_accents = "".join(c for c in nfkd if not unicodedata.combining(c))
     return no_accents.lower()
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -50,6 +50,10 @@ class _TTLCache:
     def invalidate(self, key: str):
         self._data.pop(key, None)
         self._times.pop(key, None)
+
+    def clear(self):
+        self._data.clear()
+        self._times.clear()
 
 
 # TTL de 30 min para los cachés de datos pesados: los planes cambian ~2 veces al
@@ -626,6 +630,46 @@ def read_root():
 @app.get("/api/v1/health")
 def health_check():
     return {"status": "ok"}
+
+
+def _flush_all_caches() -> dict:
+    """Vacía todos los cachés en memoria. Lo llama el workflow de sync tras
+    actualizar Supabase para que los cambios (precios, planes nuevos/eliminados)
+    se vean al instante, sin esperar el TTL de 30 min ni un redeploy."""
+    caches = {
+        "list_plans": _LIST_PLANS_CACHE,
+        "prices": _PRICES_CACHE,
+        "isapres": _ISAPRES_CACHE,
+        "zonas": _ZONAS_CACHE,
+        "prestadores": _PRESTADORES_CACHE,
+        "prestadores_v2": _PRESTADORES_V2_CACHE,
+        "match_plans": _MATCH_PLANS_CACHE,
+        "plan_items": _PLAN_ITEMS_CACHE,
+    }
+    cleared = []
+    for name, c in caches.items():
+        try:
+            c.clear()
+            cleared.append(name)
+        except Exception:
+            pass
+    # UF: forzar re-fetch en la próxima lectura (su caché es un dict aparte).
+    _uf_cache["ts"] = 0.0
+    cleared.append("uf")
+    return {"cleared": cleared}
+
+
+@app.post("/api/v1/admin/flush-cache")
+def flush_cache(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+    """Invalida los cachés en memoria. Protegido por token (env CACHE_FLUSH_TOKEN).
+    Lo usa el cron de sync para reflejar cambios de la base al instante. Si la env
+    var no está seteada, el endpoint queda DESHABILITADO (503) por seguridad."""
+    expected = os.getenv("CACHE_FLUSH_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="flush-cache deshabilitado (falta CACHE_FLUSH_TOKEN)")
+    if not x_admin_token or x_admin_token.strip() != expected:
+        raise HTTPException(status_code=401, detail="token invalido")
+    return {"ok": True, **_flush_all_caches()}
 
 @app.post("/api/v1/match-plan", response_model=list[PlanResponse])
 def match_plan(payload: MatchPlanRequest):
