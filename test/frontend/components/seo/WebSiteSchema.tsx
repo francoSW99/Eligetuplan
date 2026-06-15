@@ -7,7 +7,7 @@ export function WebSiteSchema() {
     potentialAction: {
       "@type": "SearchAction",
       target:
-        "https://www.elige-tuplan.cl/comparar/isapres?q={search_term_string}",
+        "https://www.elige-tuplan.cl/comparar/isapres?search={search_term_string}",
       "query-input": "required name=search_term_string",
     },
   };

@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/_next/", "/admin"],
+        disallow: ["/api/", "/admin"],
       },
     ],
     sitemap: "https://www.elige-tuplan.cl/sitemap.xml",

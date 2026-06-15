@@ -1,4 +1,19 @@
+import type { Metadata } from "next";
 import { HeartPulse, Search, ShieldCheck } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Cómo Funciona EligeTuPlan | Compara Isapres en 3 Pasos",
+  description:
+    "Conoce cómo EligeTuPlan compara planes de Isapre con datos oficiales, calcula opciones según tu perfil y te conecta con asesoría gratuita.",
+  alternates: { canonical: "https://www.elige-tuplan.cl/como-funciona" },
+  openGraph: {
+    title: "Cómo Funciona EligeTuPlan | Compara Isapres en 3 Pasos",
+    description:
+      "Compara planes de Isapre, revisa coberturas y recibe asesoría gratuita con datos oficiales.",
+    url: "https://www.elige-tuplan.cl/como-funciona",
+    type: "website",
+  },
+};
 
 export default function ComoFuncionaPage() {
   return (
