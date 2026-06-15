@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { getAllArticles, getArticleBySlug } from "@/lib/blog";
+import { getAllArticles, getArticleBySlug, getRelatedArticles } from "@/lib/blog";
 
 const SITE = "https://www.elige-tuplan.cl";
 
@@ -114,19 +114,38 @@ export default async function ArticlePage({
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
   };
 
+  // BreadcrumbList: ayuda a Google a entender la jerarquía Inicio > Blog > Artículo.
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE}/blog` },
+      { "@type": "ListItem", position: 3, name: article.title, item: url },
+    ],
+  };
+
+  const related = getRelatedArticles(slug, 3);
+
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
 
       <article className="mx-auto max-w-[760px] px-5 sm:px-6 lg:px-8 py-10 md:py-16">
         {/* Breadcrumb */}
-        <nav className="text-[12px] font-medium text-slate-400 flex items-center gap-1.5 mb-6" aria-label="Breadcrumb">
-          <Link href="/blog" className="inline-flex items-center gap-1 hover:text-[#0f9d8a] transition-colors no-underline">
-            <ArrowLeft className="w-3.5 h-3.5" /> Blog
-          </Link>
+        <nav className="text-[12px] font-medium text-slate-400 flex items-center gap-1.5 mb-6 flex-wrap" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-[#0f9d8a] transition-colors no-underline">Inicio</Link>
+          <span className="text-slate-300">/</span>
+          <Link href="/blog" className="hover:text-[#0f9d8a] transition-colors no-underline">Blog</Link>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-500 truncate max-w-[32ch]">{article.title}</span>
         </nav>
 
         {/* Header */}
@@ -183,6 +202,52 @@ export default async function ArticlePage({
           </div>
         </div>
       </article>
+
+      {related.length > 0 && (
+        <section className="mx-auto max-w-[1000px] px-5 sm:px-6 lg:px-8 pb-16 md:pb-24">
+          <h2 className="text-xl md:text-2xl font-bold text-[#0f514b] tracking-tight mb-6">Sigue leyendo</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {related.map((a) => (
+              <Link
+                key={a.slug}
+                href={`/blog/${a.slug}`}
+                className="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden no-underline"
+              >
+                {a.cover && (
+                  <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
+                    <Image
+                      src={a.cover}
+                      alt={a.title}
+                      fill
+                      className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, 320px"
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col flex-grow p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#14dcb4] bg-[#14dcb4]/10 px-2 py-0.5 rounded-full">
+                      {a.category}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                      <Clock className="w-3 h-3" /> {a.readingMinutes} min
+                    </span>
+                  </div>
+                  <h3 className="text-[16px] font-bold text-[#0f514b] leading-snug tracking-[-0.01em] mb-1.5 group-hover:text-[#0f9d8a] transition-colors line-clamp-2">
+                    {a.title}
+                  </h3>
+                  <p className="text-[13.5px] text-slate-600 leading-relaxed line-clamp-2 flex-grow">
+                    {a.description}
+                  </p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-[#0f9d8a]">
+                    Leer <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
