@@ -83,19 +83,32 @@ export default function IsapresClient({
   );
   const totalFactor = useMemo(() => getTotalFactor(beneficiarios), [beneficiarios]);
 
+  // Guarda la vista por defecto ya consultada EN VIVO, para no repetir la red al
+  // limpiar filtros (volver al default muestra datos frescos al instante).
+  const liveDefaultRef = useRef<PlansResponse | null>(null);
+
   // Filtrado en vivo: cuando cambia la URL (filtros/orden/página/beneficiarios) pedimos
-  // los planes al backend desde el navegador. La vista por defecto ya viene
-  // pre-renderizada (initialData), así que ahí no tocamos la red: reusamos el snapshot.
+  // los planes al backend desde el navegador.
   useEffect(() => {
-    if (isDefaultPlansView(search)) {
-      setData(initialData);
-      setIsFetching(false);
-      return;
-    }
-    const query = buildPlansQuery(search, beneficiarios);
     let cancelled = false;
+
+    if (isDefaultPlansView(search)) {
+      // Mostramos al instante lo mejor que tengamos: el snapshot pre-renderizado
+      // (la "foto") o los datos en vivo si ya los trajimos.
+      setData(liveDefaultRef.current ?? initialData);
+      setIsFetching(false);
+      // Y refrescamos la vista por defecto EN SILENCIO (sin spinner) una sola vez:
+      // el usuario ve la foto y, ~1s después, los datos reales del backend sin tocar nada.
+      if (liveDefaultRef.current) return;
+      getPlanes(buildPlansQuery(search, beneficiarios))
+        .then((res) => { if (!cancelled) { liveDefaultRef.current = res; setData(res); } })
+        .catch(() => { /* si falla, se queda con la foto */ });
+      return () => { cancelled = true; };
+    }
+
+    // Vista filtrada: pedimos al backend con indicador de carga visible.
     setIsFetching(true);
-    getPlanes(query)
+    getPlanes(buildPlansQuery(search, beneficiarios))
       .then((res) => { if (!cancelled) setData(res); })
       .catch(() => { /* si el backend falla, conservamos los datos previos */ })
       .finally(() => { if (!cancelled) setIsFetching(false); });
