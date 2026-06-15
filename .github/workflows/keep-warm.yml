@@ -1,0 +1,43 @@
+name: Keep-warm backend (anti cold-start)
+
+# Mantiene caliente el servicio de Cloud Run SIN pagar min-instances.
+# Cloud Run escala a cero tras ~15 min sin tráfico; un ping cada 5 min evita
+# que se apague durante el día → sin cold start de ~5-10s para los usuarios.
+#
+# Además golpea los endpoints PESADOS (no solo /health): los cachés del backend
+# tienen TTL de 30 min, así que dejamos que sea ESTE ping —y no un cliente real—
+# quien pague la reconstrucción de caché cuando expira.
+#
+# Gratis: repo público → GitHub Actions ilimitado; las peticiones entran en el
+# free tier de Cloud Run. No requiere secrets.
+#
+# Nota: GitHub deshabilita los cron tras 60 días SIN actividad en el repo (acá
+# hay desarrollo activo, así que no aplica). El cron es best-effort y puede
+# retrasarse algunos minutos bajo carga de GitHub; es tolerable para keep-warm.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'    # cada 5 minutos
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend (instancia viva + cachés calientes)
+        run: |
+          BASE="https://api.elige-tuplan.cl/api/v1"
+          # planes es el endpoint pesado (reconstruye la caché de ~2.000 planes);
+          # va primero para absorber el rebuild si la caché de 30 min expiró.
+          for ep in "planes?limit=15" "isapres" "prestadores/v2" "zonas" "health"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 40 "$BASE/$ep" || echo "000")
+            t=$(curl -s -o /dev/null -w "%{time_total}" --max-time 40 "$BASE/$ep" || echo "-")
+            echo "  $ep -> HTTP $code (${t}s)" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
