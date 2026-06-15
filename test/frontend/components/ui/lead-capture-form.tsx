@@ -10,6 +10,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Plus,
   Send,
   Shield,
   User,
@@ -96,6 +97,7 @@ export default function LeadCaptureForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [showOptional, setShowOptional] = useState(false);
 
   const set =
     (field: keyof FormData) =>
@@ -271,8 +273,29 @@ export default function LeadCaptureForm({
               </select>
             </div>
 
-            {/* ── Opcionales ── rotulados para que el usuario vea claramente que NO son
-                obligatorios y no abandone el formulario por "demasiados datos". */}
+            {/* Aviso: con los obligatorios ya alcanza para enviar. El usuario que no
+                scrollea no necesita abrir lo opcional para mandar el formulario. */}
+            <div className="flex items-center gap-2 rounded-xl bg-[#14dcb4]/8 border border-[#14dcb4]/20 px-3.5 py-2.5">
+              <CheckCircle className="w-4 h-4 text-[#14dcb4] shrink-0" />
+              <span className="text-[12.5px] font-semibold text-[#0f514b]">
+                Con esto ya puedes enviar tu solicitud.
+              </span>
+            </div>
+
+            {/* Opcionales COLAPSADOS por defecto: el formulario queda corto y el botón
+                Enviar aparece sin scrollear. El usuario que quiera, los despliega. */}
+            {!showOptional && (
+              <button
+                type="button"
+                onClick={() => setShowOptional(true)}
+                className="flex items-center gap-2 text-[13px] font-semibold text-[#0f9d8a] hover:text-[#0f514b] transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Agregar correo y más datos (opcional)
+              </button>
+            )}
+
+            {showOptional && (
+            <>
             <div className="flex items-center gap-3 pt-1">
               <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 Opcional · puedes omitirlo
@@ -314,6 +337,8 @@ export default function LeadCaptureForm({
                 />
               </div>
             </div>
+            </>
+            )}
 
             {error && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
