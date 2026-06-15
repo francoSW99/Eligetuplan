@@ -985,8 +985,11 @@ def _get_uf_value() -> int:
             return int(round(_uf_cache["value"]))
     return _UF_FALLBACK_CLP
 
-# Base URL para servir PDFs descargados
-PDF_BASE_URL = os.getenv("PDF_BASE_URL", "http://localhost:8000") + "/pdfs"
+# Base URL de los PDFs de planes. Se sirven desde la FUENTE (tu7.cl): Cloud Run es
+# efímero y no conserva los .cache locales, y tu7 entrega los PDF con Content-Type
+# application/pdf y SIN X-Frame-Options, así que se pueden incrustar en el iframe.
+# Override con PDF_BASE_URL si algún día se auto-hospedan (ej. Supabase Storage).
+PDF_BASE_URL = os.getenv("PDF_BASE_URL", "https://tu7.cl/pdf").rstrip("/")
 PRIORITY_ISAPRE_SLUG = "consalud"
 # Fallback hardcodeado al UUID de Consalud (override via env var si la BD cambia).
 PRIORITY_ISAPRE_ID = os.getenv(
