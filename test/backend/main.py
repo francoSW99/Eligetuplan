@@ -817,13 +817,17 @@ _uf_lock = threading.Lock()
 
 
 def _get_uf_value() -> int:
-    """Valor UF en CLP desde app_meta, cacheado 1h. Fallback al env var UF_VALUE_CLP."""
+    """Valor UF en CLP desde app_meta, cacheado 1h. Fallback al env var UF_VALUE_CLP.
+
+    El fallback NUNCA se cachea: si la lectura a app_meta falla o viene vacía,
+    se prefiere el último valor bueno conocido (aunque el cache haya expirado) y
+    recién como último recurso el fallback. Así una falla transitoria no deja la
+    instancia pegada en el valor de respaldo (bug que mostraba UF vieja en prod)."""
     now = time.time()
     with _uf_lock:
         if _uf_cache["ts"] > 0 and now - _uf_cache["ts"] < _UF_CACHE_TTL_S:
             return int(round(_uf_cache["value"]))
 
-    value = float(_UF_FALLBACK_CLP)
     if supabase:
         try:
             resp = (
@@ -835,14 +839,20 @@ def _get_uf_value() -> int:
             )
             if resp.data and resp.data[0].get("value"):
                 value = float(resp.data[0]["value"])
+                with _uf_lock:
+                    _uf_cache["value"] = value
+                    _uf_cache["ts"] = now
+                return int(round(value))
+            print("WARN [uf-resolver] app_meta.valor_uf vacío; usando ultimo valor/fallback sin cachear.")
         except Exception as e:
             print(f"WARN [uf-resolver] No se pudo leer app_meta.valor_uf: {e}. "
-                  f"Fallback ${_UF_FALLBACK_CLP}.")
+                  f"Usando ultimo valor/fallback sin cachear.")
 
+    # Sin lectura fresca: preferir el último valor bueno (aunque expirado) al fallback.
     with _uf_lock:
-        _uf_cache["value"] = value
-        _uf_cache["ts"] = now
-    return int(round(value))
+        if _uf_cache["ts"] > 0:
+            return int(round(_uf_cache["value"]))
+    return _UF_FALLBACK_CLP
 
 # Base URL para servir PDFs descargados
 PDF_BASE_URL = os.getenv("PDF_BASE_URL", "http://localhost:8000") + "/pdfs"
@@ -976,7 +986,9 @@ def get_meta():
             return None
 
     return MetaResponse(
-        valor_uf=_get_uf_value(),                       # cacheado, consistente con el scorer
+        # Preferir el valor del MISMO read fresco (data); _get_uf_value() solo como
+        # respaldo. Evita que la fecha salga fresca y la UF vieja (split-brain).
+        valor_uf=_as_int(data.get("valor_uf")) or _get_uf_value(),
         valor_uf_fecha=data.get("valor_uf_fecha"),
         total_planes=_as_int(data.get("total_planes")),
         last_update=data.get("last_sync"),
