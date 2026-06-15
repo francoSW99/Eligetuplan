@@ -43,7 +43,7 @@ export default function IsapresMarquee() {
           {marquee.map((i, idx) => (
             <a
               key={`${i.slug}-${idx}`}
-              href={`/comparar/isapres?isapre=${i.slug}`}
+              href={`/isapres/${i.slug}`}
               className="shrink-0 px-6 md:px-10 py-2 flex items-center justify-center transition-transform hover:scale-[1.08]"
               title={`${i.name} · ${i.planCount} planes`}
               aria-label={`${i.name}, ${i.planCount} planes`}

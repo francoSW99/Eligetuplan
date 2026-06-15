@@ -31,7 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
   const isapreRoutes = ISAPRES.map((slug) => ({
-    url: `${BASE}/comparar/isapres?isapre=${slug}`,
+    url: `${BASE}/isapres/${slug}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
     priority: 0.85,
