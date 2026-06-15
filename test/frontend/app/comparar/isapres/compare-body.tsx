@@ -1,93 +1,65 @@
 import { getIsapres, getPlanes, getZonas, getPrestadoresV2 } from '@/lib/api';
-import type { PlansQuery } from '@/lib/api';
-import { getTotalFactor, parseBeneficiarios } from '@/lib/factores';
-import PageHeader from '@/components/comparar/page-header';
+import type { PlansResponse } from '@/lib/api';
 import IsapresClient from './isapres-client';
 
-function parseIntParam(value?: string): number | undefined {
-  if (!value) return undefined;
-  const parsed = parseInt(value, 10);
-  return Number.isNaN(parsed) ? undefined : parsed;
-}
+const EMPTY_PLANS: PlansResponse = {
+  items: [],
+  total: 0,
+  page: 1,
+  limit: 15,
+  total_pages: 0,
+  price_min_clp: null,
+  price_max_clp: null,
+  price_histogram: [],
+};
 
-function parseFilters(
-  params: Record<string, string>,
-  sumaFactores: number,
-  numBeneficiarios: number
-): PlansQuery {
-  const q: PlansQuery = { limit: 15 };
-  if (params.isapre) q.isapre = params.isapre;
-  if (params.modalidad) q.modalidad = params.modalidad;
-  if (params.zona) q.zona = params.zona;
-  const precioMin = parseIntParam(params.precio_min_clp);
-  const precioMax = parseIntParam(params.precio_max_clp);
-  const coberturaHospMin = parseIntParam(params.cobertura_hosp_min);
-  const coberturaAmbMin = parseIntParam(params.cobertura_amb_min);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  // El 7% legal es un MARCADOR visual, no un filtro estricto. Cuando aplicar_tope_legal=true
-  // se ignora el precio_max_clp en el backend → muestra todos los planes. Las cards muestran
-  // "Pagas $X extra sobre tu 7%" en los que exceden.
-  // Si en cambio el usuario movió el slider de precio (sin 7%), respetamos el cap estricto.
-  const isLegalBudgetSoft = params.aplicar_tope_legal === 'true';
-
-  // Fórmula tu7: displayed = base × sumaF + ges × N. Para que displayed ≤ X →
-  // base ≤ (X - gesAvg × N) / sumaF. Usamos GES promedio aprox 0.7 UF ≈ 28k CLP.
-  const GES_AVG_CLP = 28_000;
-  if (sumaFactores > 0 && numBeneficiarios > 0) {
-    if (precioMin != null) {
-      q.precio_min_clp = Math.max(0, Math.round((precioMin - GES_AVG_CLP * numBeneficiarios) / sumaFactores));
+/**
+ * Tolerante a fallos transitorios del backend (Cloud Run puede arrancar en frío y
+ * devolver un 500/lento en la primera petición). Reintenta y, si todo falla, cae a un
+ * fallback en vez de abortar el build/ISR. ISR sirve la última versión buena mientras
+ * tanto, y el cliente vuelve a pedir datos en vivo al montar.
+ */
+async function withRetry<T>(fn: () => Promise<T>, fallback: T, tries = 3): Promise<T> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch {
+      if (i === tries - 1) return fallback;
+      await sleep(500 * (i + 1));
     }
-    if (precioMax != null && !isLegalBudgetSoft) {
-      q.precio_max_clp = Math.max(0, Math.round((precioMax - GES_AVG_CLP * numBeneficiarios) / sumaFactores));
-    }
-  } else {
-    if (precioMin != null) q.precio_min_clp = precioMin;
-    if (precioMax != null && !isLegalBudgetSoft) q.precio_max_clp = precioMax;
   }
-  if (coberturaHospMin != null) q.cobertura_hosp_min = coberturaHospMin;
-  if (coberturaAmbMin != null) q.cobertura_amb_min = coberturaAmbMin;
-  if (params.prestador) q.prestador = params.prestador;
-  if (params.prestador_ids) q.prestador_ids = params.prestador_ids;
-  if (params.con_parto) q.con_parto = params.con_parto === 'true';
-  if (params.search) q.search = params.search;
-  const page = parseIntParam(params.page);
-  if (page != null) q.page = page;
-  if (params.sort) q.sort = params.sort;
-  return q;
+  return fallback;
 }
 
-export default async function CompareBody({
-  params,
-}: {
-  params: Record<string, string>;
-}) {
-  const hasFilters = Object.keys(params).length > 0;
-  const beneficiarios = parseBeneficiarios(params.ben ?? null);
-  const totalFactor = getTotalFactor(beneficiarios);
-  const [isapres, zonas, prestadores, plans, totalsResp] = await Promise.all([
-    getIsapres(),
-    getZonas(),
-    getPrestadoresV2(),
-    getPlanes(parseFilters(params, totalFactor, beneficiarios.length)),
-    hasFilters ? getPlanes({ limit: 1 }) : Promise.resolve(null),
+/**
+ * Server Component ESTÁTICO (ISR). No lee searchParams → la ruta se pre-renderiza
+ * y se sirve desde el edge de Vercel (primera pintura instantánea, aunque el backend
+ * esté frío). Siempre renderiza la vista POR DEFECTO (sin filtros). El filtrado en
+ * vivo lo maneja IsapresClient consultando el backend desde el navegador.
+ *
+ * Frescura: la página se revalida según `revalidate` (ver page.tsx) y on-demand tras
+ * cada sync de planes; las interacciones (filtros/orden/página) siempre piden datos
+ * frescos al backend.
+ */
+export default async function CompareBody() {
+  const [isapres, zonas, prestadores, plans] = await Promise.all([
+    withRetry(() => getIsapres(), []),
+    withRetry(() => getZonas(), []),
+    withRetry(() => getPrestadoresV2(), []),
+    withRetry(() => getPlanes({ limit: 15 }), EMPTY_PLANS),
   ]);
 
-  const totalGlobal = totalsResp?.total ?? plans.total;
+  const totalGlobal = isapres.reduce((sum, i) => sum + i.plan_count, 0);
 
   return (
-    <>
-      <PageHeader
-        totalShowing={plans.items.length}
-        totalFiltered={plans.total}
-        totalGlobal={totalGlobal}
-      />
-
-      <IsapresClient
-        initialIsapres={isapres}
-        initialZonas={zonas}
-        initialPrestadores={prestadores}
-        initialData={plans}
-      />
-    </>
+    <IsapresClient
+      initialIsapres={isapres}
+      initialZonas={zonas}
+      initialPrestadores={prestadores}
+      initialData={plans}
+      totalGlobal={totalGlobal}
+    />
   );
 }
