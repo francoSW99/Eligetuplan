@@ -105,21 +105,8 @@ except Exception as e:
     print(f"Warning: Supabase client initialization failed. {e}")
     supabase = None
 
-
-@app.on_event("startup")
-def _warm_caches() -> None:
-    """Precalienta en background los cachés pesados (lista de planes + precios) para
-    que la primera request tras un deploy/restart no pague la reconstrucción de los
-    ~2.160 PlanListItem. Corre en daemon thread: no bloquea el arranque ni el health
-    check. Las funciones referenciadas se resuelven al ejecutarse (post-import)."""
-    def _warm() -> None:
-        try:
-            _get_cached_plan_items()
-            _get_cached_prices()
-            print("INFO [warmup] cachés de planes precalentados.")
-        except Exception as e:
-            print(f"WARN [warmup] no se pudo precalentar cachés: {e}")
-    threading.Thread(target=_warm, daemon=True).start()
+# Nota: el pre-warm de cachés al arranque vive en `_start_warm` (al final del archivo),
+# que precalienta TODOS los cachés en un daemon thread.
 
 # Pydantic models for request bodies
 class CargaInfo(BaseModel):
@@ -134,6 +121,10 @@ class MatchPlanRequest(BaseModel):
     preferred_region: Optional[str] = None
     isapre: Optional[str] = None
     current_price_uf: Optional[float] = None
+    # Base + GES del plan actual: si llegan, el backend valoriza el plan actual con la
+    # MISMA fórmula familiar (base × Σfactores + GES × N) para un ahorro comparable.
+    current_base_plan_uf: Optional[float] = None
+    current_ges_isapre_uf: Optional[float] = None
     current_hospital_coverage: Optional[float] = None
     current_ambulatory_coverage: Optional[float] = None
     preference: Optional[str] = "balanced"
@@ -168,6 +159,9 @@ class PlanResponse(BaseModel):
     match_score: float
     hospital_coverage: float
     ambulatory_coverage: float
+    # Desglose del precio personalizado: price_uf = base_plan_uf × suma_factores + ges × n_beneficiarios
+    suma_factores: Optional[float] = None
+    n_beneficiarios: Optional[int] = None
     savings_uf: Optional[float] = None
     savings_clp: Optional[int] = None
     savings_pct: Optional[float] = None
@@ -236,6 +230,56 @@ PREFERENCE_WEIGHTS: dict[str, dict[str, float]] = {
 }
 
 
+# Tabla de factores de riesgo tu7 (post-reforma 2020, unisex). (edad, tipo) → multiplicador.
+# Fuente de verdad compartida con el frontend (lib/factores.ts). Mantener en sync.
+_FACTORES_TABLE: list[tuple[int, int, float, float]] = [
+    (0, 1, 0.0, 0.0),
+    (2, 19, 0.6, 0.6),
+    (20, 24, 0.9, 0.7),
+    (25, 34, 1.0, 0.7),
+    (35, 44, 1.3, 0.9),
+    (45, 54, 1.4, 1.0),
+    (55, 64, 2.0, 1.4),
+    (65, 100, 2.4, 2.2),
+]
+
+
+def _factor_for(edad: Optional[int], tipo: str) -> float:
+    """Multiplicador de riesgo por edad y tipo ('cotizante' | 'carga')."""
+    if edad is None or edad < 0:
+        return 0.0
+    for lo, hi, cot, car in _FACTORES_TABLE:
+        if lo <= edad <= hi:
+            return cot if tipo == "cotizante" else car
+    # Edades > 100 caen en el último tramo (65-100).
+    return _FACTORES_TABLE[-1][2] if tipo == "cotizante" else _FACTORES_TABLE[-1][3]
+
+
+def _household_factors(payload: "MatchPlanRequest") -> tuple[float, int]:
+    """Σ factores y N° beneficiarios de un plan FAMILIAR compartido:
+    titular = cotizante, pareja = carga, cada carga = carga."""
+    suma = _factor_for(payload.age or 30, "cotizante")
+    n = 1
+    if (payload.tipo or "solo").strip().lower() == "pareja":
+        suma += _factor_for(payload.edad_pareja or 30, "carga")
+        n += 1
+    for c in (payload.cargas or []):
+        suma += _factor_for(c.edad or 10, "carga")
+        n += 1
+    return suma, n
+
+
+def _personalized_price_uf(plan: dict, suma_factores: float, n_benef: int) -> float:
+    """Precio REAL que pagaría la familia: base × Σfactores + GES × N. Fórmula tu7
+    (idéntica a calcularPrecioPlanUF del frontend). Fallback al price_uf crudo si
+    no hay base o si no hay factores (perfil vacío)."""
+    base = _safe_float(plan.get("base_plan_uf"), 0.0) or _safe_float(plan.get("price_uf"), 0.0)
+    ges = _safe_float(plan.get("ges_isapre_uf"), 0.0)
+    if suma_factores <= 0:
+        return _safe_float(plan.get("price_uf"), 0.0)
+    return base * suma_factores + ges * n_benef
+
+
 def _coverage_combined(plan: dict, payload: "MatchPlanRequest" = None) -> float:
     hosp = _safe_float(plan.get("hospital_coverage"), 0.0)
     amb = _safe_float(plan.get("ambulatory_coverage"), 0.0)
@@ -254,9 +298,10 @@ def _coverage_combined(plan: dict, payload: "MatchPlanRequest" = None) -> float:
     return hosp * h_weight + amb * a_weight
 
 
-def _value_ratio(plan: dict, payload: "MatchPlanRequest" = None) -> float:
-    price = _safe_float(plan.get("price_uf"), 0.0) or 0.01
-    return _coverage_combined(plan, payload) / price
+def _value_ratio(plan: dict, payload: "MatchPlanRequest" = None, price: Optional[float] = None) -> float:
+    p = price if price is not None else _safe_float(plan.get("price_uf"), 0.0)
+    p = p or 0.01
+    return _coverage_combined(plan, payload) / p
 
 
 def _percentile_rank(value: float, sorted_values: list[float], higher_is_better: bool = True) -> float:
@@ -309,14 +354,20 @@ def _score_plans_against_market(
     is_couple = tipo == "pareja"
     n_cargas = len(payload.cargas) if payload.cargas else 0
 
-    sorted_value = sorted(_value_ratio(p, payload) for p in plans)
+    # Precio REAL por familia: base × Σfactores + GES × N (fórmula tu7). El scoring y
+    # los percentiles se calculan sobre ESTE precio, no el crudo, para que la
+    # recomendación refleje lo que la persona realmente pagaría.
+    suma_factores, n_benef = _household_factors(payload)
+    priced = [(p, _personalized_price_uf(p, suma_factores, n_benef)) for p in plans]
+
+    sorted_value = sorted(_value_ratio(p, payload, pr) for p, pr in priced)
     sorted_coverage = sorted(_coverage_combined(p, payload) for p in plans)
-    sorted_price = sorted(_safe_float(p.get("price_uf"), 0.0) for p in plans)
+    sorted_price = sorted(pr for _, pr in priced)
     market_total = len(plans)
 
     out: list[dict] = []
-    for plan in plans:
-        price_uf = _safe_float(plan.get("price_uf"), 0.0) or 0.01
+    for plan, price_uf in priced:
+        price_uf = price_uf or 0.01
         hosp = _safe_float(plan.get("hospital_coverage"), 0.0)
         amb = _safe_float(plan.get("ambulatory_coverage"), 0.0)
         coverage_raw = _coverage_combined(plan, payload)
@@ -334,8 +385,8 @@ def _score_plans_against_market(
         # 2. Cobertura (con pesos adaptativos segun perfil)
         coverage = min(coverage_raw, 100.0)
 
-        # 3. Valor (percentil de cobertura/UF en el mercado)
-        value_pct = _percentile_rank(_value_ratio(plan, payload), sorted_value)
+        # 3. Valor (percentil de cobertura/UF en el mercado, con precio real)
+        value_pct = _percentile_rank(_value_ratio(plan, payload, price_uf), sorted_value)
 
         # 4. Extras (region + dependientes perfil-aware + edad/sexo)
         region = 50.0 + (50.0 if _has_region_match(plan, payload.preferred_region) else 0.0)
@@ -378,8 +429,8 @@ def _score_plans_against_market(
         # Reason tag
         reason_tag = _build_reason_tag(payload, plan, afford, coverage, price_uf, is_couple, n_cargas)
 
-        # Percentiles de mercado
-        market_pct_value = round(_percentile_rank(_value_ratio(plan, payload), sorted_value), 1)
+        # Percentiles de mercado (sobre el precio real personalizado)
+        market_pct_value = round(_percentile_rank(_value_ratio(plan, payload, price_uf), sorted_value), 1)
         market_pct_coverage = round(_percentile_rank(coverage_raw, sorted_coverage), 1)
         market_pct_price = round(_percentile_rank(price_uf, sorted_price, higher_is_better=False), 1)
 
@@ -395,6 +446,9 @@ def _score_plans_against_market(
             "plan": plan,
             "composite": composite,
             "breakdown": breakdown,
+            "personalized_price_uf": round(price_uf, 2),
+            "suma_factores": round(suma_factores, 2),
+            "n_beneficiarios": n_benef,
             "market_pct_value": market_pct_value,
             "market_pct_coverage": market_pct_coverage,
             "market_pct_price": market_pct_price,
@@ -493,7 +547,9 @@ def _build_plan_response(
       - score_breakdown: desglose del composite score por componente
     """
     isapre_data = plan.get("isapres") or {}
-    price = _safe_float(plan.get("price_uf"), 0.0)
+    # Precio personalizado (base × Σfactores + GES × N) si el scorer lo calculó;
+    # fallback al price_uf crudo. Es el precio real que se muestra y compara.
+    price = _safe_float((market_data or {}).get("personalized_price_uf"), 0.0) or _safe_float(plan.get("price_uf"), 0.0)
     hosp = _safe_float(plan.get("hospital_coverage"), 0.0)
     amb = _safe_float(plan.get("ambulatory_coverage"), 0.0)
 
@@ -548,6 +604,8 @@ def _build_plan_response(
         match_score=score,
         hospital_coverage=hosp,
         ambulatory_coverage=amb,
+        suma_factores=(market_data or {}).get("suma_factores"),
+        n_beneficiarios=(market_data or {}).get("n_beneficiarios"),
         savings_uf=savings_uf,
         savings_clp=savings_clp,
         savings_pct=savings_pct,
@@ -609,6 +667,15 @@ def match_plan(payload: MatchPlanRequest):
     if not plans:
         return _build_mock_plans()
 
+    # 0) Valorizar el plan ACTUAL con la MISMA fórmula familiar (base × Σfactores +
+    #    GES × N) si llegaron base+GES. Así el ahorro compara precio real vs precio
+    #    real. Si solo llegó current_price_uf (entrada manual), se usa tal cual.
+    if payload.current_base_plan_uf and payload.current_base_plan_uf > 0:
+        _suma, _n = _household_factors(payload)
+        payload.current_price_uf = round(
+            payload.current_base_plan_uf * _suma + (payload.current_ges_isapre_uf or 0.0) * _n, 2
+        )
+
     # 1) Scorear todo el mercado (necesario para que los percentiles sean reales)
     scored_market = _score_plans_against_market(plans, payload)
 
@@ -646,12 +713,12 @@ def match_plan(payload: MatchPlanRequest):
     if preference == "savings" and payload.current_price_uf and payload.current_price_uf > 0:
         cheaper = [
             item for item in target_pool
-            if _safe_float(item["plan"].get("price_uf"), 99.0) < payload.current_price_uf
+            if _safe_float(item.get("personalized_price_uf"), 99.0) < payload.current_price_uf
         ]
         print(
             f"DEBUG [match-plan] savings filter: current_price_uf={payload.current_price_uf} "
             f"pool_before={len(target_pool)} cheaper={len(cheaper)} "
-            f"cheaper_prices={[_safe_float(i['plan'].get('price_uf'), 99.0) for i in cheaper[:5]]}"
+            f"cheaper_prices={[_safe_float(i.get('personalized_price_uf'), 99.0) for i in cheaper[:5]]}"
         )
         target_pool = cheaper if cheaper else full_consalud_pool
         if not cheaper:
@@ -685,7 +752,7 @@ def match_plan(payload: MatchPlanRequest):
 
     if preference == "savings":
         target_pool.sort(key=lambda x: (
-            _safe_float(x["plan"].get("price_uf"), 99.0),
+            _safe_float(x.get("personalized_price_uf"), 99.0),
             -x["composite"],
         ))
     elif preference == "coverage":
@@ -697,7 +764,7 @@ def match_plan(payload: MatchPlanRequest):
         target_pool.sort(key=lambda x: -x["composite"])
 
     if target_pool:
-        top_price = _safe_float(target_pool[0]["plan"].get("price_uf"), 99.0)
+        top_price = _safe_float(target_pool[0].get("personalized_price_uf"), 99.0)
         print(
             f"DEBUG [match-plan] After sort (preference={preference}): "
             f"top_plan={target_pool[0]['plan'].get('name', '?')} "
@@ -706,9 +773,10 @@ def match_plan(payload: MatchPlanRequest):
         )
 
     # 6) Sanity check post-orden — log si el contrato no se cumple
-    top = target_pool[0]["plan"] if target_pool else None
+    top_item = target_pool[0] if target_pool else None
+    top = top_item["plan"] if top_item else None
     if top and preference == "savings" and payload.current_price_uf:
-        top_price = _safe_float(top.get("price_uf"), 99.0)
+        top_price = _safe_float(top_item.get("personalized_price_uf"), 99.0)
         if top_price >= payload.current_price_uf:
             print(
                 f"WARN [match-plan] preference=savings pero top_price={top_price} >= "
@@ -1789,6 +1857,8 @@ class PlanAutocompleteItem(BaseModel):
     name: str
     codigo_plan: Optional[str] = None
     price_uf: float
+    base_plan_uf: Optional[float] = None
+    ges_isapre_uf: Optional[float] = None
     hospital_coverage: Optional[float] = None
     ambulatory_coverage: Optional[float] = None
     modalidad: Optional[str] = None
@@ -1819,7 +1889,7 @@ def plans_autocomplete(
 
     query = (
         supabase.table("planes")
-        .select("id,name,codigo_plan,price_uf,hospital_coverage,ambulatory_coverage,modalidad")
+        .select("id,name,codigo_plan,price_uf,base_plan_uf,ges_isapre_uf,hospital_coverage,ambulatory_coverage,modalidad")
         .eq("isapre_id", isapre_id)
         .eq("tu7_activo", True)
     )
@@ -1838,6 +1908,8 @@ def plans_autocomplete(
             name=str(r.get("name", "")),
             codigo_plan=r.get("codigo_plan"),
             price_uf=_safe_float(r.get("price_uf"), 0.0),
+            base_plan_uf=_safe_float(r.get("base_plan_uf"), 0.0) or None,
+            ges_isapre_uf=_safe_float(r.get("ges_isapre_uf"), 0.0) or None,
             hospital_coverage=r.get("hospital_coverage"),
             ambulatory_coverage=r.get("ambulatory_coverage"),
             modalidad=r.get("modalidad"),

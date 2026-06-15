@@ -643,7 +643,6 @@ export default function IsapresClient({
 
   return (
     <section className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10 py-4 sm:py-5 md:py-6">
-      <h1 className="sr-only">Compara planes de isapre</h1>
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-4 sm:gap-6 lg:gap-8">
         {/* ─── Desktop sidebar ─── */}
