@@ -121,7 +121,7 @@ export function FeaturedPlans({
           href={compareHref}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 px-5 py-3 text-sm font-bold text-[#0f514b] no-underline hover:bg-[#14dcb4]/10"
         >
-          Ver filtros completos <ArrowRight className="h-4 w-4" />
+          Abrir comparador con filtros <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 

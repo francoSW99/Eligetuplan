@@ -28,8 +28,8 @@ export async function generateMetadata({
   const info = ISAPRE_LANDING_INFO[slug];
   if (!info) return {};
 
-  const title = `Planes ${info.name}: Compara Precios y Coberturas`;
-  const description = `${info.description} Datos oficiales, comparador gratuito y enlace al sitio oficial de ${info.name}.`;
+  const title = `Planes ${info.name}: Precios, Coberturas y Sitio Oficial`;
+  const description = `${info.description} Revisa planes destacados, criterios de comparación y el sitio oficial de ${info.name} para validar información institucional.`;
   const url = `${BASE}/isapres/${info.slug}`;
 
   return {
@@ -126,16 +126,16 @@ export default async function IsapreLandingPage({
   const waMessage = `Hola, quiero cotizar o comparar planes ${info.name}.`;
   const faqs = [
     {
-      question: `Donde puedo comparar planes ${info.name}?`,
-      answer: `En EligeTuPlan puedes comparar planes ${info.name} por precio, cobertura, modalidad y red de atencion, y luego revisar el detalle en el sitio oficial de la Isapre.`,
+      question: `¿Dónde puedo comparar planes ${info.name}?`,
+      answer: `En EligeTuPlan puedes comparar planes ${info.name} por precio, cobertura, modalidad y red de atención, y luego revisar el detalle en el sitio oficial de la Isapre.`,
     },
     {
-      question: `Cual es el sitio oficial de ${info.name}?`,
-      answer: `El sitio oficial de ${info.name} es ${info.officialLabel}. Incluimos ese enlace para que puedas validar informacion institucional directamente con la Isapre.`,
+      question: `¿Cuál es el sitio oficial de ${info.name}?`,
+      answer: `El sitio oficial de ${info.name} es ${info.officialLabel}. Incluimos ese enlace para que puedas validar información institucional directamente con la Isapre.`,
     },
     {
-      question: `Puedo cotizar ${info.name} online?`,
-      answer: "Si. Puedes revisar planes, comparar opciones y pedir asesoria gratuita por WhatsApp o formulario.",
+      question: `¿Puedo cotizar ${info.name} online?`,
+      answer: "Sí. Puedes revisar planes, comparar opciones y pedir asesoría gratuita por WhatsApp o formulario.",
     },
   ];
 
@@ -166,14 +166,14 @@ export default async function IsapreLandingPage({
                 <span className="text-white">{info.name}</span>
               </nav>
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#14dcb4]/35 bg-[#14dcb4]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#14dcb4]">
-                <CheckCircle className="h-3.5 w-3.5" /> Landing piloto SEO
+                <CheckCircle className="h-3.5 w-3.5" /> Isapre y sitio oficial
               </div>
               <h1 className="max-w-3xl text-[34px] font-extrabold leading-[1.05] sm:text-[48px]">
-                Planes {info.name}: compara precios y coberturas
+                Planes {info.name}: precios, coberturas y sitio oficial
               </h1>
               <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/80 sm:text-[18px]">
-                {info.description} Calcula si calzan con tu 7%, revisa opciones destacadas y
-                valida informacion institucional en su sitio oficial.
+                Esta página concentra planes destacados de {info.name}, datos referenciales del
+                comparador y acceso a su sitio oficial para validar información institucional.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -181,7 +181,7 @@ export default async function IsapreLandingPage({
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
                 >
-                  Comparar planes {info.name} <ArrowRight className="h-5 w-5" />
+                  Ver planes {info.name} en el comparador <ArrowRight className="h-5 w-5" />
                 </Link>
                 <WhatsAppCTA source="asesor_isapre" message={waMessage} label="Cotizar por WhatsApp" />
               </div>
@@ -221,7 +221,7 @@ export default async function IsapreLandingPage({
                   <dd className="mt-1 text-2xl font-extrabold">{formatCLP(meta.ufValueCLP)}</dd>
                 </div>
                 <div className="col-span-2 rounded-xl bg-white/10 p-4">
-                  <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Actualizacion</dt>
+                  <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Actualización</dt>
                   <dd className="mt-1 text-base font-bold">{meta.lastUpdate}</dd>
                 </div>
               </dl>
@@ -233,21 +233,21 @@ export default async function IsapreLandingPage({
           <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
-                Vista rapida
+                Vista rápida
               </p>
               <h2 className="text-2xl font-extrabold text-[#0f514b] sm:text-3xl">
                 Planes {info.name} destacados
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-                Muestra inicial ordenada por precio base. Para filtros completos, calculo de 7%
-                y clinicas, entra al comparador filtrado.
+                Muestra inicial ordenada por precio base. Para filtros completos, cálculo de 7%
+                y clínicas, entra al comparador filtrado.
               </p>
             </div>
             <Link
               href={`/comparar/isapres?isapre=${info.slug}`}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 px-5 py-3 text-sm font-bold text-[#0f514b] no-underline hover:bg-[#14dcb4]/10"
             >
-              Ver todos <ArrowRight className="h-4 w-4" />
+              Ver todos los planes {info.name} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -273,11 +273,11 @@ export default async function IsapreLandingPage({
                 Fuente institucional
               </p>
               <h2 className="text-2xl font-extrabold leading-tight text-[#0f514b] sm:text-3xl">
-                Tambien enlazamos al sitio oficial
+                También enlazamos al sitio oficial
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-600">
                 Esta landing ayuda a comparar planes con una mirada comercial y de usuario. Para
-                informacion institucional, canales oficiales y documentos propios de la Isapre,
+                información institucional, canales oficiales y documentos propios de la Isapre,
                 puedes validar directamente en {info.officialLabel}.
               </p>
             </div>
@@ -325,10 +325,10 @@ export default async function IsapreLandingPage({
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div>
               <ShieldCheck className="mb-3 h-7 w-7 text-[#14dcb4]" />
-              <h2 className="text-2xl font-extrabold sm:text-3xl">Quieres revisar un plan {info.name}?</h2>
+              <h2 className="text-2xl font-extrabold sm:text-3xl">¿Quieres revisar un plan {info.name}?</h2>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">
                 Compara por tu cuenta o escribe a un asesor para revisar precio, cobertura y si
-                conviene segun tu perfil.
+                conviene según tu perfil.
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -336,7 +336,7 @@ export default async function IsapreLandingPage({
                 href={`/comparar/isapres?isapre=${info.slug}`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0f514b] no-underline hover:bg-white/90"
               >
-                Comparar ahora <ArrowRight className="h-5 w-5" />
+                Comparar planes {info.name} <ArrowRight className="h-5 w-5" />
               </Link>
               <WhatsAppCTA source="asesor_isapre" message={waMessage} label="Hablar con asesor" />
             </div>

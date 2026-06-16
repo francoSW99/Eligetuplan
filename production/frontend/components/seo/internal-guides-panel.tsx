@@ -9,7 +9,7 @@ type GuideLink = {
 
 const DEFAULT_GUIDES: GuideLink[] = [
   {
-    title: "Comparar planes de Isapre",
+    title: "Cómo comparar planes de Isapre",
     href: "/comparar-planes-isapre",
     description: "Guía principal para ordenar precio, cobertura, red y modalidad antes de cotizar.",
   },
@@ -59,7 +59,7 @@ export function InternalGuidesPanel({
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
-              Interlinking útil
+              Guías relacionadas
             </p>
             <h2 className="text-2xl font-extrabold text-[#0f514b] sm:text-3xl">{title}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">{description}</p>
@@ -82,7 +82,7 @@ export function InternalGuidesPanel({
               <h3 className="font-extrabold leading-tight">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
               <span className="mt-4 inline-flex items-center gap-2 text-[13px] font-bold text-[#0f514b]">
-                Revisar guía
+                Leer guía relacionada
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
             </Link>

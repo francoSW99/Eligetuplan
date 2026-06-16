@@ -246,8 +246,8 @@ export default async function ProfileLandingPage({
         <OfficialSourcesPanel />
 
         <InternalGuidesPanel
-          title="Otras formas de comparar planes de Isapre"
-          description="Cruza esta guía con otras rutas según presupuesto, grupo familiar o decisión de cambio para tomar una decisión más completa."
+          title="Más guías según perfil y etapa de vida"
+          description="Compara esta búsqueda con otras rutas por presupuesto, grupo familiar o decisión de cambio antes de cotizar."
           currentHref={`/planes-isapre/${landing.slug}`}
         />
 
@@ -269,7 +269,7 @@ export default async function ProfileLandingPage({
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div>
               <Icon className="mb-3 h-7 w-7 text-[#14dcb4]" />
-              <h2 className="text-2xl font-extrabold sm:text-3xl">Quieres revisar este caso con datos reales?</h2>
+              <h2 className="text-2xl font-extrabold sm:text-3xl">¿Quieres revisar este caso con datos reales?</h2>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/72">
                 Entra al comparador o habla con un asesor para cruzar precio, cobertura, red y tu situación.
               </p>
@@ -279,7 +279,7 @@ export default async function ProfileLandingPage({
                 href="/comparar/isapres"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0f514b] no-underline hover:bg-white/90"
               >
-                Comparar planes <ArrowRight className="h-5 w-5" />
+                Usar comparador con filtros <ArrowRight className="h-5 w-5" />
               </Link>
               <WhatsAppCTA
                 source="asesor_isapre"

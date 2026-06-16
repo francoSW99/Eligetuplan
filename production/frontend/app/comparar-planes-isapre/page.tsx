@@ -13,14 +13,14 @@ import { HOME_SEO_GUIDES, SECONDARY_SEO_GUIDES } from "@/lib/seo-landings";
 const URL = "https://www.elige-tuplan.cl/comparar-planes-isapre";
 
 export const metadata: Metadata = {
-  title: "Comparar Planes de Isapre | Precios y Coberturas",
+  title: "Cómo Comparar Planes de Isapre | Guía de Precios y Coberturas",
   description:
-    "Compara planes de Isapre por precio, cobertura, clínicas, modalidad y presupuesto. Revisa más de 2.000 planes y cotiza gratis.",
+    "Guía para comparar planes de Isapre antes de cotizar: precio en UF, 7%, coberturas, red, modalidad, topes y documentos oficiales.",
   alternates: { canonical: URL },
   openGraph: {
-    title: "Comparar Planes de Isapre | Precios y Coberturas",
+    title: "Cómo Comparar Planes de Isapre | Guía de Precios y Coberturas",
     description:
-      "Compara planes de Isapre con datos oficiales y pide asesoría gratuita para elegir mejor.",
+      "Ordena precio, cobertura, red, modalidad y fuentes oficiales antes de usar el comparador.",
     url: URL,
     type: "website",
   },
@@ -107,23 +107,23 @@ export default async function CompararPlanesIsaprePage() {
   return (
     <>
       <ServiceSchema
-        name="Comparador de planes de Isapre"
-        description="Comparación gratuita de planes de Isapre por precio, cobertura, red y perfil del usuario."
+        name="Guía para comparar planes de Isapre"
+        description="Guía de decisión para revisar precio, cobertura, red, modalidad y fuentes oficiales antes de cotizar un plan de Isapre."
         url={URL}
       />
       <FAQPageSchema
         items={FAQS}
-        name="Preguntas frecuentes sobre comparar planes de Isapre"
+        name="Preguntas frecuentes de la guía para comparar planes de Isapre"
         url={URL}
       />
       <BreadcrumbSchema
         items={[
           { name: "Inicio", url: "https://www.elige-tuplan.cl" },
-          { name: "Comparar planes de Isapre", url: URL },
+          { name: "Guía para comparar planes de Isapre", url: URL },
         ]}
       />
       <ItemListSchema
-        name="Rutas relacionadas para comparar planes de Isapre"
+        name="Guías por perfil relacionadas con la comparación de planes"
         url={URL}
         items={related.slice(0, 6).map((item) => ({
           name: item.title,
@@ -139,18 +139,19 @@ export default async function CompararPlanesIsaprePage() {
               <nav className="mb-6 text-sm font-medium text-white/60">
                 <Link href="/" className="no-underline hover:text-white">Inicio</Link>
                 <span className="mx-2">/</span>
-                <span className="text-white">Comparar planes</span>
+                <span className="text-white">Guía para comparar</span>
               </nav>
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#14dcb4]/35 bg-[#14dcb4]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#14dcb4]">
                 <CheckCircle className="h-3.5 w-3.5" />
-                Guía principal
+                Guía de decisión
               </div>
               <h1 className="max-w-3xl text-[34px] font-extrabold leading-[1.04] tracking-tight sm:text-[50px]">
-                Comparar planes de Isapre sin perderte entre precios y coberturas
+                Cómo comparar planes de Isapre antes de cotizar
               </h1>
               <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/82 sm:text-[18px]">
-                Ordena la decisión por lo que importa: valor mensual, cobertura, red, topes y
-                clínicas. Después puedes entrar al comparador completo o pedir asesoría gratuita.
+                Usa esta guía para ordenar precio en UF, 7%, cobertura, red, topes, modalidad y
+                fuentes oficiales. Cuando tengas claros tus criterios, puedes abrir el comparador
+                completo o pedir orientación gratuita.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -158,12 +159,12 @@ export default async function CompararPlanesIsaprePage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
                 >
-                  Abrir comparador <ArrowRight className="h-5 w-5" />
+                  Usar comparador de planes Isapre <ArrowRight className="h-5 w-5" />
                 </Link>
                 <WhatsAppCTA
                   source="comparar"
                   message="Hola, quiero comparar planes de Isapre y necesito orientación."
-                  label="Pedir asesoría"
+                  label="Pedir orientación"
                 />
               </div>
             </div>
@@ -199,8 +200,8 @@ export default async function CompararPlanesIsaprePage() {
         />
 
         <FeaturedPlans
-          title="Planes de muestra desde el catálogo"
-          description="Muestra inicial ordenada por precio base. Entra al comparador para filtrar por Isapre, cobertura, clínica, modalidad y presupuesto."
+          title="Planes de muestra para aplicar la guía"
+          description="Ejemplos iniciales ordenados por precio base. La decisión final se revisa con filtros de Isapre, cobertura, clínica, modalidad y presupuesto."
           plans={data.plans}
           compareHref="/comparar/isapres"
         />
@@ -244,7 +245,7 @@ export default async function CompararPlanesIsaprePage() {
                 href="/planes-isapre"
                 className="inline-flex items-center gap-2 text-sm font-bold text-[#0f514b] no-underline hover:text-[#0f9d8a]"
               >
-                Ver hub completo <ArrowRight className="h-4 w-4" />
+                Ver guías por perfil <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

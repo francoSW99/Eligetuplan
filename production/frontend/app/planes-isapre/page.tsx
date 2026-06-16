@@ -21,14 +21,14 @@ import { ALL_SEO_GUIDES, type GuideIcon } from "@/lib/seo-landings";
 const URL = "https://www.elige-tuplan.cl/planes-isapre";
 
 export const metadata: Metadata = {
-  title: "Planes de Isapre en Chile | Guías para Comparar",
+  title: "Planes de Isapre por Perfil | Guías para Elegir Mejor",
   description:
-    "Encuentra guías para comparar planes de Isapre por perfil, etapa de vida y decisión: familia, embarazo, independientes, jóvenes, Fonasa e Isapre.",
+    "Encuentra guías de planes de Isapre por perfil y necesidad: familias, embarazo, independientes, jóvenes, adultos mayores, cambio desde Fonasa y cambio de Isapre.",
   alternates: { canonical: URL },
   openGraph: {
-    title: "Planes de Isapre en Chile | Guías para Comparar",
+    title: "Planes de Isapre por Perfil | Guías para Elegir Mejor",
     description:
-      "Guías públicas para comparar planes de Isapre según tu necesidad y cotizar con asesoría gratuita.",
+      "Guías públicas para revisar planes de Isapre según perfil, etapa de vida, presupuesto o decisión de cambio.",
     url: URL,
     type: "website",
   },
@@ -80,8 +80,8 @@ export default async function PlanesIsapreHubPage() {
   return (
     <>
       <ServiceSchema
-        name="Guías para comparar planes de Isapre"
-        description="Hub de guías para comparar planes de Isapre por perfil, etapa de vida y necesidad comercial."
+        name="Guías de planes de Isapre por perfil"
+        description="Centro de guías para revisar planes de Isapre según perfil, etapa de vida, presupuesto o decisión de cambio."
         url={URL}
       />
       <BreadcrumbSchema
@@ -91,7 +91,7 @@ export default async function PlanesIsapreHubPage() {
         ]}
       />
       <ItemListSchema
-        name="Guías para comparar planes de Isapre"
+        name="Guías de planes de Isapre por perfil"
         url={URL}
         items={ALL_SEO_GUIDES.map((guide) => ({
           name: guide.title,
@@ -110,14 +110,14 @@ export default async function PlanesIsapreHubPage() {
             </nav>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#14dcb4]/35 bg-[#14dcb4]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#14dcb4]">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Hub beta SEO
+              Guías por perfil
             </div>
             <h1 className="max-w-4xl text-[34px] font-extrabold leading-[1.04] tracking-tight sm:text-[50px]">
-              Planes de Isapre: guías para comparar según tu caso
+              Planes de Isapre por perfil, etapa de vida y necesidad
             </h1>
             <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/82 sm:text-[18px]">
-              No todos buscan lo mismo. Estas guías ayudan a ordenar la decisión por perfil,
-              presupuesto, cargas, etapa de vida y cambio de sistema.
+              No todos comparan desde el mismo punto de partida. Estas guías ordenan la búsqueda
+              según familia, embarazo, presupuesto, edad, cargas o cambio de sistema.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -125,13 +125,13 @@ export default async function PlanesIsapreHubPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                 style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
               >
-                Ir al comparador <ArrowRight className="h-5 w-5" />
+                Abrir comparador completo <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
                 href="/comparar-planes-isapre"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-7 py-4 text-base font-bold text-white no-underline transition-all hover:bg-white/15"
               >
-                Ver guía principal
+                Leer guía para comparar
               </Link>
             </div>
           </div>
@@ -149,10 +149,10 @@ export default async function PlanesIsapreHubPage() {
         <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
           <div className="mb-9 max-w-2xl">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
-              Todas las entradas
+              Guías por intención
             </p>
             <h2 className="text-2xl font-extrabold text-[#0f514b] sm:text-3xl">
-              Elige el camino que más se parece a tu búsqueda
+              Elige la guía que calza con tu búsqueda
             </h2>
           </div>
 
@@ -194,22 +194,22 @@ export default async function PlanesIsapreHubPage() {
           <div className="mx-auto grid max-w-6xl gap-8 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-10">
             <div>
               <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
-                Para SEO y conversión
+                Mapa de decisión
               </p>
               <h2 className="text-2xl font-extrabold leading-tight text-[#0f514b] sm:text-3xl">
-                Estas páginas no viven escondidas
+                Cada ruta responde una necesidad distinta
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-600">
-                Funcionan como contenido útil para Google y como accesos reales dentro de la app.
-                Si una persona llega desde una búsqueda o desde la home, debe poder comparar,
-                entender y cotizar sin fricción.
+                Este centro ordena las búsquedas para que no tengas que partir siempre desde cero.
+                Puedes revisar una guía por perfil, pasar a la guía principal o abrir el comparador
+                cuando ya tengas claro qué filtros usar.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {[
-                ["SEO", "URLs claras y contenido específico."],
-                ["Ads", "Mejor match entre anuncio y landing."],
-                ["UX", "Accesos por necesidad real del cliente."],
+                ["Perfil", "Familia, embarazo, independientes, jóvenes y adultos mayores."],
+                ["Decisión", "Cambio de Isapre o paso desde Fonasa."],
+                ["Comparador", "Cuando tengas criterios claros, filtra planes reales."],
               ].map(([title, desc]) => (
                 <div key={title} className="rounded-[8px] border border-slate-200 bg-[#fbf8f3] p-5">
                   <h3 className="font-extrabold text-[#0f514b]">{title}</h3>

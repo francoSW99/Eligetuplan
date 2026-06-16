@@ -15,14 +15,14 @@ const CONSALUD_SLUG = "consalud";
 const CONSALUD_INFO = ISAPRE_LANDING_INFO.consalud;
 
 export const metadata: Metadata = {
-  title: "Planes Consalud: Compara Precios, Coberturas y Clinicas",
+  title: "Planes Consalud: Precios, Coberturas y Sitio Oficial",
   description:
-    "Compara planes Consalud vigentes por precio en UF, cobertura hospitalaria y ambulatoria, modalidad y clinicas. Datos oficiales y asesoria gratuita.",
+    "Revisa planes Consalud vigentes por precio en UF, cobertura hospitalaria y ambulatoria, modalidad, clínicas y sitio oficial para validar información institucional.",
   alternates: { canonical: URL },
   openGraph: {
-    title: "Planes Consalud: Compara Precios, Coberturas y Clinicas",
+    title: "Planes Consalud: Precios, Coberturas y Sitio Oficial",
     description:
-      "Revisa planes Consalud, calcula si calzan con tu 7% y cotiza con asesoria gratuita.",
+      "Revisa planes Consalud, criterios de comparación y el sitio oficial para validar información institucional.",
     url: URL,
     type: "website",
   },
@@ -30,19 +30,19 @@ export const metadata: Metadata = {
 
 const FAQS = [
   {
-    question: "Donde puedo comparar planes Consalud?",
+    question: "¿Dónde puedo comparar planes Consalud?",
     answer:
-      "En EligeTuPlan puedes revisar planes Consalud vigentes, comparar precios en UF, cobertura hospitalaria, cobertura ambulatoria, modalidad y clinicas asociadas.",
+      "En EligeTuPlan puedes revisar planes Consalud vigentes, comparar precios en UF, cobertura hospitalaria, cobertura ambulatoria, modalidad y clínicas asociadas.",
   },
   {
-    question: "Cuanto cuesta un plan Consalud?",
+    question: "¿Cuánto cuesta un plan Consalud?",
     answer:
-      "El precio depende del plan, la UF del dia, tu edad, tus cargas y el GES. En esta pagina mostramos precios base referenciales y puedes usar el comparador para calcular opciones segun tu 7%.",
+      "El precio depende del plan, la UF del día, tu edad, tus cargas y el GES. En esta página mostramos precios base referenciales y puedes usar el comparador para calcular opciones según tu 7%.",
   },
   {
-    question: "Puedo cotizar un plan Consalud online?",
+    question: "¿Puedo cotizar un plan Consalud online?",
     answer:
-      "Si. Puedes comparar planes en linea y luego solicitar asesoria gratuita por WhatsApp o formulario para revisar tu caso antes de contratar.",
+      "Sí. Puedes comparar planes en línea y luego solicitar asesoría gratuita por WhatsApp o formulario para revisar tu caso antes de contratar.",
   },
   {
     question: "Los datos de planes Consalud son oficiales?",
@@ -161,11 +161,11 @@ export default async function ConsaludLandingPage() {
                 <CheckCircle className="h-3.5 w-3.5" /> Datos de planes vigentes
               </div>
               <h1 className="max-w-3xl text-[34px] font-extrabold leading-[1.05] sm:text-[48px]">
-                Planes Consalud: compara precios, coberturas y clinicas
+                Planes Consalud: precios, coberturas y sitio oficial
               </h1>
               <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/80 sm:text-[18px]">
-                Revisa planes Consalud vigentes, compara su precio en UF, cobertura hospitalaria
-                y ambulatoria, modalidad y calcula si calzan con tu 7%. Todo en un solo lugar.
+                Revisa planes Consalud vigentes, compara precio en UF, cobertura hospitalaria y
+                ambulatoria, modalidad y accede al sitio oficial para validar información institucional.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -173,7 +173,7 @@ export default async function ConsaludLandingPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
                 >
-                  Comparar planes Consalud <ArrowRight className="h-5 w-5" />
+                  Ver planes Consalud en el comparador <ArrowRight className="h-5 w-5" />
                 </Link>
                 <WhatsAppCTA source="asesor_isapre" message={waMessage} label="Cotizar por WhatsApp" />
               </div>
@@ -213,7 +213,7 @@ export default async function ConsaludLandingPage() {
                   <dd className="mt-1 text-2xl font-extrabold">{formatCLP(meta.ufValueCLP)}</dd>
                 </div>
                 <div className="col-span-2 rounded-xl bg-white/10 p-4">
-                  <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Actualizacion</dt>
+                  <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Actualización</dt>
                   <dd className="mt-1 text-base font-bold">{meta.lastUpdate}</dd>
                 </div>
               </dl>
@@ -224,9 +224,9 @@ export default async function ConsaludLandingPage() {
         <section className="border-b border-slate-200 bg-white">
           <div className="mx-auto grid max-w-6xl gap-4 px-5 py-8 sm:grid-cols-3 sm:px-6 lg:px-10">
             {[
-              { icon: Search, title: "Compara precio y cobertura", text: "Filtra planes Consalud por UF, modalidad, cobertura y clinicas." },
+              { icon: Search, title: "Compara precio y cobertura", text: "Filtra planes Consalud por UF, modalidad, cobertura y clínicas." },
               { icon: ShieldCheck, title: "Calcula tu 7%", text: "Usa tu sueldo imponible para saber que planes calzan con tu presupuesto." },
-              { icon: Stethoscope, title: "Cotiza con asesoria", text: "Un asesor te ayuda a revisar el plan antes de avanzar." },
+              { icon: Stethoscope, title: "Cotiza con asesoría", text: "Un asesor te ayuda a revisar el plan antes de avanzar." },
             ].map((item) => (
               <div key={item.title} className="flex gap-4 rounded-2xl border border-slate-200 bg-[#f8fafc] p-5">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#14dcb4]/12 text-[#0f9d8a]">
@@ -245,21 +245,21 @@ export default async function ConsaludLandingPage() {
           <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f9d8a]">
-                Vista rapida
+                Vista rápida
               </p>
               <h2 className="text-2xl font-extrabold text-[#0f514b] sm:text-3xl">
                 Planes Consalud destacados
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
                 Estos son algunos planes Consalud ordenados por precio base. Para calcular tu
-                precio exacto segun beneficiarios, cargas y 7%, entra al comparador.
+                precio exacto según beneficiarios, cargas y 7%, entra al comparador.
               </p>
             </div>
             <Link
               href="/comparar/isapres?isapre=consalud"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 px-5 py-3 text-sm font-bold text-[#0f514b] no-underline hover:bg-[#14dcb4]/10"
             >
-              Ver todos <ArrowRight className="h-4 w-4" />
+              Ver todos los planes Consalud <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -272,7 +272,7 @@ export default async function ConsaludLandingPage() {
               <FileText className="mx-auto mb-3 h-8 w-8 text-[#14dcb4]" />
               <h3 className="text-lg font-extrabold text-[#0f514b]">No pudimos cargar los planes en este momento</h3>
               <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
-                La landing igual queda disponible para SEO. Cuando el backend este activo, esta seccion mostrara planes Consalud reales.
+                Cuando el backend esté activo, esta sección mostrará planes Consalud reales desde el comparador.
               </p>
             </div>
           )}
@@ -285,7 +285,7 @@ export default async function ConsaludLandingPage() {
                 Antes de contratar
               </p>
               <h2 className="text-2xl font-extrabold leading-tight text-[#0f514b] sm:text-3xl">
-                Que mirar en un plan Consalud
+                Qué mirar en un plan Consalud
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-600">
                 El precio no lo es todo. Dos planes con un valor parecido pueden tener redes,
@@ -297,8 +297,8 @@ export default async function ConsaludLandingPage() {
               {[
                 "Precio base en UF y GES de la Isapre",
                 "Cobertura hospitalaria y ambulatoria",
-                "Clinicas o prestadores preferentes",
-                "Modalidad: preferente, libre eleccion o cerrado",
+                "Clínicas o prestadores preferentes",
+                "Modalidad: preferente, libre elección o cerrado",
                 "Cobertura con parto si aplica a tu perfil",
                 "Si el precio final calza con tu 7%",
               ].map((text) => (
@@ -335,12 +335,12 @@ export default async function ConsaludLandingPage() {
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div>
               <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#14dcb4]">
-                Cotizacion gratuita
+                Cotización gratuita
               </p>
-              <h2 className="text-2xl font-extrabold sm:text-3xl">Quieres revisar un plan Consalud?</h2>
+              <h2 className="text-2xl font-extrabold sm:text-3xl">¿Quieres revisar un plan Consalud?</h2>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">
                 Compara por tu cuenta o escribe a un asesor para revisar precio, cobertura y si
-                conviene segun tu perfil.
+                conviene según tu perfil.
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -348,7 +348,7 @@ export default async function ConsaludLandingPage() {
                 href="/comparar/isapres?isapre=consalud"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0f514b] no-underline hover:bg-white/90"
               >
-                Comparar ahora <ArrowRight className="h-5 w-5" />
+                Comparar planes Consalud <ArrowRight className="h-5 w-5" />
               </Link>
               <WhatsAppCTA source="asesor_isapre" message={waMessage} label="Hablar con asesor" />
             </div>
