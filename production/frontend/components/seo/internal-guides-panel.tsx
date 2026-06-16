@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import type { SeoLandingSource } from "@/lib/analytics";
+import { TrackedSeoLink } from "@/components/seo/tracked-seo-link";
 
 type GuideLink = {
   title: string;
@@ -45,11 +46,13 @@ export function InternalGuidesPanel({
   description = "Estas rutas conectan las búsquedas más comunes con el comparador y ayudan a revisar el plan desde más de un ángulo.",
   currentHref,
   items = DEFAULT_GUIDES,
+  trackingSource = "seo_panel",
 }: {
   title?: string;
   description?: string;
   currentHref?: string;
   items?: GuideLink[];
+  trackingSource?: SeoLandingSource;
 }) {
   const links = items.filter((item) => item.href !== currentHref).slice(0, 6);
 
@@ -64,19 +67,23 @@ export function InternalGuidesPanel({
             <h2 className="text-2xl font-extrabold text-[#0f514b] sm:text-3xl">{title}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">{description}</p>
           </div>
-          <Link
+          <TrackedSeoLink
             href="/planes-isapre"
+            source={trackingSource}
+            label="Ver todas las guías"
             className="inline-flex items-center gap-2 text-sm font-bold text-[#0f514b] no-underline hover:text-[#0f9d8a]"
           >
             Ver todas las guías <ArrowRight className="h-4 w-4" />
-          </Link>
+          </TrackedSeoLink>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {links.map((item) => (
-            <Link
+            <TrackedSeoLink
               key={item.href}
               href={item.href}
+              source={trackingSource}
+              label={item.title}
               className="group rounded-[8px] border border-slate-200 bg-white p-5 text-[#0f514b] no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#14dcb4]/45 hover:shadow-md"
             >
               <h3 className="font-extrabold leading-tight">{item.title}</h3>
@@ -85,7 +92,7 @@ export function InternalGuidesPanel({
                 Leer guía relacionada
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
-            </Link>
+            </TrackedSeoLink>
           ))}
         </div>
       </div>

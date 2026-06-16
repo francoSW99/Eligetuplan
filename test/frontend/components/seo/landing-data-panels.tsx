@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, FileText, ShieldCheck } from "lucide-react";
 import { formatCLP, formatUF, type Isapre, type Plan, type SiteMeta } from "@/lib/api";
 import { ISAPRE_LANDING_INFO } from "@/lib/isapre-landings";
+import { TrackedSeoLink } from "@/components/seo/tracked-seo-link";
+import type { SeoLandingSource } from "@/lib/analytics";
 
 type MarketSnapshotProps = {
   meta: SiteMeta;
@@ -101,11 +103,13 @@ export function FeaturedPlans({
   description,
   plans,
   compareHref,
+  trackingSource = "seo_landing",
 }: {
   title: string;
   description: string;
   plans: Plan[];
   compareHref: string;
+  trackingSource?: SeoLandingSource;
 }) {
   return (
     <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
@@ -117,12 +121,14 @@ export function FeaturedPlans({
           <h2 className="text-2xl font-extrabold text-[#0f514b] sm:text-3xl">{title}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">{description}</p>
         </div>
-        <Link
+        <TrackedSeoLink
           href={compareHref}
+          source={trackingSource}
+          label="Abrir comparador con filtros"
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 px-5 py-3 text-sm font-bold text-[#0f514b] no-underline hover:bg-[#14dcb4]/10"
         >
           Abrir comparador con filtros <ArrowRight className="h-4 w-4" />
-        </Link>
+        </TrackedSeoLink>
       </div>
 
       {plans.length ? (

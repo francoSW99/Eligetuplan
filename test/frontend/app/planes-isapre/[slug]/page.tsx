@@ -17,6 +17,7 @@ import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
 import { InternalGuidesPanel } from "@/components/seo/internal-guides-panel";
 import { FeaturedPlans, MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
+import { TrackedSeoLink } from "@/components/seo/tracked-seo-link";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
 import { getIsapres, getPlanes, getSiteMeta, type Isapre, type Plan, type PlansResponse } from "@/lib/api";
 import {
@@ -153,13 +154,15 @@ export default async function ProfileLandingPage({
                 {landing.description}
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
+                <TrackedSeoLink
                   href="/comparar/isapres"
+                  source="profile_landing"
+                  label={landing.cta}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
                 >
                   {landing.cta} <ArrowRight className="h-5 w-5" />
-                </Link>
+                </TrackedSeoLink>
                 <WhatsAppCTA
                   source="asesor_isapre"
                   message={landing.whatsappMessage}
@@ -199,6 +202,7 @@ export default async function ProfileLandingPage({
           description={landing.planQuery.description}
           plans={data.plans}
           compareHref={landing.planQuery.compareHref}
+          trackingSource="profile_landing"
         />
 
         <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
@@ -249,6 +253,7 @@ export default async function ProfileLandingPage({
           title="Más guías según perfil y etapa de vida"
           description="Compara esta búsqueda con otras rutas por presupuesto, grupo familiar o decisión de cambio antes de cotizar."
           currentHref={`/planes-isapre/${landing.slug}`}
+          trackingSource="profile_landing"
         />
 
         <section className="mx-auto max-w-3xl px-6 py-16">
@@ -275,12 +280,14 @@ export default async function ProfileLandingPage({
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Link
+              <TrackedSeoLink
                 href="/comparar/isapres"
+                source="profile_landing"
+                label="Usar comparador con filtros"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0f514b] no-underline hover:bg-white/90"
               >
                 Usar comparador con filtros <ArrowRight className="h-5 w-5" />
-              </Link>
+              </TrackedSeoLink>
               <WhatsAppCTA
                 source="asesor_isapre"
                 message={landing.whatsappMessage}

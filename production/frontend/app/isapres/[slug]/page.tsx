@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle, ExternalLink, FileText, ShieldCheck } from "lu
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
 import { InternalGuidesPanel } from "@/components/seo/internal-guides-panel";
+import { TrackedSeoLink } from "@/components/seo/tracked-seo-link";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
 import { getIsapres, getPlanes, getSiteMeta, type Plan } from "@/lib/api";
 import { formatCLP, formatUF } from "@/lib/api";
@@ -176,13 +177,15 @@ export default async function IsapreLandingPage({
                 comparador y acceso a su sitio oficial para validar información institucional.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
+                <TrackedSeoLink
                   href={`/comparar/isapres?isapre=${info.slug}`}
+                  source="isapre_landing"
+                  label={`Ver planes ${info.name} en el comparador`}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
                 >
                   Ver planes {info.name} en el comparador <ArrowRight className="h-5 w-5" />
-                </Link>
+                </TrackedSeoLink>
                 <WhatsAppCTA source="asesor_isapre" message={waMessage} label="Cotizar por WhatsApp" />
               </div>
             </div>
@@ -243,12 +246,14 @@ export default async function IsapreLandingPage({
                 y clínicas, entra al comparador filtrado.
               </p>
             </div>
-            <Link
+            <TrackedSeoLink
               href={`/comparar/isapres?isapre=${info.slug}`}
+              source="isapre_landing"
+              label={`Ver todos los planes ${info.name}`}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 px-5 py-3 text-sm font-bold text-[#0f514b] no-underline hover:bg-[#14dcb4]/10"
             >
               Ver todos los planes {info.name} <ArrowRight className="h-4 w-4" />
-            </Link>
+            </TrackedSeoLink>
           </div>
 
           {plans.length ? (
@@ -305,6 +310,7 @@ export default async function IsapreLandingPage({
           title={`Guías relacionadas para comparar ${info.name}`}
           description={`Si estás revisando ${info.name}, también puede servirte comparar por perfil, presupuesto o etapa de vida antes de cotizar.`}
           currentHref={`/isapres/${info.slug}`}
+          trackingSource="isapre_landing"
         />
 
         <section className="mx-auto max-w-4xl px-5 py-16 sm:px-6 lg:px-10">
@@ -332,12 +338,14 @@ export default async function IsapreLandingPage({
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Link
+              <TrackedSeoLink
                 href={`/comparar/isapres?isapre=${info.slug}`}
+                source="isapre_landing"
+                label={`Comparar planes ${info.name}`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-base font-bold text-[#0f514b] no-underline hover:bg-white/90"
               >
                 Comparar planes {info.name} <ArrowRight className="h-5 w-5" />
-              </Link>
+              </TrackedSeoLink>
               <WhatsAppCTA source="asesor_isapre" message={waMessage} label="Hablar con asesor" />
             </div>
           </div>

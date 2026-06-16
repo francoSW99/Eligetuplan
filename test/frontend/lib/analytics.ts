@@ -14,6 +14,14 @@ export type LeadSource =
   | "cambiar_isapre"
   | "fonasa_isapre";
 
+export type SeoLandingSource =
+  | "seo_landing"
+  | "guide_landing"
+  | "seo_hub"
+  | "profile_landing"
+  | "isapre_landing"
+  | "seo_panel";
+
 export const track = {
   whatsappClick: (source: LeadSource) =>
     sendGAEvent("event", "whatsapp_click", { source, lead_value: 1 }),
@@ -48,6 +56,21 @@ export const track = {
 
   comparadorClick: (source: LeadSource) =>
     sendGAEvent("event", "comparador_click", { source }),
+
+  seoLandingClick: ({
+    source,
+    target,
+    label,
+  }: {
+    source: SeoLandingSource;
+    target: string;
+    label: string;
+  }) =>
+    sendGAEvent("event", "seo_landing_click", {
+      source,
+      target,
+      label,
+    }),
 
   formSubmit: (formType: "asesor" | "buscar" | "newsletter") =>
     sendGAEvent("event", "form_submit", { form_type: formType, lead_value: 1 }),

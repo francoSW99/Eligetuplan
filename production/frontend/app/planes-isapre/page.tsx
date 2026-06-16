@@ -15,6 +15,7 @@ import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ItemListSchema } from "@/components/seo/ItemListSchema";
 import { MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
+import { TrackedSeoLink } from "@/components/seo/tracked-seo-link";
 import { getIsapres, getPlanes, getSiteMeta, type Isapre, type PlansResponse } from "@/lib/api";
 import { ALL_SEO_GUIDES, type GuideIcon } from "@/lib/seo-landings";
 
@@ -120,19 +121,23 @@ export default async function PlanesIsapreHubPage() {
               según familia, embarazo, presupuesto, edad, cargas o cambio de sistema.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
+              <TrackedSeoLink
                 href="/comparar/isapres"
+                source="seo_hub"
+                label="Abrir comparador completo"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                 style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
               >
                 Abrir comparador completo <ArrowRight className="h-5 w-5" />
-              </Link>
-              <Link
+              </TrackedSeoLink>
+              <TrackedSeoLink
                 href="/comparar-planes-isapre"
+                source="seo_hub"
+                label="Leer guía para comparar"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-7 py-4 text-base font-bold text-white no-underline transition-all hover:bg-white/15"
               >
                 Leer guía para comparar
-              </Link>
+              </TrackedSeoLink>
             </div>
           </div>
         </section>
@@ -161,9 +166,11 @@ export default async function PlanesIsapreHubPage() {
               const Icon = ICONS[guide.icon];
 
               return (
-                <Link
+                <TrackedSeoLink
                   key={guide.href}
                   href={guide.href}
+                  source="seo_hub"
+                  label={guide.title}
                   className="group flex min-h-[238px] flex-col rounded-[8px] border border-slate-200 bg-white p-5 text-[#1e2a2a] no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#14dcb4]/45 hover:shadow-md"
                 >
                   <div className="mb-5 flex items-start justify-between gap-4">
@@ -182,7 +189,7 @@ export default async function PlanesIsapreHubPage() {
                     {guide.cta}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </span>
-                </Link>
+                </TrackedSeoLink>
               );
             })}
           </div>

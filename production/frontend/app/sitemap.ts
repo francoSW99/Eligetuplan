@@ -3,6 +3,7 @@ import { getAllArticles } from "@/lib/blog";
 import { PROFILE_LANDING_SLUGS } from "@/lib/seo-landings";
 import { ISAPRE_LANDING_SLUGS } from "@/lib/isapre-landings";
 import {
+  SITE_CONTENT_LAST_MODIFIED,
   SITE_URL,
   STATIC_SITEMAP_ROUTES,
   UTILITY_ROUTES,
@@ -10,12 +11,12 @@ import {
 } from "@/lib/site-routes";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  const fallbackLastModified = new Date(SITE_CONTENT_LAST_MODIFIED);
 
   const staticRoutes = [...STATIC_SITEMAP_ROUTES, ...UTILITY_ROUTES].map(
-    ({ path, priority, changeFrequency }) => ({
+    ({ path, priority, changeFrequency, lastModified }) => ({
       url: absoluteUrl(path),
-      lastModified: now,
+      lastModified: lastModified ? new Date(lastModified) : fallbackLastModified,
       changeFrequency,
       priority,
     })
@@ -23,21 +24,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const isapreRoutes = ISAPRE_LANDING_SLUGS.map((slug) => ({
     url: `${SITE_URL}/isapres/${slug}`,
-    lastModified: now,
+    lastModified: fallbackLastModified,
     changeFrequency: "weekly" as const,
     priority: 0.85,
   }));
 
   const profileRoutes = PROFILE_LANDING_SLUGS.map((slug) => ({
     url: `${SITE_URL}/planes-isapre/${slug}`,
-    lastModified: now,
+    lastModified: fallbackLastModified,
     changeFrequency: "weekly" as const,
     priority: 0.82,
   }));
 
   const blogRoutes = getAllArticles().map((a) => ({
     url: `${SITE_URL}/blog/${a.slug}`,
-    lastModified: a.date ? new Date(a.date + "T00:00:00") : now,
+    lastModified: a.date ? new Date(a.date + "T00:00:00") : fallbackLastModified,
     changeFrequency: "monthly" as const,
     priority: 0.7,
   }));

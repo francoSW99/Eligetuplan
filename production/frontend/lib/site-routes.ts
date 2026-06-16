@@ -1,8 +1,10 @@
 export const SITE_URL = "https://www.elige-tuplan.cl";
+export const SITE_CONTENT_LAST_MODIFIED = "2026-06-16T00:00:00-04:00";
 
 export type SitemapRoute = {
   path: string;
   priority: number;
+  lastModified?: string;
   changeFrequency:
     | "always"
     | "hourly"

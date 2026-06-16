@@ -6,6 +6,7 @@ import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
 import { ItemListSchema } from "@/components/seo/ItemListSchema";
 import { FeaturedPlans, MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
+import { TrackedSeoLink } from "@/components/seo/tracked-seo-link";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
 import { getIsapres, getPlanes, getSiteMeta, type Isapre, type Plan, type PlansResponse } from "@/lib/api";
 import { HOME_SEO_GUIDES, SECONDARY_SEO_GUIDES } from "@/lib/seo-landings";
@@ -154,13 +155,15 @@ export default async function CompararPlanesIsaprePage() {
                 completo o pedir orientación gratuita.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
+                <TrackedSeoLink
                   href="/comparar/isapres"
+                  source="guide_landing"
+                  label="Usar comparador de planes Isapre"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-base font-bold text-white no-underline shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: "linear-gradient(135deg, #14dcb4, #0f9d8a)" }}
                 >
                   Usar comparador de planes Isapre <ArrowRight className="h-5 w-5" />
-                </Link>
+                </TrackedSeoLink>
                 <WhatsAppCTA
                   source="comparar"
                   message="Hola, quiero comparar planes de Isapre y necesito orientación."
@@ -204,6 +207,7 @@ export default async function CompararPlanesIsaprePage() {
           description="Ejemplos iniciales ordenados por precio base. La decisión final se revisa con filtros de Isapre, cobertura, clínica, modalidad y presupuesto."
           plans={data.plans}
           compareHref="/comparar/isapres"
+          trackingSource="guide_landing"
         />
 
         <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10">
@@ -241,12 +245,14 @@ export default async function CompararPlanesIsaprePage() {
                   También puedes comparar por perfil
                 </h2>
               </div>
-              <Link
+              <TrackedSeoLink
                 href="/planes-isapre"
+                source="guide_landing"
+                label="Ver guías por perfil"
                 className="inline-flex items-center gap-2 text-sm font-bold text-[#0f514b] no-underline hover:text-[#0f9d8a]"
               >
                 Ver guías por perfil <ArrowRight className="h-4 w-4" />
-              </Link>
+              </TrackedSeoLink>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {related.slice(0, 6).map((item) => (
