@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { ItemListSchema } from "@/components/seo/ItemListSchema";
 import { MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
 import { getIsapres, getPlanes, getSiteMeta, type Isapre, type PlansResponse } from "@/lib/api";
@@ -88,6 +89,15 @@ export default async function PlanesIsapreHubPage() {
           { name: "Inicio", url: "https://www.elige-tuplan.cl" },
           { name: "Planes de Isapre", url: URL },
         ]}
+      />
+      <ItemListSchema
+        name="Guías para comparar planes de Isapre"
+        url={URL}
+        items={ALL_SEO_GUIDES.map((guide) => ({
+          name: guide.title,
+          url: `https://www.elige-tuplan.cl${guide.href}`,
+          description: guide.description,
+        }))}
       />
 
       <main className="bg-[#fbf8f3] text-[#1e2a2a]">

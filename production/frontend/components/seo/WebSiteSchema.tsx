@@ -1,20 +1,23 @@
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = "https://www.elige-tuplan.cl";
+
 export function WebSiteSchema() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${SITE_URL}#website`,
     name: "EligeTuPlan",
-    url: "https://www.elige-tuplan.cl",
+    url: SITE_URL,
+    inLanguage: "es-CL",
+    publisher: { "@id": `${SITE_URL}#organization` },
     potentialAction: {
       "@type": "SearchAction",
       target:
-        "https://www.elige-tuplan.cl/comparar/isapres?search={search_term_string}",
+        `${SITE_URL}/comparar/isapres?search={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+
+  return <JsonLd data={schema} />;
 }

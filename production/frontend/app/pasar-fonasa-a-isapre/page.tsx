@@ -72,7 +72,7 @@ const FAQS = [
   {
     question: "¿Cuánto cuesta que me asesoren?",
     answer:
-      "Nada. La asesoría es 100% gratuita. Recibimos una comisión regulada de la Isapre solo si decides contratar, lo que no afecta el precio de tu plan.",
+      "Nada. Puedes evaluar alternativas y pedir orientación sin costo para ti. Antes de contratar, valida siempre precio final, documentos y condiciones directamente con la Isapre correspondiente.",
   },
 ];
 
@@ -86,7 +86,11 @@ export default function PasarFonasaIsaprePage() {
         description="Comparamos Fonasa e Isapre con datos reales y calculamos qué planes alcanzas con tu 7%, sin costo y sin presión por contratar."
         url={URL}
       />
-      <FAQPageSchema items={FAQS} />
+      <FAQPageSchema
+        items={FAQS}
+        name="Preguntas frecuentes sobre pasar de Fonasa a Isapre"
+        url={URL}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Inicio", url: "https://www.elige-tuplan.cl" },

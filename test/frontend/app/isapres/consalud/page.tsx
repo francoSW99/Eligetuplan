@@ -140,7 +140,11 @@ export default async function ConsaludLandingPage() {
           { name: "Consalud", url: URL },
         ]}
       />
-      <FAQPageSchema items={FAQS} />
+      <FAQPageSchema
+        items={FAQS}
+        name="Preguntas frecuentes sobre planes Consalud"
+        url={URL}
+      />
 
       <main className="bg-[#fbf8f3] text-[#1e2a2a]">
         <section className="bg-[#0f514b] text-white">

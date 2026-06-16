@@ -96,9 +96,9 @@ export default function CompararIsapresPage() {
               te muestra el plan que mejor calza con tu perfil.
             </p>
             <p>
-              Comparar es <strong>100% gratis</strong>: cobramos una comisión regulada directamente a
-              la Isapre, así que el precio final de tu plan no cambia. ¿Tienes dudas sobre cómo
-              cambiarte o qué cubre cada plan? Revisa nuestras{' '}
+              Comparar es <strong>sin costo para ti</strong>. Antes de contratar, valida siempre
+              precio final, documentos y condiciones directamente con la Isapre correspondiente.
+              ¿Tienes dudas sobre cómo cambiarte o qué cubre cada plan? Revisa nuestras{' '}
               <Link href="/faq" className="text-[#0f9d8a] font-semibold hover:underline no-underline">
                 preguntas frecuentes
               </Link>{' '}

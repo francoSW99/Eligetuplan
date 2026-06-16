@@ -89,7 +89,7 @@ export const STEPS = [
 export const FAQS = [
   {
     q: "¿Es realmente 100% gratuito?",
-    a: "Sí, completamente gratis para ti. Recibimos una comisión estándar regulada por ley directamente de las Isapres, lo que no afecta el precio final de tu plan.",
+    a: "Sí. Puedes comparar planes y pedir orientación sin costo para ti. Antes de contratar, valida siempre precio final, documentos y condiciones directamente con la Isapre correspondiente.",
   },
   {
     q: "¿Cómo calculan el puntaje de los planes?",

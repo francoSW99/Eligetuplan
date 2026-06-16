@@ -118,7 +118,11 @@ export default async function ProfileLandingPage({
         description={landing.metaDescription}
         url={url}
       />
-      <FAQPageSchema items={landing.faqs} />
+      <FAQPageSchema
+        items={landing.faqs}
+        name={`Preguntas frecuentes sobre ${landing.title}`}
+        url={url}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Inicio", url: BASE },

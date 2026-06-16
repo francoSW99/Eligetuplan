@@ -176,7 +176,11 @@ export default async function QuienesSomosPage() {
           { name: "Metodología y preguntas frecuentes", url: "https://www.elige-tuplan.cl/faq" },
         ]}
       />
-      <FAQPageSchema items={FAQS.map((f) => ({ question: f.q, answer: f.a }))} />
+      <FAQPageSchema
+        items={FAQS.map((f) => ({ question: f.q, answer: f.a }))}
+        name="Preguntas frecuentes sobre metodología y fuentes de EligeTuPlan"
+        url="https://www.elige-tuplan.cl/faq"
+      />
 
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0f514b] to-[#092e2a] text-white">
         <div

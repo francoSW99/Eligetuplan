@@ -1,9 +1,12 @@
+import { JsonLd } from "@/components/seo/JsonLd";
+
 type Crumb = { name: string; url: string };
 
 export function BreadcrumbSchema({ items }: { items: Crumb[] }) {
   const schema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
+    "@id": `${items[items.length - 1]?.url ?? "https://www.elige-tuplan.cl"}#breadcrumb`,
     itemListElement: items.map((item, i) => ({
       "@type": "ListItem",
       position: i + 1,
@@ -11,10 +14,6 @@ export function BreadcrumbSchema({ items }: { items: Crumb[] }) {
       item: item.url,
     })),
   };
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+
+  return <JsonLd data={schema} />;
 }

@@ -27,7 +27,7 @@ const FAQS = [
   {
     question: "¿Cuánto cuesta la asesoría?",
     answer:
-      "Nada. El servicio es 100% gratuito para ti. Recibimos una comisión estándar regulada por ley directamente de la Isapre cuando contratas, lo que no cambia el precio de tu plan.",
+      "Nada. Puedes pedir orientación sin costo para ti. Antes de contratar, valida siempre precio final, documentos y condiciones directamente con la Isapre correspondiente.",
   },
   {
     question: "¿En cuánto tiempo me contactan?",
@@ -75,7 +75,7 @@ const DIFERENCIADORES = [
   "Sin spam ni llamadas no solicitadas: tú eliges cómo te contactamos",
   "Calculadora del 7% sin pedirte email ni datos",
   "Atención por WhatsApp, directo con una persona",
-  "100% gratis: cobramos comisión a la Isapre, no a ti",
+  "Puedes comparar y pedir orientación sin costo para ti",
 ];
 
 const WA_MESSAGE = "Hola, quiero asesoría gratuita para elegir mi plan de Isapre.";
@@ -88,7 +88,11 @@ export default function AsesorIsaprePage() {
         description="Asesor certificado que compara las 7 Isapres con datos oficiales de la Superintendencia y te acompaña hasta la firma, sin costo."
         url={URL}
       />
-      <FAQPageSchema items={FAQS} />
+      <FAQPageSchema
+        items={FAQS}
+        name="Preguntas frecuentes sobre asesoría Isapre"
+        url={URL}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Inicio", url: "https://www.elige-tuplan.cl" },

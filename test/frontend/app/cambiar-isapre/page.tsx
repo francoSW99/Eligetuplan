@@ -78,7 +78,7 @@ const FAQS = [
   {
     question: "¿Tiene costo cambiarse con ustedes?",
     answer:
-      "No, es 100% gratis. Recibimos una comisión regulada de la Isapre cuando contratas, lo que no afecta el precio de tu plan.",
+      "No. Puedes revisar alternativas y pedir orientación sin costo para ti. Antes de contratar, valida siempre precio final, documentos y condiciones directamente con la Isapre correspondiente.",
   },
 ];
 
@@ -92,7 +92,11 @@ export default function CambiarIsaprePage() {
         description="Te acompañamos paso a paso para cambiarte de Isapre sin perder cobertura, comparando más de 2.000 planes con datos oficiales. Sin costo."
         url={URL}
       />
-      <FAQPageSchema items={FAQS} />
+      <FAQPageSchema
+        items={FAQS}
+        name="Preguntas frecuentes sobre cambiarse de Isapre"
+        url={URL}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Inicio", url: "https://www.elige-tuplan.cl" },

@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { Clock, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ArticleSchema } from "@/components/seo/ArticleSchema";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { getAllArticles, getArticleBySlug, getRelatedArticles } from "@/lib/blog";
 
 const SITE = "https://www.elige-tuplan.cl";
@@ -97,45 +99,29 @@ export default async function ArticlePage({
   if (!article) notFound();
 
   const url = `${SITE}/blog/${slug}`;
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: article.title,
-    description: article.description,
-    datePublished: article.date,
-    dateModified: article.date,
-    author: { "@type": "Organization", name: article.author },
-    publisher: {
-      "@type": "Organization",
-      name: "EligeTuPlan",
-      logo: { "@type": "ImageObject", url: `${SITE}/icon.png` },
-    },
-    image: article.cover ? `${SITE}${article.cover}` : `${SITE}/icon.png`,
-    mainEntityOfPage: { "@type": "WebPage", "@id": url },
-  };
-
-  // BreadcrumbList: ayuda a Google a entender la jerarquía Inicio > Blog > Artículo.
-  const breadcrumbLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE}/blog` },
-      { "@type": "ListItem", position: 3, name: article.title, item: url },
-    ],
-  };
+  const imageUrl = article.cover ? `${SITE}${article.cover}` : `${SITE}/icon.png`;
 
   const related = getRelatedArticles(slug, 3);
 
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      <ArticleSchema
+        title={article.title}
+        description={article.description}
+        url={url}
+        imageUrl={imageUrl}
+        datePublished={article.date}
+        dateModified={article.date}
+        authorName={article.author}
+        category={article.category}
+        readingMinutes={article.readingMinutes}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      <BreadcrumbSchema
+        items={[
+          { name: "Inicio", url: SITE },
+          { name: "Blog", url: `${SITE}/blog` },
+          { name: article.title, url },
+        ]}
       />
 
       <article className="mx-auto max-w-[760px] px-5 sm:px-6 lg:px-8 py-10 md:py-16">

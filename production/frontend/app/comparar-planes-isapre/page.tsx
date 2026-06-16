@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, HeartPulse, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { FAQPageSchema } from "@/components/seo/FAQPageSchema";
+import { ItemListSchema } from "@/components/seo/ItemListSchema";
 import { FeaturedPlans, MarketSnapshot, OfficialSourcesPanel } from "@/components/seo/landing-data-panels";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
 import WhatsAppCTA from "@/components/landing/whatsapp-cta";
@@ -110,12 +111,25 @@ export default async function CompararPlanesIsaprePage() {
         description="Comparación gratuita de planes de Isapre por precio, cobertura, red y perfil del usuario."
         url={URL}
       />
-      <FAQPageSchema items={FAQS} />
+      <FAQPageSchema
+        items={FAQS}
+        name="Preguntas frecuentes sobre comparar planes de Isapre"
+        url={URL}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Inicio", url: "https://www.elige-tuplan.cl" },
           { name: "Comparar planes de Isapre", url: URL },
         ]}
+      />
+      <ItemListSchema
+        name="Rutas relacionadas para comparar planes de Isapre"
+        url={URL}
+        items={related.slice(0, 6).map((item) => ({
+          name: item.title,
+          url: `https://www.elige-tuplan.cl${item.href}`,
+          description: item.description,
+        }))}
       />
 
       <main className="bg-[#fbf8f3] text-[#1e2a2a]">

@@ -1,11 +1,32 @@
+import { BRAND } from "@/lib/home-data";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = "https://www.elige-tuplan.cl";
+const LOGO_URL = `${SITE_URL}${BRAND.logo}`;
+const SAME_AS: string[] = [];
+
 export function OrganizationSchema() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${SITE_URL}#organization`,
     name: "EligeTuPlan",
-    url: "https://www.elige-tuplan.cl",
-    logo: "https://www.elige-tuplan.cl/logos/mamag.png",
-    telephone: "+56968319807",
+    alternateName: "Elige Tu Plan",
+    url: SITE_URL,
+    logo: {
+      "@type": "ImageObject",
+      "@id": `${SITE_URL}#logo`,
+      url: LOGO_URL,
+      contentUrl: LOGO_URL,
+    },
+    image: LOGO_URL,
+    email: BRAND.email,
+    telephone: BRAND.phoneClean,
+    areaServed: {
+      "@type": "Country",
+      name: "Chile",
+      identifier: "CL",
+    },
     address: {
       "@type": "PostalAddress",
       addressLocality: "Santiago",
@@ -15,18 +36,15 @@ export function OrganizationSchema() {
     contactPoint: [
       {
         "@type": "ContactPoint",
-        telephone: "+56968319807",
+        telephone: BRAND.phoneClean,
+        email: BRAND.email,
         contactType: "customer service",
-        availableLanguage: ["Spanish"],
+        availableLanguage: ["es-CL", "Spanish"],
         areaServed: "CL",
       },
     ],
-    sameAs: [],
+    ...(SAME_AS.length ? { sameAs: SAME_AS } : {}),
   };
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+
+  return <JsonLd data={schema} />;
 }

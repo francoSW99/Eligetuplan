@@ -148,7 +148,11 @@ export default async function IsapreLandingPage({
           { name: info.name, url },
         ]}
       />
-      <FAQPageSchema items={faqs} />
+      <FAQPageSchema
+        items={faqs}
+        name={`Preguntas frecuentes sobre planes ${info.name}`}
+        url={url}
+      />
 
       <main className="bg-[#fbf8f3] text-[#1e2a2a]">
         <section className="bg-[#0f514b] text-white">

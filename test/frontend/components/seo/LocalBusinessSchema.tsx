@@ -1,13 +1,20 @@
+import { BRAND } from "@/lib/home-data";
+import { JsonLd } from "@/components/seo/JsonLd";
+
+const SITE_URL = "https://www.elige-tuplan.cl";
+const LOGO_URL = `${SITE_URL}${BRAND.logo}`;
+
 export function LocalBusinessSchema() {
   const schema = {
     "@context": "https://schema.org",
-    "@type": "FinancialService",
-    name: "EligeTuPlan - Asesoría en Planes de Salud Isapre",
-    image: "https://www.elige-tuplan.cl/logos/mamag.png",
-    "@id": "https://www.elige-tuplan.cl",
-    url: "https://www.elige-tuplan.cl",
-    telephone: "+56968319807",
-    priceRange: "Gratis",
+    "@type": "ProfessionalService",
+    "@id": `${SITE_URL}#localbusiness`,
+    name: "EligeTuPlan",
+    image: LOGO_URL,
+    url: SITE_URL,
+    telephone: BRAND.phoneClean,
+    email: BRAND.email,
+    priceRange: "Sin costo para el usuario",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Santiago",
@@ -16,12 +23,9 @@ export function LocalBusinessSchema() {
     },
     areaServed: { "@type": "Country", name: "Chile" },
     description:
-      "Asesoría 100% gratuita para comparar y elegir tu plan de Isapre. Datos oficiales de la Superintendencia de Salud.",
+      "Servicio de orientación para comparar planes de salud Isapre en Chile y contactar un asesor cuando el usuario lo solicita.",
+    parentOrganization: { "@id": `${SITE_URL}#organization` },
   };
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+
+  return <JsonLd data={schema} />;
 }

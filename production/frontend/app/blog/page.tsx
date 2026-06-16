@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Clock } from "lucide-react";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { ItemListSchema } from "@/components/seo/ItemListSchema";
 import { getAllArticles } from "@/lib/blog";
 
 export const metadata: Metadata = {
@@ -31,36 +33,23 @@ const SITE = "https://www.elige-tuplan.cl";
 export default function BlogIndexPage() {
   const articles = getAllArticles();
 
-  // ItemList: lista de artículos para que Google entienda la colección del blog.
-  const itemListLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    itemListElement: articles.map((a, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      url: `${SITE}/blog/${a.slug}`,
-      name: a.title,
-    })),
-  };
-
-  const breadcrumbLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE}/blog` },
-    ],
-  };
-
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
+      <ItemListSchema
+        name="Artículos del blog de EligeTuPlan"
+        url={`${SITE}/blog`}
+        items={articles.map((a) => ({
+          name: a.title,
+          url: `${SITE}/blog/${a.slug}`,
+          description: a.description,
+          image: a.cover ? `${SITE}${a.cover}` : `${SITE}/icon.png`,
+        }))}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      <BreadcrumbSchema
+        items={[
+          { name: "Inicio", url: SITE },
+          { name: "Blog", url: `${SITE}/blog` },
+        ]}
       />
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-[#0f514b] to-[#092e2a] text-white overflow-hidden">
