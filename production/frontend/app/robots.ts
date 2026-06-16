@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site-routes";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -6,10 +7,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/admin"],
+        disallow: ["/api/", "/admin/", "/_vercel/"],
       },
     ],
-    sitemap: "https://www.elige-tuplan.cl/sitemap.xml",
-    host: "https://www.elige-tuplan.cl",
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }
