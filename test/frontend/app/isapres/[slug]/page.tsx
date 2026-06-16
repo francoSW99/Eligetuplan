@@ -190,7 +190,7 @@ export default async function IsapreLandingPage({
             <aside className="rounded-2xl border border-white/12 bg-white/8 p-6">
               <div className="mb-6 flex items-center gap-4">
                 <div className="relative h-14 w-36 rounded-xl bg-white p-3">
-                  <Image src={info.logo} alt={info.name} fill className="object-contain p-3" />
+                  <Image src={info.logo} alt={info.name} fill sizes="144px" className="object-contain p-3" />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Isapre</p>
@@ -289,7 +289,7 @@ export default async function IsapreLandingPage({
             >
               <div className="flex items-center gap-4">
                 <div className="relative h-12 w-32 rounded-xl bg-white p-3">
-                  <Image src={info.logo} alt={info.name} fill className="object-contain p-3" />
+                  <Image src={info.logo} alt={info.name} fill sizes="128px" className="object-contain p-3" />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0f9d8a]">Sitio oficial</p>

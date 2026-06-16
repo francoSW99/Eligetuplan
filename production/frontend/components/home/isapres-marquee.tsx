@@ -53,6 +53,8 @@ export default function IsapresMarquee() {
                 alt={i.name}
                 width={200}
                 height={80}
+                sizes="(min-width: 768px) 200px, 160px"
+                quality={80}
                 className="h-[54px] md:h-[64px] w-auto object-contain"
                 draggable={false}
               />

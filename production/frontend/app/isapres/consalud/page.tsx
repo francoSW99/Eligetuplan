@@ -182,7 +182,7 @@ export default async function ConsaludLandingPage() {
             <aside className="rounded-2xl border border-white/12 bg-white/8 p-6">
               <div className="mb-6 flex items-center gap-4">
                 <div className="relative h-14 w-36 rounded-xl bg-white p-3">
-                  <Image src="/logos/logo_consalud.png" alt="Consalud" fill className="object-contain p-3" />
+                  <Image src="/logos/logo_consalud.png" alt="Consalud" fill sizes="144px" className="object-contain p-3" />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Isapre</p>

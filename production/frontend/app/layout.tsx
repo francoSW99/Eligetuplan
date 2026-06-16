@@ -15,13 +15,15 @@ import { LocalBusinessSchema } from "@/components/seo/LocalBusinessSchema";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  style: ["italic", "normal"],
+  weight: ["500"],
+  style: ["italic"],
   variable: "--font-fraunces",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

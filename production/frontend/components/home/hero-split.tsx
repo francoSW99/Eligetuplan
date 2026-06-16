@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import SevenPercentCalculator from "./seven-percent-calculator";
 import { useMeta } from "@/lib/meta-context";
@@ -11,12 +12,26 @@ const SLIDE_DURATION_MS = 4200;
 
 function HeroBackground() {
   const [active, setActive] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateMotionPreference = () => setReduceMotion(mediaQuery.matches);
+    updateMotionPreference();
+    mediaQuery.addEventListener("change", updateMotionPreference);
+
+    if (mediaQuery.matches) {
+      return () => mediaQuery.removeEventListener("change", updateMotionPreference);
+    }
+
     const id = setInterval(() => {
       setActive((v) => (v + 1) % HERO_SLIDES.length);
     }, SLIDE_DURATION_MS);
-    return () => clearInterval(id);
+
+    return () => {
+      clearInterval(id);
+      mediaQuery.removeEventListener("change", updateMotionPreference);
+    };
   }, []);
 
   const overlay =
@@ -31,15 +46,23 @@ function HeroBackground() {
             aria-hidden
             className="absolute inset-0"
             style={{
-              backgroundImage: `url(${img})`,
-              backgroundSize: "cover",
-              backgroundPosition: "50% 35%",
               opacity: i === active ? 1 : 0,
-              transform: i === active ? "scale(1.08)" : "scale(1.02)",
-              transition: "opacity 0.9s ease-in-out, transform 5s linear",
-              willChange: "opacity, transform",
+              transform: reduceMotion ? "none" : i === active ? "scale(1.08)" : "scale(1.02)",
+              transition: reduceMotion ? "none" : "opacity 0.9s ease-in-out, transform 5s linear",
             }}
-          />
+          >
+            <Image
+              src={img}
+              alt=""
+              fill
+              priority={i === 0}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              loading={i === 0 ? undefined : "lazy"}
+              quality={82}
+              sizes="100vw"
+              className="object-cover object-[50%_35%]"
+            />
+          </div>
         ))}
       </div>
 
@@ -85,7 +108,7 @@ function HeroBackground() {
                   height: 2,
                   width: 0,
                   background: "rgba(255,255,255,0.95)",
-                  animation: `hero-prog ${SLIDE_DURATION_MS}ms linear forwards`,
+                  animation: reduceMotion ? "none" : `hero-prog ${SLIDE_DURATION_MS}ms linear forwards`,
                 }}
               />
             )}

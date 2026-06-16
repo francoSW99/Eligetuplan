@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus } from 'lucide-react';
 
 export type QA = { q: string; a: string };
@@ -34,21 +33,13 @@ export default function FaqAccordion({ items }: { items: QA[] }) {
                 {isOpen ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               </span>
             </button>
-            <AnimatePresence initial={false}>
-              {isOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  <p className="px-5 sm:px-6 pb-5 text-slate-600 leading-relaxed text-[14.5px]">
-                    {item.a}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {isOpen && (
+              <div className="overflow-hidden">
+                <p className="px-5 sm:px-6 pb-5 text-slate-600 leading-relaxed text-[14.5px]">
+                  {item.a}
+                </p>
+              </div>
+            )}
           </div>
         );
       })}
