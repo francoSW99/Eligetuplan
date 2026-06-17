@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMeta } from "@/lib/meta-context";
 import {
   type Beneficiario,
+  calcularSeptimoLegal,
   getFactor,
   getTotalFactor,
   serializeBeneficiarios,
@@ -47,7 +48,7 @@ function plansAvailableFor(effectiveBudget: number, maxPlans: number): number {
 
 export default function SevenPercentCalculator() {
   const router = useRouter();
-  const { plansTotal, ufValueCLP } = useMeta();
+  const { plansTotal, ufValueCLP, topeImponibleUF } = useMeta();
   const [salary, setSalary] = useState(0);
   const [focused, setFocused] = useState(false);
   // El usuario es el cotizante. Solo guardamos su edad y la lista de cargas.
@@ -58,7 +59,9 @@ export default function SevenPercentCalculator() {
   const [cargaInput, setCargaInput] = useState('');
   const [cargaError, setCargaError] = useState(false);
 
-  const sevenPct = Math.floor(salary * 0.07);
+  // 7% legal con tope imponible aplicado (90 UF en 2026, valor vivo desde app_meta):
+  // un sueldo sobre el tope cotiza solo hasta el tope, así el monto no se sobreestima.
+  const { montoCLP: sevenPct, topeAplicado, topeCLP } = calcularSeptimoLegal(salary, ufValueCLP, topeImponibleUF);
   const inUF = sevenPct / ufValueCLP;
 
   // Construye el array completo de beneficiarios para serializar URL y calcular factor
@@ -266,6 +269,12 @@ export default function SevenPercentCalculator() {
                 <div className="mt-1 text-[12.5px] text-white/65 tabular-nums">
                   ≈ <strong className="text-[#14dcb4] font-semibold">UF {inUF.toFixed(2)}</strong> al mes · UF ${ufValueCLP.toLocaleString("es-CL")}
                 </div>
+                {topeAplicado && (
+                  <div className="mt-1.5 text-[11px] text-white/50 leading-snug">
+                    Calculado sobre el tope imponible legal de salud
+                    (${Math.round(topeCLP).toLocaleString("es-CL")} / {topeImponibleUF} UF).
+                  </div>
+                )}
               </>
             )}
 

@@ -347,12 +347,23 @@ def _score_plans_against_market(
     tipo = (payload.tipo or "solo").strip().lower()
     sexo = (payload.sexo or "masculino").strip().lower()
 
+    uf_value = _get_uf_value()
     household_income_clp = payload.income_clp or 0
     if tipo == "pareja" and payload.ingreso_pareja_clp:
         household_income_clp += payload.ingreso_pareja_clp
 
-    income_uf = household_income_clp / _get_uf_value()
-    legal_floor = income_uf * 0.07
+    income_uf = household_income_clp / uf_value
+
+    # Piso legal = 7% obligatorio con TOPE IMPONIBLE por cotizante (90 UF c/u en 2026):
+    # una renta sobre el tope cotiza solo hasta el tope, no sobre el total. Se aplica por
+    # cotizante (titular y, si hay, pareja). affordable_max (15%) es una heurística de gasto
+    # discrecional, NO una cotización legal → se mantiene sobre el ingreso real, sin tope.
+    tope_uf = _get_tope_imponible_uf()
+    titular_imponible_uf = min((payload.income_clp or 0) / uf_value, tope_uf)
+    legal_floor = titular_imponible_uf * 0.07
+    if tipo == "pareja" and payload.ingreso_pareja_clp:
+        pareja_imponible_uf = min(payload.ingreso_pareja_clp / uf_value, tope_uf)
+        legal_floor += pareja_imponible_uf * 0.07
     affordable_max = income_uf * 0.15
 
     is_couple = tipo == "pareja"
@@ -942,7 +953,7 @@ ZONA_MAP: dict[int, str] = {
 # (scripts/sync_all.py). Se lee con caché TTL para no pegarle a la BD en cada request.
 # Si la BD/clave no está disponible, cae al env var UF_VALUE_CLP (default 40374).
 _UF_FALLBACK_CLP = int(os.getenv("UF_VALUE_CLP", "40374"))
-_UF_CACHE_TTL_S = 3600  # 1h: el cron corre 2x al mes, no hace falta más fresco.
+_UF_CACHE_TTL_S = 3600  # 1h: el cron de UF corre a diario (sync-uf.yml); 1h de frescura basta.
 _uf_cache: dict[str, float] = {"value": float(_UF_FALLBACK_CLP), "ts": 0.0}
 _uf_lock = threading.Lock()
 
@@ -984,6 +995,52 @@ def _get_uf_value() -> int:
         if _uf_cache["ts"] > 0:
             return int(round(_uf_cache["value"]))
     return _UF_FALLBACK_CLP
+
+
+# Tope imponible de salud (renta imponible máxima para el 7% legal), en UF.
+# Fuente de verdad: app_meta (key='tope_imponible_uf'), escrita por el cron diario
+# (scripts/sync_all.py). Se cachea 1h igual que la UF. Fallback al env var o 90 UF
+# (valor 2026) si app_meta no responde. La actualiza la Superintendencia 1×/año.
+_TOPE_IMPONIBLE_FALLBACK_UF = float(os.getenv("TOPE_IMPONIBLE_UF", "90"))
+_TOPE_CACHE_TTL_S = 3600
+_tope_cache: dict[str, float] = {"value": _TOPE_IMPONIBLE_FALLBACK_UF, "ts": 0.0}
+_tope_lock = threading.Lock()
+
+
+def _get_tope_imponible_uf() -> float:
+    """Tope imponible de salud en UF desde app_meta, cacheado 1h. Mismo patrón que
+    _get_uf_value: ante falla de lectura, prefiere el último valor bueno conocido y
+    recién el fallback como último recurso."""
+    now = time.time()
+    with _tope_lock:
+        if _tope_cache["ts"] > 0 and now - _tope_cache["ts"] < _TOPE_CACHE_TTL_S:
+            return _tope_cache["value"]
+
+    if supabase:
+        try:
+            resp = (
+                supabase.table("app_meta")
+                .select("value")
+                .eq("key", "tope_imponible_uf")
+                .limit(1)
+                .execute()
+            )
+            if resp.data and resp.data[0].get("value"):
+                value = float(resp.data[0]["value"])
+                if value > 0:
+                    with _tope_lock:
+                        _tope_cache["value"] = value
+                        _tope_cache["ts"] = now
+                    return value
+            print("WARN [tope-resolver] app_meta.tope_imponible_uf vacío; usando ultimo valor/fallback.")
+        except Exception as e:
+            print(f"WARN [tope-resolver] No se pudo leer app_meta.tope_imponible_uf: {e}. "
+                  f"Usando ultimo valor/fallback.")
+
+    with _tope_lock:
+        if _tope_cache["ts"] > 0:
+            return _tope_cache["value"]
+    return _TOPE_IMPONIBLE_FALLBACK_UF
 
 # Base URL de los PDFs de planes. Se sirven desde la FUENTE (tu7.cl): Cloud Run es
 # efímero y no conserva los .cache locales, y tu7 entrega los PDF con Content-Type
@@ -1098,6 +1155,7 @@ class MetaResponse(BaseModel):
     valor_uf_fecha: Optional[str] = None
     total_planes: Optional[int] = None
     last_update: Optional[str] = None
+    tope_imponible_uf: float = 90.0
 
 
 @app.get("/api/v1/meta", response_model=MetaResponse)
@@ -1119,6 +1177,12 @@ def get_meta():
         except (TypeError, ValueError):
             return None
 
+    def _as_float(v: Optional[str]) -> Optional[float]:
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
     return MetaResponse(
         # Preferir el valor del MISMO read fresco (data); _get_uf_value() solo como
         # respaldo. Evita que la fecha salga fresca y la UF vieja (split-brain).
@@ -1126,6 +1190,7 @@ def get_meta():
         valor_uf_fecha=data.get("valor_uf_fecha"),
         total_planes=_as_int(data.get("total_planes")),
         last_update=data.get("last_sync"),
+        tope_imponible_uf=_as_float(data.get("tope_imponible_uf")) or _get_tope_imponible_uf(),
     )
 
 

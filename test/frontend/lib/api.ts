@@ -1,4 +1,5 @@
 import { STATS } from "@/lib/home-data";
+import { TOPE_IMPONIBLE_SALUD_UF } from "@/lib/factores";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -103,6 +104,7 @@ export interface Meta {
   valor_uf_fecha: string | null;
   total_planes: number | null;
   last_update: string | null;
+  tope_imponible_uf?: number | null;
 }
 
 // Forma normalizada que consume el frontend (con fallback a STATS).
@@ -110,6 +112,8 @@ export interface SiteMeta {
   ufValueCLP: number;
   plansTotal: number;
   lastUpdate: string;
+  // Tope imponible de salud en UF (fuente: app_meta; fallback a la constante de factores).
+  topeImponibleUF: number;
 }
 
 // ── Fetch helpers ────────────────────────────────────────────────────────────
@@ -133,12 +137,14 @@ export async function getSiteMeta(): Promise<SiteMeta> {
       ufValueCLP: m.valor_uf || STATS.ufValueCLP,
       plansTotal: m.total_planes ?? STATS.plansTotal,
       lastUpdate: m.last_update || STATS.lastUpdate,
+      topeImponibleUF: m.tope_imponible_uf || TOPE_IMPONIBLE_SALUD_UF,
     };
   } catch {
     return {
       ufValueCLP: STATS.ufValueCLP,
       plansTotal: STATS.plansTotal,
       lastUpdate: STATS.lastUpdate,
+      topeImponibleUF: TOPE_IMPONIBLE_SALUD_UF,
     };
   }
 }

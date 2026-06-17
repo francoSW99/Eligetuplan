@@ -69,6 +69,51 @@ export function parseBeneficiarios(raw: string | null): Beneficiario[] {
   return out;
 }
 
+// ── Tope imponible salud ───────────────────────────────────────────────────
+// Renta imponible mensual máxima sobre la que se calcula la cotización de salud
+// (7% legal). La fija la Superintendencia de Pensiones en UF cada año.
+//   2026: 90,0 UF  (subió desde 87,8 UF en 2025), vigente desde cotizaciones de feb-2026.
+//
+// La fuente de verdad VIVA es app_meta.tope_imponible_uf (la escribe el cron diario
+// sync_all.py y llega al front vía useMeta().topeImponibleUF). Esta constante es solo
+// el FALLBACK si el backend no responde. Mantenerla igual al valor del año.
+export const TOPE_IMPONIBLE_SALUD_UF = 90;
+
+export interface SeptimoLegal {
+  /** 7% legal en CLP, ya con el tope imponible aplicado. */
+  montoCLP: number;
+  /** Renta imponible efectiva usada (= min(sueldo bruto, tope)). */
+  imponibleCLP: number;
+  /** Tope imponible del año en CLP (= TOPE_IMPONIBLE_SALUD_UF × UF). */
+  topeCLP: number;
+  /** true si el sueldo excede el tope y el 7% se calculó sobre el tope. */
+  topeAplicado: boolean;
+}
+
+/**
+ * 7% legal de salud con tope imponible aplicado. Un sueldo sobre el tope no
+ * cotiza el 7% del total, sino del tope (90 UF en 2026) — por eso para rentas
+ * altas el monto se aplana en ~6,3 UF/mes.
+ *
+ * `topeUF` se pasa desde useMeta().topeImponibleUF (valor vivo de app_meta).
+ * Si se omite, cae a la constante TOPE_IMPONIBLE_SALUD_UF (fallback del año).
+ */
+export function calcularSeptimoLegal(
+  sueldoBrutoCLP: number,
+  ufValueCLP: number,
+  topeUF: number = TOPE_IMPONIBLE_SALUD_UF,
+): SeptimoLegal {
+  const topeCLP = (topeUF || TOPE_IMPONIBLE_SALUD_UF) * ufValueCLP;
+  const sueldo = Math.max(sueldoBrutoCLP, 0);
+  const imponibleCLP = Math.min(sueldo, topeCLP);
+  return {
+    montoCLP: Math.floor(imponibleCLP * 0.07),
+    imponibleCLP,
+    topeCLP,
+    topeAplicado: sueldo > topeCLP,
+  };
+}
+
 // Fórmula EXACTA usada por tu7.cl (extraída de su bundle JS):
 //   precio_UF = BASE_PLAN × Σ(factores) + GES_ISAPRE × N°_beneficiarios
 //

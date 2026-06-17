@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { SiteMeta } from '@/lib/api';
 import { STATS } from '@/lib/home-data';
+import { TOPE_IMPONIBLE_SALUD_UF } from '@/lib/factores';
 
 // Default = valores estáticos de STATS. Sirve como fallback si un componente
 // se renderiza fuera del provider (o antes de que el fetch resuelva).
@@ -10,6 +11,7 @@ const DEFAULT_META: SiteMeta = {
   ufValueCLP: STATS.ufValueCLP,
   plansTotal: STATS.plansTotal,
   lastUpdate: STATS.lastUpdate,
+  topeImponibleUF: TOPE_IMPONIBLE_SALUD_UF,
 };
 
 const MetaContext = createContext<SiteMeta>(DEFAULT_META);

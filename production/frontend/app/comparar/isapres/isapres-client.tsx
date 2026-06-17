@@ -10,10 +10,12 @@ import { buildPlansQuery, isDefaultPlansView } from '@/lib/comparar-query';
 import PageHeader from '@/components/comparar/page-header';
 import {
   type Beneficiario,
+  calcularSeptimoLegal,
   getTotalFactor,
   parseBeneficiarios,
   serializeBeneficiarios,
 } from '@/lib/factores';
+import { useMeta } from '@/lib/meta-context';
 import PlanCard from './plan-card';
 import LeadCaptureForm from '@/components/ui/lead-capture-form';
 import ContactOptions from '@/components/ui/contact-options';
@@ -51,6 +53,7 @@ export default function IsapresClient({
   totalGlobal: number;
 }) {
   const router = useRouter();
+  const { ufValueCLP, topeImponibleUF } = useMeta();
   const [isPending, startTransition] = useTransition();
 
   // ── Filtros desde la URL, manejados en cliente ──────────────────────────────
@@ -237,7 +240,8 @@ export default function IsapresClient({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const grossSalary = grossSalaryInput ? parseInt(grossSalaryInput, 10) : 0;
-  const legalBudget = grossSalary > 0 ? Math.floor(grossSalary * 0.07) : 0;
+  // 7% legal con tope imponible (90 UF en 2026) — consistente con la calculadora del home.
+  const legalBudget = grossSalary > 0 ? calcularSeptimoLegal(grossSalary, ufValueCLP, topeImponibleUF).montoCLP : 0;
   const budgetCLP = currentLegalBudgetActive && legalBudget > 0 ? legalBudget : null;
 
   // El push de `search` a la URL ya NO es automático: requiere Enter o click en una sugerencia.

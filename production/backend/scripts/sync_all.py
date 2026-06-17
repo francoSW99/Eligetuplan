@@ -63,6 +63,12 @@ MAX_DROP_PCT = 0.20      # caída máxima tolerada de planes vs corrida previa
 UF_MIN_CLP = 30_000      # rango sano para el valor de la UF en CLP
 UF_MAX_CLP = 60_000
 
+# Tope imponible de salud (renta imponible máxima para la cotización del 7%), en UF.
+# Lo fija la Superintendencia de Pensiones cada año. 2026: 90,0 UF (era 87,8 en 2025).
+# ESTA es la fuente de verdad: el cron lo reescribe en app_meta cada corrida, y backend
+# + frontend lo leen desde ahí. Para actualizarlo cada año, cambiar SOLO este número.
+TOPE_IMPONIBLE_SALUD_UF = 90
+
 MESES_ES = [
     "ene", "feb", "mar", "abr", "may", "jun",
     "jul", "ago", "sep", "oct", "nov", "dic",
@@ -209,11 +215,14 @@ def run_uf_only(sb: Client, summary: dict, dry_run: bool) -> int:
         return 0
 
     upsert_meta(sb, {
-        "valor_uf":       int(round(uf_valor)),
-        "valor_uf_fecha": uf_fecha,
-        "last_sync":      fecha_es(uf_fecha),
+        "valor_uf":          int(round(uf_valor)),
+        "valor_uf_fecha":    uf_fecha,
+        "last_sync":         fecha_es(uf_fecha),
+        # Reescrito a diario para que el tope quede siempre presente en app_meta
+        # aunque la migración 007 no se haya corrido y sin esperar el sync quincenal.
+        "tope_imponible_uf": TOPE_IMPONIBLE_SALUD_UF,
     })
-    logger.info(f"app_meta: UF actualizada a ${uf_valor:,.0f} ({uf_fecha}).")
+    logger.info(f"app_meta: UF actualizada a ${uf_valor:,.0f} ({uf_fecha}); tope {TOPE_IMPONIBLE_SALUD_UF} UF.")
     summary["ok"] = True
     emit(summary)
     return 0
@@ -300,12 +309,13 @@ def main() -> int:
 
         # 6. Upsert app_meta
         upsert_meta(sb, {
-            "valor_uf":         int(round(uf_valor)),
-            "valor_uf_fecha":   uf_fecha,
-            "total_planes":     len(after),
-            "last_sync":        fecha_es(uf_fecha),
-            "planes_agregados": len(agregados),
-            "planes_quitados":  len(quitados),
+            "valor_uf":          int(round(uf_valor)),
+            "valor_uf_fecha":    uf_fecha,
+            "total_planes":      len(after),
+            "last_sync":         fecha_es(uf_fecha),
+            "planes_agregados":  len(agregados),
+            "planes_quitados":   len(quitados),
+            "tope_imponible_uf": TOPE_IMPONIBLE_SALUD_UF,
         })
         logger.info("app_meta actualizada.")
 
