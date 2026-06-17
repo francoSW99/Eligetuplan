@@ -33,6 +33,10 @@ type GtagEventParams = {
   source?: string;
   target?: string;
   label?: string;
+  seo_source?: string;
+  seo_target?: string;
+  seo_label?: string;
+  debug_mode?: boolean;
   transport_type?: "beacon";
   event_callback?: () => void;
   event_timeout?: number;
@@ -41,11 +45,20 @@ type GtagEventParams = {
 declare global {
   interface Window {
     gtag?: (command: "event", eventName: string, params?: GtagEventParams) => void;
+    dataLayer?: Object[];
   }
 }
 
 function sendSeoLandingClick({ source, target, label, eventCallback }: SeoLandingClickParams) {
-  const params = { source, target, label };
+  const params = {
+    source,
+    target,
+    label,
+    seo_source: source,
+    seo_target: target,
+    seo_label: label,
+    debug_mode: true,
+  };
 
   if (typeof window === "undefined") {
     sendGAEvent("event", "seo_landing_click", params);
@@ -61,6 +74,7 @@ function sendSeoLandingClick({ source, target, label, eventCallback }: SeoLandin
       eventCallback?.();
     };
 
+    sendGAEvent("event", "seo_landing_click", params);
     window.gtag("event", "seo_landing_click", {
       ...params,
       transport_type: "beacon",
@@ -70,6 +84,10 @@ function sendSeoLandingClick({ source, target, label, eventCallback }: SeoLandin
 
     if (eventCallback) window.setTimeout(done, 700);
     return;
+  }
+
+  if (Array.isArray(window.dataLayer)) {
+    window.dataLayer.push(["event", "seo_landing_click", params]);
   }
 
   sendGAEvent("event", "seo_landing_click", params);

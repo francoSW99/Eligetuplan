@@ -11,6 +11,7 @@ import { getSiteMeta } from "@/lib/api";
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import { WebSiteSchema } from "@/components/seo/WebSiteSchema";
 import { LocalBusinessSchema } from "@/components/seo/LocalBusinessSchema";
+import { Ga4SeoProbe } from "@/components/seo/ga4-seo-probe";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -109,6 +110,7 @@ export default async function RootLayout({
           <OrganizationSchema />
           <WebSiteSchema />
           <LocalBusinessSchema />
+          <Ga4SeoProbe />
 
           <SiteHeader />
 
