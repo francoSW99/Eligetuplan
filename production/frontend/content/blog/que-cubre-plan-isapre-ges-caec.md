@@ -3,7 +3,7 @@ title: "¿Qué cubre tu plan de Isapre? GES, plan complementario y CAEC"
 description: "Las partes de tu contrato de Isapre explicadas en simple: el plan complementario, las Garantías Explícitas en Salud (GES) y la cobertura catastrófica, según la Superintendencia de Salud."
 date: "2026-06-09"
 category: "Guías"
-cover: "/cirugia.png"
+cover: "/blog/cobertura-ges-caec-isapre.webp"
 author: "Equipo EligeTuPlan"
 ---
 

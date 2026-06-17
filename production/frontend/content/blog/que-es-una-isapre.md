@@ -3,7 +3,7 @@ title: "¿Qué es una Isapre? Guía simple para entenderlas en 2026"
 description: "Qué es una Isapre, cómo funciona, cuánto se paga y en qué se diferencia de Fonasa. La guía clara para elegir tu plan de salud en Chile."
 date: "2026-06-08"
 category: "Guías"
-cover: "/familia.jpeg"
+cover: "/blog/isapre-guia-simple.webp"
 author: "Equipo EligeTuPlan"
 ---
 

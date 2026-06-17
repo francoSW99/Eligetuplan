@@ -3,7 +3,7 @@ title: "Cómo cambiarse de Isapre paso a paso (guía 2026)"
 description: "Cuándo puedes cambiarte de Isapre, qué pasa con tus preexistencias y el paso a paso oficial según la Superintendencia de Salud. Todo claro y sin letra chica."
 date: "2026-06-09"
 category: "Guías"
-cover: "/kine.jpeg"
+cover: "/blog/cambiarse-isapre-paso-a-paso.webp"
 author: "Equipo EligeTuPlan"
 ---
 
