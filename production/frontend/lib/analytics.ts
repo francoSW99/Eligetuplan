@@ -22,6 +22,60 @@ export type SeoLandingSource =
   | "isapre_landing"
   | "seo_panel";
 
+type SeoLandingClickParams = {
+  source: SeoLandingSource;
+  target: string;
+  label: string;
+  eventCallback?: () => void;
+};
+
+type GtagEventParams = {
+  source?: string;
+  target?: string;
+  label?: string;
+  transport_type?: "beacon";
+  event_callback?: () => void;
+  event_timeout?: number;
+};
+
+declare global {
+  interface Window {
+    gtag?: (command: "event", eventName: string, params?: GtagEventParams) => void;
+  }
+}
+
+function sendSeoLandingClick({ source, target, label, eventCallback }: SeoLandingClickParams) {
+  const params = { source, target, label };
+
+  if (typeof window === "undefined") {
+    sendGAEvent("event", "seo_landing_click", params);
+    eventCallback?.();
+    return;
+  }
+
+  if (typeof window.gtag === "function") {
+    let completed = false;
+    const done = () => {
+      if (completed) return;
+      completed = true;
+      eventCallback?.();
+    };
+
+    window.gtag("event", "seo_landing_click", {
+      ...params,
+      transport_type: "beacon",
+      event_callback: done,
+      event_timeout: 500,
+    });
+
+    if (eventCallback) window.setTimeout(done, 700);
+    return;
+  }
+
+  sendGAEvent("event", "seo_landing_click", params);
+  if (eventCallback) window.setTimeout(eventCallback, 250);
+}
+
 export const track = {
   whatsappClick: (source: LeadSource) =>
     sendGAEvent("event", "whatsapp_click", { source, lead_value: 1 }),
@@ -57,20 +111,7 @@ export const track = {
   comparadorClick: (source: LeadSource) =>
     sendGAEvent("event", "comparador_click", { source }),
 
-  seoLandingClick: ({
-    source,
-    target,
-    label,
-  }: {
-    source: SeoLandingSource;
-    target: string;
-    label: string;
-  }) =>
-    sendGAEvent("event", "seo_landing_click", {
-      source,
-      target,
-      label,
-    }),
+  seoLandingClick: sendSeoLandingClick,
 
   formSubmit: (formType: "asesor" | "buscar" | "newsletter") =>
     sendGAEvent("event", "form_submit", { form_type: formType, lead_value: 1 }),

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { track, type SeoLandingSource } from "@/lib/analytics";
 
 type TrackedSeoLinkProps = {
@@ -27,6 +28,46 @@ export function TrackedSeoLink({
   rel,
   "aria-label": ariaLabel,
 }: TrackedSeoLinkProps) {
+  const router = useRouter();
+
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    const shouldLetBrowserHandle =
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      target === "_blank" ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey;
+
+    if (shouldLetBrowserHandle) {
+      track.seoLandingClick({ source, target: href, label });
+      return;
+    }
+
+    event.preventDefault();
+
+    let navigated = false;
+    const navigate = () => {
+      if (navigated) return;
+      navigated = true;
+
+      if (href.startsWith("/") && !href.startsWith("//")) {
+        router.push(href);
+        return;
+      }
+
+      window.location.href = href;
+    };
+
+    track.seoLandingClick({
+      source,
+      target: href,
+      label,
+      eventCallback: navigate,
+    });
+  }
+
   return (
     <Link
       href={href}
@@ -35,7 +76,7 @@ export function TrackedSeoLink({
       target={target}
       rel={rel}
       aria-label={ariaLabel}
-      onClick={() => track.seoLandingClick({ source, target: href, label })}
+      onClick={handleClick}
     >
       {children}
     </Link>
