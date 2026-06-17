@@ -1228,76 +1228,31 @@ def _build_plan_item(row: dict) -> PlanListItem:
     )
 
 
-def _interleaved_plan_list(plans: list["PlanListItem"], sort: str, page_size: int) -> list["PlanListItem"]:
-    """Distribute Consalud plans at top/middle/bottom of each page.
+def _sort_plan_list(plans: list["PlanListItem"], sort: str) -> list["PlanListItem"]:
+    """Orden global del catálogo según el `sort` elegido por el usuario.
 
-    Priority positions within a page of size 21:
-        [0, 1, 2, 5, 8, 11, 13, 16, 20]  → 9 / 21 ≈ 43 %
-
-    For other page sizes the positions scale proportionally.
-    Non-Consalud plans are shuffled deterministically and fill the gaps.
+    Comparador NEUTRAL: sin prioridad por isapre — todos los planes compiten en
+    igualdad de condiciones (antes Consalud se intercalaba en ~43% de los slots).
+    Tie-break estable por (precio, nombre, id) → orden determinista entre páginas.
     """
-    PRIORITY = PRIORITY_ISAPRE_SLUG
+    def price(p: "PlanListItem") -> float:
+        return p.base_plan_uf if p.base_plan_uf is not None else (p.price_uf or 0.0)
 
-    priority_plans: list[PlanListItem] = [p for p in plans if p.isapre_slug == PRIORITY]
-    other_plans: list[PlanListItem] = [p for p in plans if p.isapre_slug != PRIORITY]
+    def name(p: "PlanListItem") -> str:
+        return (p.name or "").lower()
 
-    if not priority_plans:
-        return other_plans
-    if not other_plans:
-        return priority_plans
+    def coverage(p: "PlanListItem") -> float:
+        return (p.hospital_coverage or 0) + (p.ambulatory_coverage or 0)
 
-    # Secondary sort for priority plans (cheapest first = default)
-    def _secondary(p: PlanListItem) -> tuple:
-        price = p.base_plan_uf if p.base_plan_uf is not None else p.price_uf
-        name_val = (p.name or "").lower()
-        if sort == "precio_desc":
-            return (-price, name_val, p.id)
-        if sort == "name_asc":
-            return (name_val, price, p.id)
-        return (price, name_val, p.id)
-
-    priority_plans.sort(key=_secondary)
-    other_plans.sort(key=_secondary)
-
-    total = len(priority_plans) + len(other_plans)
-    result: list[Optional["PlanListItem"]] = [None] * total  # type: ignore[name-defined]
-
-    # Base positions for page_size = 15
-    _BASE = 15
-    _BASE_POS = [0, 1, 2, 4, 6, 8, 10, 12, 14]
-    prio_positions = sorted({int(p * page_size / _BASE) for p in _BASE_POS})
-
-    num_pages = (total + page_size - 1) // page_size
-    all_slots: list[int] = []
-    for page in range(num_pages):
-        base = page * page_size
-        for pos in prio_positions:
-            abs_pos = base + pos
-            if abs_pos < total:
-                all_slots.append(abs_pos)
-
-    # Place priority plans at calculated slots
-    pi = 0
-    for slot in all_slots:
-        if pi < len(priority_plans):
-            result[slot] = priority_plans[pi]
-            pi += 1
-
-    # Overflow priority plans fill remaining empty slots
-    for i in range(total):
-        if result[i] is None and pi < len(priority_plans):
-            result[i] = priority_plans[pi]
-            pi += 1
-
-    # Fill the rest with other plans
-    oi = 0
-    for i in range(total):
-        if result[i] is None and oi < len(other_plans):
-            result[i] = other_plans[oi]
-            oi += 1
-
-    return [p for p in result if p is not None]
+    if sort == "precio_desc":
+        return sorted(plans, key=lambda p: (-price(p), name(p), p.id))
+    if sort == "name_asc":
+        return sorted(plans, key=lambda p: (name(p), price(p), p.id))
+    if sort == "cobertura":
+        # Mayor cobertura primero (hosp + amb); a igual cobertura, más barato primero.
+        return sorted(plans, key=lambda p: (-coverage(p), price(p), p.id))
+    # precio_asc (default): más barato primero.
+    return sorted(plans, key=lambda p: (price(p), name(p), p.id))
 
 
 def _fetch_filtered_plan_rows(query) -> list[dict]:
@@ -1873,13 +1828,13 @@ def list_planes(
         search=search,
     )
 
-    # ── 4. Interleave, slice ─────────────────────────────────────────────
-    interleaved = _interleaved_plan_list(filtered, sort, limit)
+    # ── 4. Orden global (comparador neutral, sin prioridad por isapre), slice ──
+    ordered = _sort_plan_list(filtered, sort)
 
-    total = len(interleaved)
+    total = len(ordered)
     total_pages = math.ceil(total / limit) if limit > 0 else 0
     offset = (page - 1) * limit
-    items = interleaved[offset:offset + limit]
+    items = ordered[offset:offset + limit]
 
     # ── 5. Price histogram from cached prices ────────────────────────────
     price_min_clp: Optional[int] = None
