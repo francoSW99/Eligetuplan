@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import type { Isapre, Zona, PrestadorItem } from "@/lib/api";
 import { formatCLP } from "@/lib/api";
 import { useMeta } from "@/lib/meta-context";
+import { calcularSeptimoLegal } from "@/lib/factores";
 
 function formatUF2(n: number) {
   return n.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -14,59 +15,39 @@ function formatUF2(n: number) {
 export function FilterGroup({
   title,
   icon,
-  defaultOpen = true,
   activeCount = 0,
   children,
 }: {
   title: string;
   icon: ReactNode;
-  defaultOpen?: boolean;
+  defaultOpen?: boolean; // legacy: ya no se usa — los grupos siempre están expandidos
   activeCount?: number;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  // No-colapsable: las opciones SIEMPRE se ven (sin desplegar). El header es solo
+  // un rótulo (icono + título + conteo), no un toggle.
   return (
     <div className="bg-white rounded-2xl border border-[#0f514b]/10 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 group hover:bg-[#14dcb4]/[0.03] transition-colors"
-        aria-expanded={open}
-      >
-        <div className="flex items-center gap-3 text-left">
-          <div
-            className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-              activeCount > 0 ? "bg-[#14dcb4] text-[#0f514b]" : "bg-[#0f514b]/5 text-[#0f514b]"
-            }`}
-          >
-            {icon}
-          </div>
-          <div>
-            <div className="text-[14px] font-bold text-[#0f514b] leading-tight">{title}</div>
-            {activeCount > 0 && (
-              <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#0f9d8a] mt-0.5">
-                {activeCount} {activeCount === 1 ? "filtro activo" : "filtros activos"}
-              </div>
-            )}
-          </div>
-        </div>
-        <svg
-          className={`w-4 h-4 text-[#5a6b6a] transition-transform ${open ? "rotate-180" : ""}`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <div className="w-full px-4 py-3 flex items-center gap-3">
+        <div
+          className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+            activeCount > 0 ? "bg-[#14dcb4] text-[#0f514b]" : "bg-[#0f514b]/5 text-[#0f514b]"
+          }`}
         >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div className="px-4 pb-4 pt-1 border-t border-[#0f514b]/8">
-          <div className="space-y-4">{children}</div>
+          {icon}
         </div>
-      )}
+        <div>
+          <div className="text-[14px] font-bold text-[#0f514b] leading-tight">{title}</div>
+          {activeCount > 0 && (
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#0f9d8a] mt-0.5">
+              {activeCount} {activeCount === 1 ? "filtro activo" : "filtros activos"}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="px-4 pb-4 pt-1 border-t border-[#0f514b]/8">
+        <div className="space-y-4">{children}</div>
+      </div>
     </div>
   );
 }
@@ -85,46 +66,44 @@ export function SevenPercentBlock({
   clearBudget: () => void;
   active: boolean;
 }) {
-  const UF_VALUE_CLP = useMeta().ufValueCLP;
+  const { ufValueCLP, topeImponibleUF } = useMeta();
   const salary = salaryInput ? parseInt(salaryInput, 10) : 0;
-  const sevenPct = salary > 0 ? Math.floor(salary * 0.07) : 0;
-  const uf = sevenPct / UF_VALUE_CLP;
+  // 7% legal CON tope imponible (90 UF en 2026) — mismo helper que la calculadora del home,
+  // así este preview coincide con el badge real de las cards (legalBudget en isapres-client).
+  const { montoCLP: sevenPct, topeAplicado, topeCLP } = calcularSeptimoLegal(salary, ufValueCLP, topeImponibleUF);
+  const uf = ufValueCLP > 0 ? sevenPct / ufValueCLP : 0;
 
-  // Local display state: raw digits while focused, formatted with dots on blur
-  const [inputDisplay, setInputDisplay] = useState(
-    salaryInput ? parseInt(salaryInput, 10).toLocaleString("es-CL") : ""
-  );
+  // Display: dígitos crudos mientras está enfocado (sin saltos de cursor); formateado
+  // con puntos cuando no. Se DERIVA en render (sin useEffect) → al resetear el padre
+  // (clearAll) el campo se limpia solo, sin el anti-patrón set-state-in-effect.
+  const [rawInput, setRawInput] = useState("");
   const [focused, setFocused] = useState(false);
-
-  // Sync display when parent resets (e.g. clearAll)
-  useEffect(() => {
-    if (!focused) {
-      setInputDisplay(salaryInput ? parseInt(salaryInput, 10).toLocaleString("es-CL") : "");
-    }
-  }, [salaryInput, focused]);
+  const inputDisplay = focused
+    ? rawInput
+    : salaryInput
+      ? parseInt(salaryInput, 10).toLocaleString("es-CL")
+      : "";
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value.replace(/\D/g, "");
-    setInputDisplay(raw); // raw digits → no cursor jump
+    setRawInput(raw); // raw digits → no cursor jump
     setSalaryInput(raw);
   }
 
   function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
     setFocused(true);
-    setInputDisplay(e.target.value.replace(/\D/g, "")); // strip dots on focus
+    setRawInput(e.target.value.replace(/\D/g, "")); // strip dots on focus
   }
 
   function handleBlur() {
     setFocused(false);
-    const num = parseInt(salaryInput, 10);
-    setInputDisplay(num > 0 ? num.toLocaleString("es-CL") : "");
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-[12.5px] text-[#5a6b6a] leading-relaxed">
-        Ingresa tu sueldo bruto. Te mostramos <strong>todos los planes</strong> y marcamos cuáles superan tu{" "}
-        <strong className="text-[#0f514b] font-bold">7% legal</strong> y cuánto pagarías extra.
+      <p className="text-[12px] text-[#5a6b6a] leading-snug">
+        Ingresa tu sueldo y marcamos los planes que superan tu{" "}
+        <strong className="text-[#0f514b] font-bold">7% legal</strong>.
       </p>
 
       <div>
@@ -162,6 +141,11 @@ export function SevenPercentBlock({
             <div className="text-[11px] text-white/65 mt-0.5 tabular-nums">
               ≈ <strong className="text-[#14dcb4]">UF {formatUF2(uf)}</strong>
             </div>
+            {topeAplicado && (
+              <div className="text-[10px] text-white/45 mt-1 leading-snug">
+                Sobre el tope imponible de {topeImponibleUF} UF ({formatCLP(Math.round(topeCLP))}).
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -491,7 +475,11 @@ export function ModalidadFilter({
 }) {
   return (
     <div>
-      <div className="text-[12px] font-bold text-[#0f514b] mb-2">Modalidad</div>
+      <p className="text-[12px] text-[#5a6b6a] leading-snug mb-2.5">
+        Cómo accedes a las clínicas: <strong className="text-[#0f514b]">Libre Elección</strong> (cualquiera),{" "}
+        <strong className="text-[#0f514b]">Preferente</strong> (mejor precio en su red) o{" "}
+        <strong className="text-[#0f514b]">Cerrado</strong> (solo su red).
+      </p>
       <div className="grid grid-cols-2 gap-1.5">
         <button
           type="button"

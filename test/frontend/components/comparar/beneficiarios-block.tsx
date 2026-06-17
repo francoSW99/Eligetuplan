@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { UserPlus, Trash2 } from 'lucide-react';
 import { type Beneficiario, getFactor } from '@/lib/factores';
 
@@ -31,10 +31,14 @@ export default function BeneficiariosBlock({
   const [cargaInput, setCargaInput] = useState('');
   const [cargaError, setCargaError] = useState<string | null>(null);
 
-  // Sync cuando la edad cambia desde fuera (URL, limpiar todos los filtros, etc.)
-  useEffect(() => {
+  // Re-sincroniza el input con la edad aplicada cuando cambia desde fuera (URL,
+  // limpiar filtros, etc.). Patrón "ajustar estado en render" (sin useEffect) → evita
+  // el anti-patrón set-state-in-effect y no pisa lo que el usuario está escribiendo.
+  const [lastAppliedAge, setLastAppliedAge] = useState(cotizanteAge);
+  if (cotizanteAge !== lastAppliedAge) {
+    setLastAppliedAge(cotizanteAge);
     setAgeInput(cotizanteAge != null ? String(cotizanteAge) : '');
-  }, [cotizanteAge]);
+  }
 
   function commitCotizanteAge() {
     const raw = ageInput.trim();
@@ -71,8 +75,8 @@ export default function BeneficiariosBlock({
 
   return (
     <div className="space-y-3">
-      <p className="text-[12.5px] text-[#5a6b6a] leading-relaxed">
-        Tu edad determina tu factor como cotizante. Si tienes cargas (hijos, cónyuge, etc.) agrégalas para ajustar el precio.
+      <p className="text-[12px] text-[#5a6b6a] leading-snug">
+        Tu edad y tus cargas ajustan el precio de cada plan.
       </p>
 
       {/* Tu edad (cotizante) */}

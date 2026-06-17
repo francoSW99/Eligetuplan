@@ -459,13 +459,12 @@ export default function IsapresClient({
 
   const isapresGroupCount = draft.isapres.length;
 
-  const prefsGroupCount =
-    draft.zonas.length +
-    (draft.modalidad ? 1 : 0);
+  const zonasGroupCount = draft.zonas.length;
+  const modalidadGroupCount = draft.modalidad ? 1 : 0;
 
   const clinicasGroupCount = draft.prestadorIds.length;
 
-  const totalActiveCount = budgetGroupCount + coverageGroupCount + isapresGroupCount + prefsGroupCount + clinicasGroupCount;
+  const totalActiveCount = budgetGroupCount + coverageGroupCount + isapresGroupCount + zonasGroupCount + modalidadGroupCount + clinicasGroupCount;
 
   // ── Active filter chips ────────────────────────────────────────────
   const chips = useMemo<Chip[]>(() => {
@@ -566,10 +565,12 @@ export default function IsapresClient({
   // ── Sidebar content ────────────────────────────────────────────────
   const SidebarContent = () => (
     <>
+      {/* Beneficiarios + presupuesto van JUNTOS: son dependientes. Los beneficiarios
+          calculan el precio real (factor) de cada plan; el presupuesto es lo que
+          realmente filtra. Por sí solos, los beneficiarios no reducen la lista. */}
       <FilterGroup
-        title="Beneficiarios"
-        defaultOpen={true}
-        activeCount={beneficiarios.length}
+        title="Beneficiarios y presupuesto"
+        activeCount={beneficiarios.length + budgetGroupCount}
         icon={
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -579,38 +580,37 @@ export default function IsapresClient({
           </svg>
         }
       >
-        <BeneficiariosBlock
-          cotizanteAge={cotizanteAge}
-          cargas={cargas}
-          totalFactor={totalFactor}
-          onSetCotizanteAge={setCotizanteAge}
-          onAddCarga={addCarga}
-          onRemoveCarga={removeCarga}
-          onClear={clearBeneficiarios}
-        />
-      </FilterGroup>
-
-      <FilterGroup
-        title="Tu presupuesto"
-        defaultOpen={true}
-        activeCount={budgetGroupCount}
-        icon={
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
-        }
-      >
-        <SevenPercentBlock
-          salaryInput={grossSalaryInput}
-          setSalaryInput={setGrossSalaryInput}
-          applyBudget={applyLegalBudgetFilter}
-          clearBudget={clearLegalBudgetFilter}
-          active={currentLegalBudgetActive}
-        />
-        <div className="pt-3 border-t border-[#0f514b]/8">
+        <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] mb-2.5">
-            O ajusta manualmente
+            ¿Quiénes se cubren?
+          </div>
+          <BeneficiariosBlock
+            cotizanteAge={cotizanteAge}
+            cargas={cargas}
+            totalFactor={totalFactor}
+            onSetCotizanteAge={setCotizanteAge}
+            onAddCarga={addCarga}
+            onRemoveCarga={removeCarga}
+            onClear={clearBeneficiarios}
+          />
+        </div>
+
+        <div className="pt-4 border-t border-[#0f514b]/8">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] mb-2.5">
+            Tu 7% legal
+          </div>
+          <SevenPercentBlock
+            salaryInput={grossSalaryInput}
+            setSalaryInput={setGrossSalaryInput}
+            applyBudget={applyLegalBudgetFilter}
+            clearBudget={clearLegalBudgetFilter}
+            active={currentLegalBudgetActive}
+          />
+        </div>
+
+        <div className="pt-4 border-t border-[#0f514b]/8">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a6b6a] mb-2.5">
+            Rango de precio
           </div>
           <PriceRange
             min={localPriceMin}
@@ -625,30 +625,52 @@ export default function IsapresClient({
       </FilterGroup>
 
       <FilterGroup
-        title="Tu cobertura"
-        defaultOpen={false}
-        activeCount={coverageGroupCount}
+        title="Zona"
+        activeCount={zonasGroupCount}
         icon={
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
           </svg>
         }
       >
-        <CoverageStepper
-          label="Hospitalaria mínima"
-          value={draft.cobHosp ? parseInt(draft.cobHosp, 10) : null}
-          onChange={setDraftCobHosp}
-        />
-        <CoverageStepper
-          label="Ambulatoria mínima"
-          value={draft.cobAmb ? parseInt(draft.cobAmb, 10) : null}
-          onChange={setDraftCobAmb}
+        <ZonasFilter zonas={initialZonas} selected={draft.zonas} toggle={toggleZona} />
+      </FilterGroup>
+
+      <FilterGroup
+        title="Modalidad"
+        activeCount={modalidadGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="6" y1="3" x2="6" y2="15" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M18 9a9 9 0 0 1-9 9" />
+          </svg>
+        }
+      >
+        <ModalidadFilter
+          options={MODALIDADES}
+          value={draft.modalidad}
+          onChange={setDraftModalidad}
         />
       </FilterGroup>
 
       <FilterGroup
+        title="Isapres"
+        activeCount={isapresGroupCount}
+        icon={
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6z" />
+            <path d="M9 12h6M12 9v6" />
+          </svg>
+        }
+      >
+        <IsapresFilter isapres={activeIsapres} selected={draft.isapres} toggle={toggleIsapre} />
+      </FilterGroup>
+
+      <FilterGroup
         title="Clínicas y hospitales"
-        defaultOpen={false}
         activeCount={clinicasGroupCount}
         icon={
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -665,34 +687,23 @@ export default function IsapresClient({
       </FilterGroup>
 
       <FilterGroup
-        title="Isapres"
-        defaultOpen={false}
-        activeCount={isapresGroupCount}
+        title="Tu cobertura"
+        activeCount={coverageGroupCount}
         icon={
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6z" />
-            <path d="M9 12h6M12 9v6" />
+            <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
           </svg>
         }
       >
-        <IsapresFilter isapres={activeIsapres} selected={draft.isapres} toggle={toggleIsapre} />
-      </FilterGroup>
-
-      <FilterGroup
-        title="Tus preferencias"
-        defaultOpen={false}
-        activeCount={prefsGroupCount}
-        icon={
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-        }
-      >
-        <ZonasFilter zonas={initialZonas} selected={draft.zonas} toggle={toggleZona} />
-        <ModalidadFilter
-          options={MODALIDADES}
-          value={draft.modalidad}
-          onChange={setDraftModalidad}
+        <CoverageStepper
+          label="Hospitalaria mínima"
+          value={draft.cobHosp ? parseInt(draft.cobHosp, 10) : null}
+          onChange={setDraftCobHosp}
+        />
+        <CoverageStepper
+          label="Ambulatoria mínima"
+          value={draft.cobAmb ? parseInt(draft.cobAmb, 10) : null}
+          onChange={setDraftCobAmb}
         />
       </FilterGroup>
     </>
@@ -714,44 +725,53 @@ export default function IsapresClient({
           className="hidden lg:flex flex-col space-y-3 sticky top-[80px] self-start"
           style={{ maxHeight: 'calc(100vh - 92px)' }}
         >
-          <div className="flex-1 overflow-y-auto space-y-3 pb-1">
+          <div className="flex-1 overflow-y-auto space-y-3 pb-1 pr-0.5">
             {SidebarContent()}
-            {totalActiveCount > 0 && (
-              <button
-                onClick={clearAll}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[12px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
-              >
-                Limpiar todos los filtros ({totalActiveCount})
-              </button>
-            )}
           </div>
 
-          {/* Footer sticky con Aplicar / Cancelar */}
-          {hasPendingChanges && (
-            <div className="shrink-0 rounded-2xl border-2 border-[#14dcb4]/40 bg-white p-2.5 shadow-[0_10px_24px_-10px_rgba(15,81,75,0.25)] flex items-center gap-2">
+          {/* Barra de acción SIEMPRE visible y destacada: anclada al fondo del sidebar
+              (alto = viewport), el usuario aplica o limpia en cualquier momento sin
+              tener que scrollear hasta el final de los filtros. */}
+          <div className="shrink-0 rounded-2xl border-2 border-[#14dcb4]/45 bg-white p-2.5 shadow-[0_14px_30px_-10px_rgba(15,81,75,0.38)]">
+            {hasPendingChanges ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={cancelDraft}
+                  className="px-3 py-3 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[11.5px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
+                  title="Descartar cambios pendientes"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyDraft()}
+                  className="flex-1 px-3 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[13px] font-extrabold shadow-[0_10px_22px_rgba(20,220,180,0.5)] ring-2 ring-[#14dcb4]/30 hover:-translate-y-px transition-all inline-flex items-center justify-center gap-1.5"
+                >
+                  Aplicar filtros
+                  <span className="bg-[#0f2826]/15 text-[#0f2826] text-[10px] font-extrabold px-1.5 py-0.5 rounded tabular-nums">
+                    {pendingChangesCount}
+                  </span>
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
+            ) : totalActiveCount > 0 ? (
               <button
                 type="button"
-                onClick={cancelDraft}
-                className="px-3 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[11.5px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
-                title="Descartar cambios pendientes"
+                onClick={clearAll}
+                className="w-full px-4 py-3 rounded-xl border border-[#0f514b]/20 text-[#0f514b] text-[12.5px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors inline-flex items-center justify-center gap-1.5"
               >
-                Cancelar
+                <X className="w-3.5 h-3.5" />
+                Limpiar todos los filtros ({totalActiveCount})
               </button>
-              <button
-                type="button"
-                onClick={() => applyDraft()}
-                className="flex-1 px-3 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[12.5px] font-bold shadow-[0_8px_18px_rgba(20,220,180,0.35)] hover:-translate-y-px transition-all inline-flex items-center justify-center gap-1.5"
-              >
-                Aplicar filtros
-                <span className="bg-[#0f2826]/15 text-[#0f2826] text-[10px] font-extrabold px-1.5 py-0.5 rounded tabular-nums">
-                  {pendingChangesCount}
-                </span>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="text-center text-[11.5px] text-[#5a6b6a] font-semibold py-1.5 px-2 leading-snug">
+                Marca tus opciones y aplícalas aquí
+              </div>
+            )}
+          </div>
         </aside>
 
         {/* ─── Results ─── */}
