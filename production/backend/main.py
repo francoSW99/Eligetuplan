@@ -1253,8 +1253,12 @@ def _sort_plan_list(plans: list["PlanListItem"], sort: str) -> list["PlanListIte
 
     if sort == "precio_desc":
         return sorted(plans, key=lambda p: (-price(p), name(p), p.id))
-    if sort == "name_asc":
-        return sorted(plans, key=lambda p: (name(p), price(p), p.id))
+    if sort == "recientes":
+        # Más nuevos primero por fecha de emisión (ISO yyyy-mm-dd → orden lexicográfico =
+        # cronológico). Los planes sin fecha van al final. Desempate por precio asc, vía
+        # sort estable en dos pasos (Python conserva el orden previo en empates).
+        by_price = sorted(plans, key=lambda p: (price(p), name(p), p.id))
+        return sorted(by_price, key=lambda p: (p.fecha_emision or ""), reverse=True)
     if sort == "cobertura":
         # Mayor cobertura primero (hosp + amb); a igual cobertura, más barato primero.
         return sorted(plans, key=lambda p: (-coverage(p), price(p), p.id))

@@ -927,7 +927,7 @@ export default function IsapresClient({
               <option value="precio_asc">Precio: menor a mayor</option>
               <option value="precio_desc">Precio: mayor a menor</option>
               <option value="cobertura">Mayor cobertura</option>
-              <option value="name_asc">Nombre A-Z</option>
+              <option value="recientes">Más nuevos</option>
             </select>
             <button
               type="button"
