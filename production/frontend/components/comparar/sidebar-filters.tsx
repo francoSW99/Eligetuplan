@@ -339,7 +339,7 @@ export function IsapresFilter({
           const checked = selected.includes(slug);
           return (
             <li key={i.id}>
-              <label className="flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+              <label className="relative flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span
                     className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
@@ -412,7 +412,7 @@ export function ZonasFilter({
           const checked = selected.includes(String(z.id));
           return (
             <li key={z.id}>
-              <label className="flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+              <label className="relative flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span
                     className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
@@ -572,7 +572,7 @@ export function ClinicasFilter({
           const checked = selected.includes(c.id);
           return (
             <li key={c.id}>
-              <label className="flex items-start gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+              <label className="relative flex items-start gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
                 <span
                   className={`shrink-0 w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center transition-all ${
                     checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
