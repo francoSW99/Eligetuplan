@@ -164,9 +164,10 @@ export default function IsapresClient({
   const [searchOpen, setSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // ───────── Draft de filtros (batching) ─────────
-  // Los checkboxes/radios/segmented del sidebar NO se aplican al instante.
-  // Acumulan cambios en `draft` hasta que el usuario presione "Aplicar filtros".
+  // ───────── Filtros instantáneos (draft + auto-apply con debounce) ─────────
+  // `draft` refleja la selección de checkboxes/segmented AL INSTANTE en la UI; un
+  // efecto la auto-aplica a la URL/fetch ~300ms después del último cambio (ver abajo).
+  // Sin botón "Aplicar": marcar varias opciones seguidas dispara UNA sola consulta.
   type DraftState = {
     isapres: string[];
     zonas: string[];
@@ -207,10 +208,6 @@ export default function IsapresClient({
     });
   }
 
-  function cancelDraft() {
-    setDraft(urlState);
-  }
-
   const hasPendingChanges = useMemo(() => {
     const cmpArr = (a: string[], b: string[]) =>
       a.length === b.length && a.slice().sort().every((v, i) => v === b.slice().sort()[i]);
@@ -224,17 +221,16 @@ export default function IsapresClient({
     );
   }, [draft, urlState]);
 
-  const pendingChangesCount = useMemo(() => {
-    let count = 0;
-    const inDraftNotUrl = (a: string[], b: string[]) => a.filter((x) => !b.includes(x)).length;
-    count += inDraftNotUrl(draft.isapres, urlState.isapres) + inDraftNotUrl(urlState.isapres, draft.isapres);
-    count += inDraftNotUrl(draft.zonas, urlState.zonas) + inDraftNotUrl(urlState.zonas, draft.zonas);
-    count += inDraftNotUrl(draft.prestadorIds, urlState.prestadorIds) + inDraftNotUrl(urlState.prestadorIds, draft.prestadorIds);
-    if (draft.modalidad !== urlState.modalidad) count++;
-    if (draft.cobHosp !== urlState.cobHosp) count++;
-    if (draft.cobAmb !== urlState.cobAmb) count++;
-    return count;
-  }, [draft, urlState]);
+  // Auto-aplica el draft a la URL/fetch tras un debounce corto (filtros instantáneos).
+  // Cada cambio del draft reinicia el timer → al marcar varias opciones seguidas se
+  // hace UNA sola consulta cuando el usuario deja de tocar. router.push usa scroll:false
+  // (en pushParams), así que no hay salto de scroll.
+  useEffect(() => {
+    if (!hasPendingChanges) return;
+    const t = setTimeout(() => applyDraft(), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, hasPendingChanges]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
@@ -732,35 +728,10 @@ export default function IsapresClient({
             {SidebarContent()}
           </div>
 
-          {/* Barra de acción SIEMPRE visible y destacada: anclada al fondo del sidebar
-              (alto = viewport), el usuario aplica o limpia en cualquier momento sin
-              tener que scrollear hasta el final de los filtros. */}
-          <div className="shrink-0 rounded-2xl border-2 border-[#14dcb4]/45 bg-white p-2.5 shadow-[0_14px_30px_-10px_rgba(15,81,75,0.38)]">
-            {hasPendingChanges ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={cancelDraft}
-                  className="px-3 py-3 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[11.5px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
-                  title="Descartar cambios pendientes"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyDraft()}
-                  className="flex-1 px-3 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[13px] font-extrabold shadow-[0_10px_22px_rgba(20,220,180,0.5)] ring-2 ring-[#14dcb4]/30 hover:-translate-y-px transition-all inline-flex items-center justify-center gap-1.5"
-                >
-                  Aplicar filtros
-                  <span className="bg-[#0f2826]/15 text-[#0f2826] text-[10px] font-extrabold px-1.5 py-0.5 rounded tabular-nums">
-                    {pendingChangesCount}
-                  </span>
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </button>
-              </div>
-            ) : totalActiveCount > 0 ? (
+          {/* Barra inferior fija del sidebar. Los filtros se aplican solos (instantáneo),
+              así que acá solo queda "Limpiar todos" siempre a mano (sin scrollear). */}
+          <div className="shrink-0 rounded-2xl border border-[#0f514b]/12 bg-white p-2.5 shadow-[0_10px_24px_-14px_rgba(15,81,75,0.3)]">
+            {totalActiveCount > 0 ? (
               <button
                 type="button"
                 onClick={clearAll}
@@ -770,8 +741,8 @@ export default function IsapresClient({
                 Limpiar todos los filtros ({totalActiveCount})
               </button>
             ) : (
-              <div className="text-center text-[11.5px] text-[#5a6b6a] font-semibold py-1.5 px-2 leading-snug">
-                Marca tus opciones y aplícalas aquí
+              <div className="text-center text-[11.5px] text-[#5a6b6a] font-medium py-1.5 px-2 leading-snug">
+                Los filtros se aplican al instante
               </div>
             )}
           </div>
@@ -1060,21 +1031,14 @@ export default function IsapresClient({
               </button>
               <button
                 onClick={() => {
+                  // Los filtros ya se auto-aplican; al cerrar hacemos flush por si tocó
+                  // algo justo antes (dentro del debounce) y mostramos los resultados.
                   if (hasPendingChanges) applyDraft();
                   setMobileFiltersOpen(false);
                 }}
                 className="flex-1 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[13px] font-bold inline-flex items-center justify-center gap-1.5"
               >
-                {hasPendingChanges ? (
-                  <>
-                    Aplicar
-                    <span className="bg-[#0f2826]/15 text-[#0f2826] text-[10px] font-extrabold px-1.5 py-0.5 rounded tabular-nums">
-                      {pendingChangesCount}
-                    </span>
-                  </>
-                ) : (
-                  <>Ver {data.total} planes</>
-                )}
+                Ver {data.total} planes
               </button>
             </div>
           </div>
