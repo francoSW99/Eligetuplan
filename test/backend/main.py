@@ -85,11 +85,18 @@ CORS_DEFAULTS = (
     "https://elige-tuplan.vercel.app,"
     "https://landingpage-asesoriasalud.vercel.app"
 )
-origins = [
+# Orígenes de DESARROLLO que SIEMPRE se permiten, aunque el ALLOWED_ORIGINS de prod
+# no los liste. Sin esto, el dev server (localhost:3000) que consume la API en vivo
+# choca con CORS: el navegador bloquea las respuestas y el filtrado/orden client-side
+# nunca se actualiza. Seguro: la API es pública de solo lectura (anon + RLS SELECT).
+DEV_ORIGINS = ["http://localhost:3000", "http://localhost:3001"]
+_configured = [
     origin.strip()
     for origin in os.getenv("ALLOWED_ORIGINS", CORS_DEFAULTS).split(",")
     if origin.strip()
 ]
+# Unión preservando orden y sin duplicados.
+origins = list(dict.fromkeys(_configured + DEV_ORIGINS))
 
 app.add_middleware(
     CORSMiddleware,
