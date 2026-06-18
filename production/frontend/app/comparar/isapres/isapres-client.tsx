@@ -152,7 +152,10 @@ export default function IsapresClient({
     if (!('page' in updates)) next.delete('page');
     setSearch(next); // dispara el fetch en vivo + actualiza la UI al instante
     startTransition(() => {
-      router.push(`?${next.toString()}`); // mantiene la URL/historial sincronizados
+      // scroll:false → al aplicar/cambiar filtros NO saltamos la posición de scroll.
+      // El App Router por defecto mueve el foco/scroll al navegar; aquí solo
+      // sincronizamos URL/historial, el usuario se queda donde estaba.
+      router.push(`?${next.toString()}`, { scroll: false });
     });
   }
 
@@ -400,7 +403,7 @@ export default function IsapresClient({
     setDraft({ isapres: [], zonas: [], modalidad: '', cobHosp: null, cobAmb: null, prestadorIds: [] });
     setSearch(new URLSearchParams());
     startTransition(() => {
-      router.push('?');
+      router.push('?', { scroll: false });
     });
   }
 
