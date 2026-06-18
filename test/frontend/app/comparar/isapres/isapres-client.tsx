@@ -90,34 +90,8 @@ export default function IsapresClient({
   // limpiar filtros (volver al default muestra datos frescos al instante).
   const liveDefaultRef = useRef<PlansResponse | null>(null);
 
-  // Filtrado en vivo: cuando cambia la URL (filtros/orden/página/beneficiarios) pedimos
-  // los planes al backend desde el navegador.
-  useEffect(() => {
-    let cancelled = false;
-
-    if (isDefaultPlansView(search)) {
-      // Mostramos al instante lo mejor que tengamos: el snapshot pre-renderizado
-      // (la "foto") o los datos en vivo si ya los trajimos.
-      setData(liveDefaultRef.current ?? initialData);
-      setIsFetching(false);
-      // Y refrescamos la vista por defecto EN SILENCIO (sin spinner) una sola vez:
-      // el usuario ve la foto y, ~1s después, los datos reales del backend sin tocar nada.
-      if (liveDefaultRef.current) return;
-      getPlanes(buildPlansQuery(search, beneficiarios))
-        .then((res) => { if (!cancelled) { liveDefaultRef.current = res; setData(res); } })
-        .catch(() => { /* si falla, se queda con la foto */ });
-      return () => { cancelled = true; };
-    }
-
-    // Vista filtrada: pedimos al backend con indicador de carga visible.
-    setIsFetching(true);
-    getPlanes(buildPlansQuery(search, beneficiarios))
-      .then((res) => { if (!cancelled) setData(res); })
-      .catch(() => { /* si el backend falla, conservamos los datos previos */ })
-      .finally(() => { if (!cancelled) setIsFetching(false); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  // El fetch en vivo se define más abajo (usa `effectiveSearch` = URL + draft, para
+  // previsualizar los filtros del sidebar antes de "Aplicar").
 
   // Floor/ceiling user-facing: aplica fórmula tu7 (base × sumaF + gesAvg × N)
   // GES promedio aprox: 0.7 UF ≈ 28k CLP. Es una aproximación; cada plan tiene su GES exacto.
@@ -164,10 +138,10 @@ export default function IsapresClient({
   const [searchOpen, setSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // ───────── Filtros instantáneos (draft + auto-apply con debounce) ─────────
-  // `draft` refleja la selección de checkboxes/segmented AL INSTANTE en la UI; un
-  // efecto la auto-aplica a la URL/fetch ~300ms después del último cambio (ver abajo).
-  // Sin botón "Aplicar": marcar varias opciones seguidas dispara UNA sola consulta.
+  // ───────── Filtros con vista previa (draft) + botón Aplicar ─────────
+  // `draft` = selección de checkboxes/segmented del sidebar. Se refleja al instante en la
+  // UI y la lista la PREVISUALIZA (vía effectiveSearch, abajo), pero NO se "fija" en la URL
+  // hasta que el usuario aprieta "Aplicar". Orden/precio/beneficiarios sí van directo a la URL.
   type DraftState = {
     isapres: string[];
     zonas: string[];
@@ -221,16 +195,48 @@ export default function IsapresClient({
     );
   }, [draft, urlState]);
 
-  // Auto-aplica el draft a la URL/fetch tras un debounce corto (filtros instantáneos).
-  // Cada cambio del draft reinicia el timer → al marcar varias opciones seguidas se
-  // hace UNA sola consulta cuando el usuario deja de tocar. router.push usa scroll:false
-  // (en pushParams), así que no hay salto de scroll.
+  // Lo que se MUESTRA en la lista = URL aplicada + filtros del draft (vista previa).
+  // Así la lista previsualiza el draft al instante; la URL recién se "fija" al Aplicar.
+  const effectiveSearch = useMemo(() => {
+    const s = new URLSearchParams(search.toString());
+    const setOrDel = (k: string, v: string) => { if (v) s.set(k, v); else s.delete(k); };
+    setOrDel('isapre', draft.isapres.join(','));
+    setOrDel('zona', draft.zonas.join(','));
+    setOrDel('modalidad', draft.modalidad);
+    setOrDel('cobertura_hosp_min', draft.cobHosp ?? '');
+    setOrDel('cobertura_amb_min', draft.cobAmb ?? '');
+    setOrDel('prestador_ids', draft.prestadorIds.join(','));
+    s.delete('prestador');
+    return s;
+  }, [search, draft]);
+
+  // Filtrado en vivo (preview): pide los planes según effectiveSearch (URL + draft).
+  // Con debounce → marcar varias opciones seguidas dispara UNA sola consulta. No fija la
+  // URL (eso lo hace "Aplicar"); pushParams usa scroll:false → sin salto de scroll.
   useEffect(() => {
-    if (!hasPendingChanges) return;
-    const t = setTimeout(() => applyDraft(), 300);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    const query = buildPlansQuery(effectiveSearch, beneficiarios);
+
+    if (isDefaultPlansView(effectiveSearch)) {
+      setData(liveDefaultRef.current ?? initialData);
+      setIsFetching(false);
+      if (liveDefaultRef.current) return;
+      getPlanes(query)
+        .then((res) => { if (!cancelled) { liveDefaultRef.current = res; setData(res); } })
+        .catch(() => {});
+      return () => { cancelled = true; };
+    }
+
+    setIsFetching(true);
+    const t = setTimeout(() => {
+      getPlanes(query)
+        .then((res) => { if (!cancelled) setData(res); })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setIsFetching(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, hasPendingChanges]);
+  }, [effectiveSearch]);
 
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [selectedPdfPlan, setSelectedPdfPlan] = useState<Plan | null>(null);
@@ -728,10 +734,32 @@ export default function IsapresClient({
             {SidebarContent()}
           </div>
 
-          {/* Barra inferior fija del sidebar. Los filtros se aplican solos (instantáneo),
-              así que acá solo queda "Limpiar todos" siempre a mano (sin scrollear). */}
-          <div className="shrink-0 rounded-2xl border border-[#0f514b]/12 bg-white p-2.5 shadow-[0_10px_24px_-14px_rgba(15,81,75,0.3)]">
-            {totalActiveCount > 0 ? (
+          {/* Barra inferior fija del sidebar, SIEMPRE visible. Con cambios sin aplicar:
+              "Aplicar · N planes" (contador en vivo de la vista previa) + Cancelar.
+              Sin cambios: "Limpiar todos" o aviso. */}
+          <div className="shrink-0 rounded-2xl border-2 border-[#14dcb4]/45 bg-white p-2.5 shadow-[0_14px_30px_-10px_rgba(15,81,75,0.38)]">
+            {hasPendingChanges ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDraft(urlState)}
+                  className="px-3 py-3 rounded-xl border border-[#0f514b]/15 text-[#0f514b] text-[11.5px] font-bold hover:bg-[#0f514b]/[0.03] transition-colors"
+                  title="Descartar cambios sin aplicar"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyDraft()}
+                  className="flex-1 px-3 py-3 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] text-[13px] font-extrabold shadow-[0_10px_22px_rgba(20,220,180,0.5)] ring-2 ring-[#14dcb4]/30 hover:-translate-y-px transition-all inline-flex items-center justify-center gap-1.5"
+                >
+                  Aplicar · {isFetching ? '…' : `${data.total.toLocaleString('es-CL')} ${data.total === 1 ? 'plan' : 'planes'}`}
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
+            ) : totalActiveCount > 0 ? (
               <button
                 type="button"
                 onClick={clearAll}
@@ -742,7 +770,7 @@ export default function IsapresClient({
               </button>
             ) : (
               <div className="text-center text-[11.5px] text-[#5a6b6a] font-medium py-1.5 px-2 leading-snug">
-                Los filtros se aplican al instante
+                Marca filtros para previsualizar tus planes
               </div>
             )}
           </div>
