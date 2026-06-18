@@ -7,14 +7,14 @@ import { ItemListSchema } from "@/components/seo/ItemListSchema";
 import { getAllArticles, type ArticleMeta } from "@/lib/blog";
 
 export const metadata: Metadata = {
-  title: { absolute: "Blog de Isapres y Planes de Salud — EligeTuPlan" },
+  title: { absolute: "Guías de Isapres: precios, cobertura y cambio | EligeTuPlan" },
   description:
-    "Guías y novedades sobre Isapres y planes de salud en Chile: qué es una Isapre, cómo cambiarse, beneficios y cómo elegir el plan que más te conviene.",
+    "Aprende a comparar Isapres en Chile: precios, 7% de salud, Fonasa vs Isapre, coberturas, GES, CAEC, preexistencias y cambio de plan.",
   alternates: { canonical: "https://www.elige-tuplan.cl/blog" },
   openGraph: {
-    title: "Blog de Isapres y Planes de Salud — EligeTuPlan",
+    title: "Guías de Isapres: precios, cobertura y cambio | EligeTuPlan",
     description:
-      "Guías claras sobre Isapres y planes de salud en Chile para tomar mejores decisiones.",
+      "Guías claras para comparar Isapres, entender precios, coberturas y elegir un plan de salud con mejor información.",
     url: "https://www.elige-tuplan.cl/blog",
     type: "website",
   },

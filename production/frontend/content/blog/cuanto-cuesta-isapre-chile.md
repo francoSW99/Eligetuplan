@@ -1,6 +1,6 @@
 ---
-title: "Cuánto cuesta una Isapre en Chile y de qué depende el precio"
-description: "Conoce cómo se calcula el precio de un plan de Isapre, qué rol cumple tu 7%, por qué se expresa en UF y qué rangos observamos en planes reales."
+title: "Cuánto cuesta una Isapre en Chile: precios y UF"
+description: "Entiende el precio de un plan de Isapre, tu 7%, costos en UF, GES y rangos observados en planes reales."
 date: "2026-06-17"
 category: "Guías"
 cover: "/blog/cuanto-cuesta-isapre-chile.webp"

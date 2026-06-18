@@ -1,6 +1,6 @@
 ---
-title: "Preexistencias en Isapre: qué declarar antes de contratar o cambiarte"
-description: "Guía práctica para entender qué son las preexistencias en Isapre, cómo funciona la Declaración de Salud y qué revisar antes de firmar un plan."
+title: "Preexistencias en Isapre: qué declarar y riesgos"
+description: "Entiende la Declaración de Salud, qué antecedentes declarar y qué revisar antes de contratar o cambiarte de Isapre."
 date: "2026-06-18"
 category: "Guías"
 cover: "/blog/preexistencias-isapre-declaracion-salud.webp"

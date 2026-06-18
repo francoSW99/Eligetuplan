@@ -1,6 +1,6 @@
 ---
-title: "Cómo elegir una Isapre: 7 cosas que revisar antes de contratar"
-description: "Guía práctica para elegir una Isapre en Chile: precio, cobertura, clínicas, topes, preexistencias, GES/CAEC y contrato antes de firmar."
+title: "Cómo elegir Isapre: checklist antes de firmar"
+description: "Revisa precio, cobertura, clínicas, topes, GES/CAEC y preexistencias antes de firmar o cambiarte de Isapre."
 date: "2026-06-17"
 category: "Guías"
 cover: "/blog/como-elegir-isapre-plan-salud.webp"

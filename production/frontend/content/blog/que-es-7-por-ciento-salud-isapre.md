@@ -1,6 +1,6 @@
 ---
-title: "Qué es el 7% de salud y cómo saber si te alcanza para una Isapre"
-description: "Aprende cómo funciona la cotización legal del 7% para salud en Chile, cómo estimar tu presupuesto mensual y qué mirar antes de comparar planes de Isapre."
+title: "7% de salud: cómo calcularlo para una Isapre"
+description: "Calcula tu cotización legal de salud, entiende el tope imponible, la UF y cuándo un plan de Isapre puede superar tu 7%."
 date: "2026-06-17"
 category: "Guías"
 cover: "/blog/siete-por-ciento-salud-isapre.webp"

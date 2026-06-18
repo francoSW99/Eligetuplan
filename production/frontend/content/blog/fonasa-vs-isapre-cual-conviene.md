@@ -1,6 +1,6 @@
 ---
-title: "Fonasa vs Isapre: diferencias y cuál conviene según tu perfil"
-description: "Compara Fonasa e Isapre en Chile: cotización, cobertura, red de atención, costos y qué revisar antes de decidir dónde poner tu 7% de salud."
+title: "Fonasa vs Isapre: diferencias y cuál conviene"
+description: "Compara cotización, cobertura, red, costos y beneficios para decidir si te conviene Fonasa o Isapre según tu perfil."
 date: "2026-06-17"
 category: "Guías"
 cover: "/blog/fonasa-vs-isapre-comparacion.webp"

@@ -1,6 +1,6 @@
 ---
-title: "GES y CAEC en Isapre: qué revisar antes de elegir un plan"
-description: "Entiende la diferencia entre GES y CAEC en una Isapre, cuándo se activan, qué revisar en la red de atención y cómo evitar errores al comparar planes."
+title: "GES y CAEC en Isapre: diferencias y cómo usarlos"
+description: "Aprende qué cubre GES, cómo funciona CAEC, cuándo se activan y qué revisar en red, deducible y contrato antes de elegir plan."
 date: "2026-06-18"
 category: "Guías"
 cover: "/blog/ges-caec-isapre-guia-practica.webp"
