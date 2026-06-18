@@ -16,6 +16,7 @@ export interface ArticleMeta {
   title: string;
   description: string;
   date: string;          // ISO yyyy-mm-dd
+  updated?: string;      // ISO yyyy-mm-dd
   category: string;
   cover: string | null;  // ruta en /public
   author: string;
@@ -37,6 +38,7 @@ function toMeta(slug: string, data: Record<string, unknown>, content: string): A
     title: (data.title as string) ?? slug,
     description: (data.description as string) ?? "",
     date: (data.date as string) ?? "",
+    updated: (data.updated as string) ?? undefined,
     category: (data.category as string) ?? "Guías",
     cover: (data.cover as string) ?? null,
     author: (data.author as string) ?? "Equipo EligeTuPlan",

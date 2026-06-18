@@ -2,6 +2,7 @@
 title: "Cuánto cuesta una Isapre en Chile: precios y UF"
 description: "Entiende el precio de un plan de Isapre, tu 7%, costos en UF, GES y rangos observados en planes reales."
 date: "2026-06-17"
+updated: "2026-06-18"
 category: "Guías"
 cover: "/blog/cuanto-cuesta-isapre-chile.webp"
 author: "Equipo EligeTuPlan"

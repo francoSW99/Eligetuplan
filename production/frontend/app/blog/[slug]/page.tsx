@@ -100,6 +100,8 @@ export default async function ArticlePage({
 
   const url = `${SITE}/blog/${slug}`;
   const imageUrl = article.cover ? `${SITE}${article.cover}` : `${SITE}/icon.png`;
+  const updatedDate = article.updated ?? article.date;
+  const hasUpdatedDate = Boolean(article.updated && article.updated !== article.date);
 
   const related = getRelatedArticles(slug, 3);
 
@@ -111,7 +113,7 @@ export default async function ArticlePage({
         url={url}
         imageUrl={imageUrl}
         datePublished={article.date}
-        dateModified={article.date}
+        dateModified={updatedDate}
         authorName={article.author}
         category={article.category}
         readingMinutes={article.readingMinutes}
@@ -147,7 +149,8 @@ export default async function ArticlePage({
           {article.title}
         </h1>
         <p className="text-[12.5px] text-slate-400 mb-8">
-          Por {article.author} · {formatDate(article.date)}
+          Por {article.author} · Publicado {formatDate(article.date)}
+          {hasUpdatedDate ? <> · Actualizado {formatDate(updatedDate)}</> : null}
         </p>
 
         {article.cover && (

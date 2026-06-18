@@ -2,6 +2,7 @@
 title: "Cómo elegir Isapre: checklist antes de firmar"
 description: "Revisa precio, cobertura, clínicas, topes, GES/CAEC y preexistencias antes de firmar o cambiarte de Isapre."
 date: "2026-06-17"
+updated: "2026-06-18"
 category: "Guías"
 cover: "/blog/como-elegir-isapre-plan-salud.webp"
 author: "Equipo EligeTuPlan"

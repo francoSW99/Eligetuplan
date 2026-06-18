@@ -2,6 +2,7 @@
 title: "7% de salud: cómo calcularlo para una Isapre"
 description: "Calcula tu cotización legal de salud, entiende el tope imponible, la UF y cuándo un plan de Isapre puede superar tu 7%."
 date: "2026-06-17"
+updated: "2026-06-18"
 category: "Guías"
 cover: "/blog/siete-por-ciento-salud-isapre.webp"
 author: "Equipo EligeTuPlan"

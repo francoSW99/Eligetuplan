@@ -36,12 +36,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.82,
   }));
 
-  const blogRoutes = getAllArticles().map((a) => ({
-    url: `${SITE_URL}/blog/${a.slug}`,
-    lastModified: a.date ? new Date(a.date + "T00:00:00") : fallbackLastModified,
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
+  const blogRoutes = getAllArticles().map((a) => {
+    const blogLastModified = a.updated ?? a.date;
+
+    return {
+      url: `${SITE_URL}/blog/${a.slug}`,
+      lastModified: blogLastModified
+        ? new Date(blogLastModified + "T00:00:00")
+        : fallbackLastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    };
+  });
 
   return [...staticRoutes, ...isapreRoutes, ...profileRoutes, ...blogRoutes].sort((a, b) =>
     a.url.localeCompare(b.url)

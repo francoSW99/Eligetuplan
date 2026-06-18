@@ -2,6 +2,7 @@
 title: "Fonasa vs Isapre: diferencias y cuál conviene"
 description: "Compara cotización, cobertura, red, costos y beneficios para decidir si te conviene Fonasa o Isapre según tu perfil."
 date: "2026-06-17"
+updated: "2026-06-18"
 category: "Guías"
 cover: "/blog/fonasa-vs-isapre-comparacion.webp"
 author: "Equipo EligeTuPlan"
