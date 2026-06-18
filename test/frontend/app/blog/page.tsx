@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Calculator, ClipboardCheck, Clock, ShieldCheck } from "lucide-react";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ItemListSchema } from "@/components/seo/ItemListSchema";
-import { getAllArticles } from "@/lib/blog";
+import { getAllArticles, type ArticleMeta } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: { absolute: "Blog de Isapres y Planes de Salud — EligeTuPlan" },
@@ -20,6 +20,51 @@ export const metadata: Metadata = {
   },
 };
 
+const topicClusters = [
+  {
+    key: "compare",
+    icon: ClipboardCheck,
+    eyebrow: "Ruta 1",
+    title: "Estoy comparando opciones",
+    question: "No tengo claro si me conviene Fonasa, Isapre o seguir buscando.",
+    description: "Parte aqui si quieres entender diferencias, precio mensual y criterios para elegir con calma.",
+    tags: ["Fonasa vs Isapre", "Precio", "Decision"],
+    slugs: [
+      "fonasa-vs-isapre-cual-conviene",
+      "como-elegir-isapre-plan-salud",
+      "cuanto-cuesta-isapre-chile",
+    ],
+  },
+  {
+    key: "contract",
+    icon: Calculator,
+    eyebrow: "Ruta 2",
+    title: "Estoy por contratar o cambiarme",
+    question: "Ya estoy mirando planes y necesito saber que revisar antes de firmar.",
+    description: "Esta ruta te ayuda a calcular tu 7%, ordenar documentos y evitar errores con preexistencias.",
+    tags: ["7% de salud", "Cambio", "Preexistencias"],
+    slugs: [
+      "que-es-7-por-ciento-salud-isapre",
+      "preexistencias-isapre-declaracion-salud",
+      "como-cambiarse-de-isapre",
+    ],
+  },
+  {
+    key: "coverage",
+    icon: ShieldCheck,
+    eyebrow: "Ruta 3",
+    title: "Quiero entender la cobertura real",
+    question: "Me preocupa que el plan se vea bueno, pero no cubra bien cuando lo use.",
+    description: "Revisa aqui topes, GES, CAEC, red de atencion y diferencias entre cobertura normal y especial.",
+    tags: ["Cobertura", "GES", "CAEC"],
+    slugs: [
+      "ges-caec-isapre-guia-practica",
+      "que-cubre-plan-isapre-ges-caec",
+      "que-es-una-isapre",
+    ],
+  },
+] as const;
+
 function formatDate(iso: string): string {
   if (!iso) return "";
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -28,10 +73,21 @@ function formatDate(iso: string): string {
   return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function articlesForSlugs(articles: ArticleMeta[], slugs: readonly string[]): ArticleMeta[] {
+  const bySlug = new Map(articles.map((article) => [article.slug, article]));
+  return slugs
+    .map((slug) => bySlug.get(slug))
+    .filter((article): article is ArticleMeta => Boolean(article));
+}
+
 const SITE = "https://www.elige-tuplan.cl";
 
 export default function BlogIndexPage() {
   const articles = getAllArticles();
+  const clusters = topicClusters.map((cluster) => ({
+    ...cluster,
+    articles: articlesForSlugs(articles, cluster.slugs),
+  }));
 
   return (
     <div className="min-h-screen bg-[#fbf8f3]">
@@ -72,7 +128,99 @@ export default function BlogIndexPage() {
       </section>
 
       {/* Grid de artículos */}
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-[1100px] px-5 sm:px-6 lg:px-10 py-10 md:py-12">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-7">
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#0f9d8a] mb-1">
+                Elige por donde partir
+              </div>
+              <h2 className="text-2xl md:text-[30px] font-extrabold text-[#0f514b] tracking-[-0.02em] leading-tight">
+                Guias ordenadas segun la duda que tienes hoy
+              </h2>
+              <p className="mt-2 max-w-[680px] text-[14px] leading-relaxed text-slate-600">
+                Si estas comparando planes, estas tres rutas te ayudan a partir por el tema correcto: decidir sistema, revisar antes de firmar o entender la cobertura.
+              </p>
+            </div>
+            <Link
+              href="/comparar/isapres"
+              className="inline-flex items-center gap-2 self-start md:self-auto rounded-lg bg-[#0f514b] px-4 py-2.5 text-[13px] font-bold text-white no-underline transition-colors hover:bg-[#0d423d]"
+            >
+              Comparar planes <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {clusters.map((cluster) => {
+              const Icon = cluster.icon;
+              return (
+                <section
+                  key={cluster.key}
+                  className="rounded-lg border border-slate-200 bg-[#fbf8f3] p-5 shadow-sm"
+                  aria-labelledby={`cluster-${cluster.key}`}
+                >
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#14dcb4]/12 text-[#0f9d8a]">
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="rounded-full border border-[#14dcb4]/30 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f9d8a]">
+                      {cluster.eyebrow}
+                    </span>
+                  </div>
+                  <h3 id={`cluster-${cluster.key}`} className="text-[18px] font-extrabold leading-snug text-[#0f514b]">
+                    {cluster.title}
+                  </h3>
+                  <p className="mt-2 text-[14px] font-semibold leading-snug text-slate-700">
+                    {cluster.question}
+                  </p>
+                  <p className="mt-2 mb-4 text-[13.5px] leading-relaxed text-slate-600">
+                    {cluster.description}
+                  </p>
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {cluster.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="divide-y divide-slate-200">
+                    {cluster.articles.map((article, index) => (
+                      <Link
+                        key={article.slug}
+                        href={`/blog/${article.slug}`}
+                        className="group flex items-start justify-between gap-3 py-3 text-[#0f514b] no-underline first:pt-0 last:pb-0"
+                      >
+                        <span className="min-w-0">
+                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                            {index === 0 ? "Parte por aqui" : `Paso ${index + 1}`}
+                          </span>
+                          <span className="block text-[14px] font-semibold leading-snug group-hover:text-[#0f9d8a]">
+                            {article.title}
+                          </span>
+                        </span>
+                        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-[#0f9d8a] transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-[1100px] px-5 sm:px-6 lg:px-10 py-12 md:py-16">
+        <div className="mb-7">
+          <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#0f9d8a] mb-1">
+            Todas las guias
+          </div>
+          <h2 className="text-2xl md:text-[30px] font-extrabold text-[#0f514b] tracking-[-0.02em] leading-tight">
+            Articulos recientes
+          </h2>
+        </div>
         {articles.length === 0 ? (
           <p className="text-slate-500">Pronto publicaremos nuestros primeros artículos.</p>
         ) : (
