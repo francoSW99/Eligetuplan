@@ -1,8 +1,12 @@
 name: Sync de datos (tu7 + UF) → Producción
 
 # Cron SEMANAL: refresca planes desde tu7.cl y la UF del día contra la base de
-# PRODUCCIÓN (Supabase). Corre TODOS LOS DOMINGOS (requisito del negocio). Los cambios
-# se reflejan en la app sin redeploy: tras el sync se invalida el caché del backend
+# PRODUCCIÓN (Supabase). Corre TODOS LOS DOMINGOS (requisito del negocio), dos veces:
+#   - mañana (~07-08h Chile): corrida principal.
+#   - noche  (~22-23h Chile): RED DE SEGURIDAD — si la de la mañana falló (tu7 caído,
+#     GitHub saltó el cron), reintenta. El sync es idempotente, así que correr dos veces
+#     es inofensivo (si no cambió nada, reporta 0 cambios y no abre issue).
+# Los cambios se reflejan sin redeploy: tras el sync se invalida el caché del backend
 # (si CACHE_FLUSH_TOKEN está configurado) y el frontend revalida.
 #
 # Secrets requeridos (GitHub → Settings → Secrets):
@@ -11,7 +15,8 @@ name: Sync de datos (tu7 + UF) → Producción
 
 on:
   schedule:
-    - cron: '0 11 * * 0'      # domingos 11:00 UTC ≈ 07:00-08:00 Chile
+    - cron: '0 11 * * 0'      # domingo 11:00 UTC ≈ 07-08h Chile — corrida principal
+    - cron: '0 2 * * 1'       # lunes 02:00 UTC = domingo ~22-23h Chile — red de seguridad nocturna
   workflow_dispatch: {}        # permite correrlo a mano para probar
 
 permissions:
