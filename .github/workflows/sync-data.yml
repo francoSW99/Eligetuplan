@@ -1,9 +1,9 @@
 name: Sync de datos (tu7 + UF) → Producción
 
-# Cron quincenal: refresca planes desde tu7.cl y la UF del día contra la base de
-# PRODUCCIÓN (Supabase). Corre los días 1 y 15 de cada mes. Los cambios se reflejan
-# en la app sin redeploy: el backend lee Supabase en vivo (UF con caché de 1h) y el
-# frontend revalida cada 6h.
+# Cron SEMANAL: refresca planes desde tu7.cl y la UF del día contra la base de
+# PRODUCCIÓN (Supabase). Corre TODOS LOS DOMINGOS (requisito del negocio). Los cambios
+# se reflejan en la app sin redeploy: tras el sync se invalida el caché del backend
+# (si CACHE_FLUSH_TOKEN está configurado) y el frontend revalida.
 #
 # Secrets requeridos (GitHub → Settings → Secrets):
 #   SUPABASE_URL                  (la de PRODUCCIÓN — ya existe para el deploy)
@@ -11,7 +11,7 @@ name: Sync de datos (tu7 + UF) → Producción
 
 on:
   schedule:
-    - cron: '0 11 1,15 * *'   # 11:00 UTC ≈ 07:00-08:00 Chile, días 1 y 15
+    - cron: '0 11 * * 0'      # domingos 11:00 UTC ≈ 07:00-08:00 Chile
   workflow_dispatch: {}        # permite correrlo a mano para probar
 
 permissions:
