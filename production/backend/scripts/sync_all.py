@@ -135,6 +135,78 @@ def active_plan_codes(sb: Client) -> set[str]:
     return codes
 
 
+# Campos que rastreamos para detectar CAMBIOS (no solo altas/bajas) entre corridas.
+_SNAPSHOT_FIELDS = "codigo_plan,name,base_plan_uf,ges_isapre_uf,id_zona,modalidad,hospitalaria_texto,ambulatoria_texto"
+
+
+def active_plan_snapshot(sb: Client) -> dict[str, dict]:
+    """codigo_plan -> campos rastreados (planes tu7_activo=true, paginado). Permite
+    detectar cambios de precio/nombre/cobertura/zona/modalidad, no solo altas/bajas."""
+    snap: dict[str, dict] = {}
+    offset = 0
+    page = 1000
+    while True:
+        r = (
+            sb.table("planes")
+            .select(_SNAPSHOT_FIELDS)
+            .eq("tu7_activo", True)
+            .range(offset, offset + page - 1)
+            .execute()
+        )
+        batch = r.data or []
+        for row in batch:
+            c = row.get("codigo_plan")
+            if c:
+                snap[c] = row
+        if len(batch) < page:
+            break
+        offset += page
+    return snap
+
+
+def _num(v) -> float | None:
+    try:
+        return round(float(v), 4) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def diff_planes(before: dict[str, dict], after: dict[str, dict]) -> dict:
+    """Altas, bajas y CAMBIOS de campo (precio/nombre/cobertura/zona/modalidad) entre
+    dos snapshots. Solo reporta — no muta nada. El caller lo envuelve en try/except."""
+    bcodes, acodes = set(before), set(after)
+    cambios = {"precio": 0, "nombre": 0, "cobertura": 0, "zona": 0, "modalidad": 0}
+    ej: list[str] = []
+    n_pre = n_nom = n_cob = n_zon = 0
+    for code in (bcodes & acodes):
+        b, a = before[code], after[code]
+        nombre = (a.get("name") or "").strip()
+        if _num(b.get("base_plan_uf")) != _num(a.get("base_plan_uf")) or _num(b.get("ges_isapre_uf")) != _num(a.get("ges_isapre_uf")):
+            cambios["precio"] += 1
+            if n_pre < 6:
+                ej.append(f"Precio: {nombre[:38]} ({code}) base {_num(b.get('base_plan_uf'))}->{_num(a.get('base_plan_uf'))} UF"); n_pre += 1
+        if (b.get("name") or "").strip() != nombre:
+            cambios["nombre"] += 1
+            if n_nom < 4:
+                ej.append(f"Nombre: {code} '{(b.get('name') or '').strip()[:26]}' -> '{nombre[:26]}'"); n_nom += 1
+        if (b.get("hospitalaria_texto") or "") != (a.get("hospitalaria_texto") or "") or (b.get("ambulatoria_texto") or "") != (a.get("ambulatoria_texto") or ""):
+            cambios["cobertura"] += 1
+            if n_cob < 3:
+                ej.append(f"Cobertura: {nombre[:40]} ({code})"); n_cob += 1
+        if b.get("id_zona") != a.get("id_zona"):
+            cambios["zona"] += 1
+            if n_zon < 3:
+                ej.append(f"Zona: {nombre[:36]} ({code}) {b.get('id_zona')}->{a.get('id_zona')}"); n_zon += 1
+        if (b.get("modalidad") or "") != (a.get("modalidad") or ""):
+            cambios["modalidad"] += 1
+    return {
+        "agregados": sorted(acodes - bcodes),
+        "quitados": sorted(bcodes - acodes),
+        "cambios": cambios,
+        "ejemplos": ej,
+    }
+
+
 def read_prev_total(sb: Client) -> int | None:
     """total_planes de la corrida previa. Tolera que app_meta aún no exista."""
     try:
@@ -250,6 +322,12 @@ def main() -> int:
         "total_after": None,
         "agregados": 0,
         "quitados": 0,
+        "cambios_precio": 0,
+        "cambios_nombre": 0,
+        "cambios_cobertura": 0,
+        "cambios_zona": 0,
+        "cambios_modalidad": 0,
+        "ejemplos": [],
     }
 
     try:
@@ -258,8 +336,8 @@ def main() -> int:
         if args.uf_only:
             return run_uf_only(sb, summary, args.dry_run)
 
-        # 1. Snapshot previo
-        before = active_plan_codes(sb)
+        # 1. Snapshot previo (con campos, para detectar cambios y no solo altas/bajas)
+        before = active_plan_snapshot(sb)
         prev_total = read_prev_total(sb)
         summary["total_before"] = len(before)
         logger.info(f"Planes activos antes: {len(before)} (meta previa: {prev_total})")
@@ -280,11 +358,28 @@ def main() -> int:
         for step in SYNC_STEPS:
             run_sync_step(step)
 
-        # 4. Snapshot posterior + diff
-        after = active_plan_codes(sb)
+        # 4. Snapshot posterior + diff (altas, bajas Y cambios de precio/nombre/cobertura...)
+        after = active_plan_snapshot(sb)
         summary["total_after"] = len(after)
-        agregados = sorted(after - before)
-        quitados = sorted(before - after)
+        try:
+            d = diff_planes(before, after)
+            agregados, quitados = d["agregados"], d["quitados"]
+            c = d["cambios"]
+            summary["cambios_precio"]    = c["precio"]
+            summary["cambios_nombre"]    = c["nombre"]
+            summary["cambios_cobertura"] = c["cobertura"]
+            summary["cambios_zona"]      = c["zona"]
+            summary["cambios_modalidad"] = c["modalidad"]
+            summary["ejemplos"]          = d["ejemplos"]
+            logger.info(
+                f"Cambios: precio={c['precio']} nombre={c['nombre']} cobertura={c['cobertura']} "
+                f"zona={c['zona']} modalidad={c['modalidad']}"
+            )
+        except Exception as e:
+            # El reporte de cambios NUNCA debe romper el sync de datos.
+            logger.warning(f"No se pudo calcular el diff de cambios (se ignora): {e}")
+            agregados = sorted(set(after) - set(before))
+            quitados = sorted(set(before) - set(after))
         summary["agregados"] = len(agregados)
         summary["quitados"] = len(quitados)
         logger.info(f"Planes activos después: {len(after)} (+{len(agregados)} / -{len(quitados)})")
