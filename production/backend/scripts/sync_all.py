@@ -214,12 +214,14 @@ def run_uf_only(sb: Client, summary: dict, dry_run: bool) -> int:
         emit(summary)
         return 0
 
+    # IMPORTANTE: el cron diario de UF NO toca `last_sync` a propósito. Esa fecha refleja
+    # la última sincronización de PLANES (días 1 y 15 / manual), no la UF. Si la pisáramos
+    # a diario, "última actualización" mostraría HOY aunque los planes lleven semanas sin
+    # cambiar (eso confundía: parecía actualizado sin estarlo). La frescura de la UF ya
+    # vive en `valor_uf_fecha`. `tope_imponible_uf` se reescribe a diario (es seguro).
     upsert_meta(sb, {
         "valor_uf":          int(round(uf_valor)),
         "valor_uf_fecha":    uf_fecha,
-        "last_sync":         fecha_es(uf_fecha),
-        # Reescrito a diario para que el tope quede siempre presente en app_meta
-        # aunque la migración 007 no se haya corrido y sin esperar el sync quincenal.
         "tope_imponible_uf": TOPE_IMPONIBLE_SALUD_UF,
     })
     logger.info(f"app_meta: UF actualizada a ${uf_valor:,.0f} ({uf_fecha}); tope {TOPE_IMPONIBLE_SALUD_UF} UF.")
