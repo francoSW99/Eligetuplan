@@ -219,7 +219,7 @@ export default function QuickStartOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-5"
+      className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-start-title"
@@ -232,15 +232,15 @@ export default function QuickStartOverlay() {
       />
 
       <section
-        className="relative z-10 flex max-h-[calc(100dvh-24px)] w-full max-w-[900px] flex-col overflow-hidden rounded-[24px] border border-white/20 bg-white shadow-[0_30px_100px_rgba(3,32,29,0.55)] sm:max-h-[calc(100dvh-40px)]"
+        className="relative z-10 flex h-[min(94dvh,780px)] w-full max-w-[900px] flex-col overflow-hidden rounded-t-[24px] border border-b-0 border-white/20 bg-white shadow-[0_30px_100px_rgba(3,32,29,0.55)] sm:h-auto sm:max-h-[calc(100dvh-40px)] sm:rounded-[24px] sm:border-b"
         style={{ animation: 'slide-up-fade 0.24s cubic-bezier(.2,.8,.2,1)' }}
       >
-        <header className="relative shrink-0 bg-[#0f514b] px-5 py-3 pr-16 text-white sm:px-6 sm:pr-18">
+        <header className="relative shrink-0 bg-[#0f514b] px-4 py-3 pr-14 text-white sm:px-6 sm:pr-18">
           <button
             type="button"
             onClick={closeOverlay}
             aria-label="Cerrar"
-            className="absolute right-4 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/8 text-white/85 transition-colors hover:bg-white/18 hover:text-white sm:right-5"
+            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/8 text-white/85 transition-colors hover:bg-white/18 hover:text-white sm:right-5 sm:h-9 sm:w-9"
           >
             <X className="h-4.5 w-4.5" />
           </button>
@@ -249,9 +249,10 @@ export default function QuickStartOverlay() {
               <button
                 type="button"
                 onClick={() => setShowLeadForm(false)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-[11px] font-bold text-white transition hover:bg-white/20"
+                aria-label="Volver a los planes"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 text-[11px] font-bold text-white transition hover:bg-white/20 sm:h-auto sm:w-auto sm:px-2.5 sm:py-2"
               >
-                <ArrowLeft className="h-4 w-4" /> Volver
+                <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Volver</span>
               </button>
             ) : (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#14dcb4] text-[#073d38]">
@@ -259,13 +260,14 @@ export default function QuickStartOverlay() {
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#14dcb4]">
+              <p className="hidden text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#14dcb4] sm:block">
                 {showLeadForm ? 'Asesoría gratuita' : 'Vista previa personalizada'}
               </p>
-              <h2 id="quick-start-title" className="mt-0.5 text-lg font-extrabold leading-tight sm:text-xl">
-                {showLeadForm ? 'Recibe opciones revisadas por WhatsApp' : 'Mira planes a tu precio real'}
+              <h2 id="quick-start-title" className="text-[17px] font-extrabold leading-tight sm:mt-0.5 sm:text-xl">
+                <span className="sm:hidden">{showLeadForm ? 'Asesoría por WhatsApp' : 'Planes a tu precio real'}</span>
+                <span className="hidden sm:inline">{showLeadForm ? 'Recibe opciones revisadas por WhatsApp' : 'Mira planes a tu precio real'}</span>
               </h2>
-              <p className="mt-0.5 truncate text-[11px] text-white/62 sm:text-xs">
+              <p className="mt-0.5 hidden truncate text-[11px] text-white/62 sm:block sm:text-xs">
                 {showLeadForm
                   ? 'Deja tus datos y un experto revisará alternativas para tu perfil.'
                   : 'Ajusta edad, sueldo y grupo familiar para recalcular la muestra.'}
@@ -274,7 +276,7 @@ export default function QuickStartOverlay() {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:p-6">
+        <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto p-3 sm:p-5 md:p-6">
           {showLeadForm ? (
             <InlineLeadForm
               salary={salary}
@@ -285,9 +287,9 @@ export default function QuickStartOverlay() {
               onClose={closeOverlay}
             />
           ) : (
-          <div className="grid gap-5 md:grid-cols-[0.82fr_1.18fr] md:gap-6">
+          <div className="grid gap-4 md:grid-cols-[0.82fr_1.18fr] md:gap-6">
             <div>
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-2.5 flex items-center justify-between gap-3 sm:mb-3">
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#0f9d8a]">Personaliza la muestra</p>
                   <p className="mt-0.5 text-xs text-slate-500">Tus datos no se guardan.</p>
@@ -311,7 +313,7 @@ export default function QuickStartOverlay() {
                       onChange={(event) => onSalary(event.target.value)}
                       placeholder="950.000"
                       aria-label="Sueldo bruto"
-                      className="w-full rounded-xl border border-slate-200 py-2.5 pl-7 pr-3 text-sm font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+                      className="w-full rounded-xl border border-slate-200 py-2.5 pl-7 pr-3 text-base font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
                     />
                   </div>
                 </label>
@@ -324,7 +326,7 @@ export default function QuickStartOverlay() {
                     onChange={(event) => onAge(event.target.value)}
                     placeholder="34"
                     aria-label="Tu edad"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
                   />
                 </label>
               </div>
@@ -347,13 +349,13 @@ export default function QuickStartOverlay() {
                     }}
                     placeholder="Edad"
                     aria-label="Edad de la carga"
-                    className="w-20 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-bold text-[#0f514b] outline-none focus:border-[#14dcb4]"
+                    className="w-20 rounded-lg border border-slate-200 px-2.5 py-2 text-base font-bold text-[#0f514b] outline-none focus:border-[#14dcb4] sm:text-xs"
                   />
                   <button
                     type="button"
                     onClick={addCarga}
                     disabled={!cargaInput}
-                    className="inline-flex items-center gap-1 rounded-lg bg-[#14dcb4]/15 px-2.5 py-2 text-xs font-bold text-[#08796d] transition hover:bg-[#14dcb4]/25 disabled:opacity-40"
+                    className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[#14dcb4]/15 px-3 py-2 text-xs font-bold text-[#08796d] transition hover:bg-[#14dcb4]/25 disabled:opacity-40"
                   >
                     <UserPlus className="h-3.5 w-3.5" /> Agregar
                   </button>
@@ -371,7 +373,7 @@ export default function QuickStartOverlay() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-[#14dcb4]/30 bg-[#e9fbf7] p-3">
+              <div className="mt-3 rounded-xl border border-[#14dcb4]/30 bg-[#e9fbf7] p-3 sm:mt-4">
                 <div className="flex items-center gap-2 text-[#0f514b]">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#14dcb4]">
                     <Check className="h-3.5 w-3.5" />
@@ -385,15 +387,15 @@ export default function QuickStartOverlay() {
                 </div>
               </div>
 
-              <ul className="mt-4 grid gap-1.5 text-xs text-slate-600">
+              <ul className="mt-3 hidden gap-1.5 text-xs text-slate-600 sm:grid sm:mt-4">
                 <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0f9d8a]" /> Precio familiar, no el valor “desde”.</li>
                 <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0f9d8a]" /> Compara las siete Isapres sin costo.</li>
                 <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0f9d8a]" /> Puedes explorar sin dejar tus datos.</li>
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-[#fbf8f3] p-3.5 sm:p-4">
-              <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="rounded-2xl border border-slate-200 bg-[#fbf8f3] p-3 sm:p-4">
+              <div className="mb-2.5 flex items-start justify-between gap-3 sm:mb-3">
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#0f9d8a]">Muestra de planes reales</p>
                   <h3 className="mt-0.5 text-base font-extrabold text-[#0f514b]">
@@ -410,17 +412,17 @@ export default function QuickStartOverlay() {
                   const priceClp = Math.round(plan.priceUf * ufValueCLP);
                   const fits = hasProfile && seven.montoCLP > 0 && priceClp <= seven.montoCLP;
                   return (
-                    <article key={plan.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-8 w-[78px] shrink-0">
-                          <Image src={plan.logoUrl} alt={plan.isapreName} fill sizes="78px" className="object-contain object-left" />
+                    <article key={plan.id} className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="relative h-7 w-16 shrink-0 sm:h-8 sm:w-[78px]">
+                          <Image src={plan.logoUrl} alt={plan.isapreName} fill sizes="(max-width: 639px) 64px, 78px" className="object-contain object-left" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-extrabold uppercase tracking-tight text-[#0f514b]">{plan.name}</p>
+                          <p className="truncate text-[11px] font-extrabold uppercase tracking-tight text-[#0f514b] sm:text-xs">{plan.name}</p>
                           <p className="mt-0.5 text-[10px] font-medium text-slate-500">{plan.isapreName}</p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="text-sm font-extrabold leading-none text-[#0f9d8a]">UF {formatUF(plan.priceUf)}</p>
+                          <p className="text-xs font-extrabold leading-none text-[#0f9d8a] sm:text-sm">UF {formatUF(plan.priceUf)}</p>
                           <p className="mt-1 text-[10px] text-slate-500">{formatCLP(priceClp)}/mes</p>
                         </div>
                       </div>
@@ -434,7 +436,7 @@ export default function QuickStartOverlay() {
                 })}
               </div>
 
-              <p className="mt-3 text-[10px] leading-relaxed text-slate-500">
+              <p className="mt-2.5 text-[9px] leading-relaxed text-slate-500 sm:mt-3 sm:text-[10px]">
                 Muestra referencial guardada para carga instantánea. El comparador consulta precios y disponibilidad vigentes.
               </p>
             </div>
@@ -443,21 +445,21 @@ export default function QuickStartOverlay() {
         </div>
 
         {!showLeadForm && (
-        <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative isolate flex-1">
+        <footer className="shrink-0 border-t border-slate-200 bg-white px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-4">
+          <div className="grid grid-cols-[1fr_auto] gap-2 sm:flex sm:items-center">
+            <div className="relative isolate col-span-2 sm:flex-1">
               <span className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-[#14dcb4]/35 animate-[wsp-ping_1.8s_ease-out_infinite]" />
               <button
                 type="button"
                 onClick={cotizarExperto}
-                className="group relative inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-[#14dcb4]/40 bg-[#0f514b] px-4 py-2.5 text-white shadow-[0_14px_32px_rgba(15,81,75,0.36)] transition hover:-translate-y-0.5 hover:bg-[#0b4540] hover:shadow-[0_18px_40px_rgba(15,81,75,0.46)]"
+                className="group relative inline-flex min-h-14 w-full items-center justify-center gap-2.5 rounded-2xl border border-[#14dcb4]/40 bg-[#0f514b] px-3 py-2 text-white shadow-[0_14px_32px_rgba(15,81,75,0.36)] transition hover:-translate-y-0.5 hover:bg-[#0b4540] hover:shadow-[0_18px_40px_rgba(15,81,75,0.46)] sm:gap-3 sm:px-4 sm:py-2.5"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#14dcb4] text-[#062f2b] shadow-[0_8px_20px_rgba(20,220,180,0.32)]">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#14dcb4] text-[#062f2b] shadow-[0_8px_20px_rgba(20,220,180,0.32)] sm:h-10 sm:w-10">
                   <MessagesSquare className="h-5 w-5" strokeWidth={2.4} />
                 </span>
                 <span className="text-left">
-                  <span className="block text-[15px] font-extrabold leading-tight">Recibe asesoría de un experto</span>
-                  <span className="mt-1 block text-[10px] font-semibold text-white/68">Te contactamos inmediatamente · Sin compromiso · 24h</span>
+                  <span className="block text-sm font-extrabold leading-tight sm:text-[15px]">Recibe asesoría de un experto</span>
+                  <span className="mt-0.5 block text-[9px] font-semibold text-white/68 sm:mt-1 sm:text-[10px]">Contacto inmediato · Sin compromiso · 24h</span>
                 </span>
                 <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
               </button>
@@ -465,7 +467,7 @@ export default function QuickStartOverlay() {
             <button
               type="button"
               onClick={verPlanes}
-              className="group inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/70 bg-[#dff9f3] px-6 py-3 text-sm font-extrabold text-[#0f514b] shadow-[0_8px_20px_rgba(20,220,180,0.18)] transition hover:-translate-y-0.5 hover:border-[#14dcb4] hover:bg-[#c9f5eb] hover:shadow-[0_12px_26px_rgba(20,220,180,0.28)]"
+              className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/70 bg-[#dff9f3] px-4 py-2.5 text-sm font-extrabold text-[#0f514b] shadow-[0_8px_20px_rgba(20,220,180,0.18)] transition hover:-translate-y-0.5 hover:border-[#14dcb4] hover:bg-[#c9f5eb] hover:shadow-[0_12px_26px_rgba(20,220,180,0.28)] sm:px-6 sm:py-3"
             >
               Ver comparador
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -473,7 +475,7 @@ export default function QuickStartOverlay() {
             <button
               type="button"
               onClick={closeOverlay}
-              className="px-2 py-2 text-xs font-semibold text-slate-500 hover:text-[#0f514b]"
+              className="min-h-11 px-3 py-2 text-xs font-semibold text-slate-500 hover:text-[#0f514b] sm:px-2"
             >
               Ahora no
             </button>
@@ -564,7 +566,7 @@ function InlineLeadForm({
 
   if (submitted) {
     return (
-      <div className="mx-auto flex min-h-[330px] max-w-lg flex-col items-center justify-center py-6 text-center">
+      <div className="mx-auto flex min-h-[280px] max-w-lg flex-col items-center justify-center px-3 py-5 text-center sm:min-h-[330px] sm:py-6">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#14dcb4]/15 text-[#0f9d8a]">
           <CheckCircle className="h-8 w-8" />
         </div>
@@ -589,8 +591,13 @@ function InlineLeadForm({
   }
 
   return (
-    <div className="grid gap-5 md:grid-cols-[0.8fr_1.2fr] md:gap-7">
-      <aside className="rounded-2xl bg-[#e9fbf7] p-5">
+    <>
+      <div className="mb-3 flex items-center gap-2 rounded-xl border border-[#14dcb4]/30 bg-[#e9fbf7] px-3 py-2.5 text-xs text-[#0f514b] md:hidden">
+        <ShieldCheck className="h-5 w-5 shrink-0 text-[#0f9d8a]" />
+        <span><strong>Gratis y sin compromiso.</strong> Usaremos el perfil que ya completaste.</span>
+      </div>
+      <div className="grid gap-5 md:grid-cols-[0.8fr_1.2fr] md:gap-7">
+      <aside className="hidden rounded-2xl bg-[#e9fbf7] p-5 md:block">
         <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#08796d]">Lo hacemos fácil</p>
         <h3 className="mt-2 text-xl font-extrabold leading-tight text-[#0f514b]">
           Recibe una selección revisada para ti
@@ -605,11 +612,11 @@ function InlineLeadForm({
         </div>
       </aside>
 
-      <form onSubmit={submitLead} noValidate className="rounded-2xl border border-slate-200 bg-white p-1 sm:p-2">
+      <form onSubmit={submitLead} noValidate className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 md:p-2">
         <button
           type="button"
           onClick={onBack}
-          className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-[#0f514b] transition hover:border-[#14dcb4] hover:bg-[#e9fbf7]"
+          className="mb-4 hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-[#0f514b] transition hover:border-[#14dcb4] hover:bg-[#e9fbf7] md:inline-flex"
         >
           <ArrowLeft className="h-4 w-4" /> Volver a los planes
         </button>
@@ -625,7 +632,7 @@ function InlineLeadForm({
               onChange={(event) => { setName(event.target.value); setError(''); }}
               placeholder="Ej: Daniela Soto"
               autoComplete="name"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
             />
           </label>
 
@@ -639,7 +646,7 @@ function InlineLeadForm({
               onChange={(event) => { setPhone(event.target.value); setError(''); }}
               placeholder="Ej: +56 9 8765 4321"
               autoComplete="tel"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
             />
           </label>
 
@@ -653,7 +660,7 @@ function InlineLeadForm({
               onChange={(event) => { setEmail(event.target.value); setError(''); }}
               placeholder="Ej: daniela@gmail.com"
               autoComplete="email"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
             />
           </label>
         </div>
@@ -665,7 +672,7 @@ function InlineLeadForm({
         <button
           type="submit"
           disabled={submitting}
-          className="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 bg-[#0f514b] px-5 py-3.5 text-[15px] font-extrabold text-white shadow-[0_12px_30px_rgba(15,81,75,0.34)] transition hover:-translate-y-0.5 hover:bg-[#0b4540] hover:shadow-[0_16px_36px_rgba(15,81,75,0.44)] disabled:translate-y-0 disabled:opacity-60"
+          className="group mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 bg-[#0f514b] px-4 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(15,81,75,0.34)] transition hover:-translate-y-0.5 hover:bg-[#0b4540] hover:shadow-[0_16px_36px_rgba(15,81,75,0.44)] disabled:translate-y-0 disabled:opacity-60 sm:px-5 sm:py-3.5 sm:text-[15px]"
         >
           {submitting ? (
             <><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#062f2b]/25 border-t-[#062f2b]" /> Enviando...</>
@@ -679,5 +686,6 @@ function InlineLeadForm({
         </p>
       </form>
     </div>
+    </>
   );
 }
