@@ -219,7 +219,7 @@ export default function QuickStartOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center sm:p-5"
+      className="fixed inset-0 z-[90] flex items-end justify-center p-2 sm:items-center sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-start-title"
@@ -232,17 +232,19 @@ export default function QuickStartOverlay() {
       />
 
       <section
-        className="relative z-10 flex h-[min(94dvh,780px)] w-full max-w-[900px] flex-col overflow-hidden rounded-t-[24px] border border-b-0 border-white/20 bg-white shadow-[0_30px_100px_rgba(3,32,29,0.55)] sm:h-auto sm:max-h-[calc(100dvh-40px)] sm:rounded-[24px] sm:border-b"
+        data-mobile-layout="compact-sheet"
+        className="relative z-10 flex h-[min(88dvh,720px)] w-full max-w-[900px] flex-col overflow-hidden rounded-[22px] border border-white/20 bg-white shadow-[0_26px_80px_rgba(3,32,29,0.48)] sm:h-auto sm:max-h-[calc(100dvh-40px)] sm:rounded-[24px] sm:shadow-[0_30px_100px_rgba(3,32,29,0.55)]"
         style={{ animation: 'slide-up-fade 0.24s cubic-bezier(.2,.8,.2,1)' }}
       >
-        <header className="relative shrink-0 bg-[#0f514b] px-4 py-3 pr-14 text-white sm:px-6 sm:pr-18">
+        <header className="relative shrink-0 bg-[#0f514b] px-4 py-3 pr-24 text-white sm:px-6 sm:pr-28">
           <button
             type="button"
             onClick={closeOverlay}
             aria-label="Cerrar"
-            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/8 text-white/85 transition-colors hover:bg-white/18 hover:text-white sm:right-5 sm:h-9 sm:w-9"
+            className="absolute right-3 top-3 inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white bg-white px-3 text-xs font-extrabold text-[#0f514b] shadow-[0_6px_18px_rgba(0,0,0,0.22)] ring-2 ring-white/25 transition hover:-translate-y-0.5 hover:bg-[#e9fbf7] hover:shadow-[0_9px_24px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14dcb4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f514b] sm:right-5"
           >
-            <X className="h-4.5 w-4.5" />
+            <span>Salir</span>
+            <X className="h-4 w-4" strokeWidth={2.8} />
           </button>
           <div className="flex items-center gap-3">
             {showLeadForm ? (
