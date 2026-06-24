@@ -1,146 +1,206 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Image from 'next/image';
-import { X, UserPlus, ArrowRight, Trash2, Sparkles, Wallet, Users } from 'lucide-react';
-import { useMeta } from '@/lib/meta-context';
-import { getPlanes, formatCLP, formatUF, type Plan } from '@/lib/api';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle,
+  Mail,
+  MessagesSquare,
+  Phone,
+  ShieldCheck,
+  Sparkles,
+  User,
+  UserPlus,
+  X,
+} from 'lucide-react';
 import {
   calcularPrecioPlanUF,
   calcularSeptimoLegal,
-  serializeBeneficiarios,
   getFactor,
+  serializeBeneficiarios,
   type Beneficiario,
 } from '@/lib/factores';
+import { formatCLP, formatUF } from '@/lib/api';
+import { useMeta } from '@/lib/meta-context';
 
-// Rutas donde aparece el modal de bienvenida. NUNCA en /buscar (ahí ya están cotizando).
 const QUALIFYING = ['/', '/comparar/isapres'];
 const seenKey = (path: string) => `etp_qs_seen:${path}`;
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxDO73TTXhYnwyeW4w_EA8fVNqg68I9PjDtO1Td50QPDhiOFkugnI1t0HPWszZGHfv5/exec';
+
+type PreviewPlan = {
+  id: string;
+  name: string;
+  isapreName: string;
+  logoUrl: string;
+  basePlanUf: number;
+  gesIsapreUf: number;
+};
+
+// Snapshot liviano de planes reales. Sirve solo como muestra inmediata; el comparador
+// consulta el catálogo vigente al entrar. Precios base capturados en junio de 2026.
+const SNAPSHOT_PLANS: PreviewPlan[] = [
+  {
+    id: '3fa805a8-c289-4fc3-92f0-df8586016cf2',
+    name: 'Salud Conecta Clásico 00/2601',
+    isapreName: 'Banmédica',
+    logoUrl: '/logos/banmedica-logo.png',
+    basePlanUf: 0.94,
+    gesIsapreUf: 0.778,
+  },
+  {
+    id: '00e7770a-bf31-498b-91fe-fd4357a950e9',
+    name: 'Core 10 01 26',
+    isapreName: 'Consalud',
+    logoUrl: '/logos/logo_consalud.png',
+    basePlanUf: 1.16,
+    gesIsapreUf: 0.731,
+  },
+  {
+    id: 'e5b87ad5-165a-4908-96b3-f4fba750a054',
+    name: 'Campus Bupa Max 100 D25',
+    isapreName: 'Cruz Blanca',
+    logoUrl: '/logos/logo_cruzblanca.png',
+    basePlanUf: 1.09,
+    gesIsapreUf: 0.971,
+  },
+];
 
 function markSeen(path: string) {
-  try { sessionStorage.setItem(seenKey(path), '1'); } catch { /* sessionStorage no disponible */ }
+  try {
+    sessionStorage.setItem(seenKey(path), '1');
+  } catch {
+    // sessionStorage no está disponible durante SSR o en navegadores restringidos.
+  }
 }
 
-/**
- * Modal de "quick start": al entrar por 1ª vez (por sección, por sesión) a `/` o
- * `/comparar/isapres`, aparece sobre la página difuminada ofreciendo personalizar la
- * búsqueda (sueldo + cargas → vista previa de planes a precio REAL) e incentivando la
- * asesoría con un experto. Se cierra con X, click afuera o "explorar sin personalizar".
- */
 export default function QuickStartOverlay() {
   const pathname = usePathname();
   const router = useRouter();
   const { ufValueCLP, topeImponibleUF } = useMeta();
 
   const [open, setOpen] = useState(false);
-
-  // ── Mini-formulario ──────────────────────────────────────────────
   const [salary, setSalary] = useState(0);
   const [salaryDisplay, setSalaryDisplay] = useState('');
   const [age, setAge] = useState<number | null>(null);
   const [ageInput, setAgeInput] = useState('');
   const [cargas, setCargas] = useState<number[]>([]);
   const [cargaInput, setCargaInput] = useState('');
+  const [showLeadForm, setShowLeadForm] = useState(false);
 
-  // ── Preview ──────────────────────────────────────────────────────
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [total, setTotal] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  function closeOverlay() {
+    // El componente vive en el layout y puede sobrevivir a una navegación. Resetear
+    // el paso evita que una apertura posterior quede atrapada en el formulario.
+    setShowLeadForm(false);
+    setOpen(false);
+  }
 
-  // Trigger: 1ª vez por sección (sessionStorage). Pequeño delay para que la página pinte.
+  // El timeout de 0 evita bloquear el primer render y abre apenas termina la hidratación.
   useEffect(() => {
     if (!QUALIFYING.includes(pathname)) return;
     let seen = true;
-    try { seen = sessionStorage.getItem(seenKey(pathname)) === '1'; } catch { seen = false; }
+    try {
+      seen = sessionStorage.getItem(seenKey(pathname)) === '1';
+    } catch {
+      seen = false;
+    }
     if (seen) return;
-    const t = setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      setShowLeadForm(false);
+      setSalary(0);
+      setSalaryDisplay('');
+      setAge(null);
+      setAgeInput('');
+      setCargas([]);
+      setCargaInput('');
       setOpen(true);
       markSeen(pathname);
-    }, 650);
-    return () => clearTimeout(t);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [pathname]);
 
-  // Bloquear scroll del fondo mientras está abierto.
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [open]);
 
-  // Cerrar con Escape.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowLeadForm(false);
+        setOpen(false);
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
+
+  const hasProfile = salary > 0 && age != null;
 
   const beneficiarios = useMemo<Beneficiario[]>(() => {
-    if (age == null) return [];
+    const titularAge = age ?? 34;
     return [
-      { id: 'cot', edad: age, tipo: 'cotizante' },
-      ...cargas.map((edad, i) => ({ id: `crg-${i}`, edad, tipo: 'carga' as const })),
+      { id: 'cot', edad: titularAge, tipo: 'cotizante' },
+      ...cargas.map((cargaAge, index) => ({
+        id: `crg-${index}`,
+        edad: cargaAge,
+        tipo: 'carga' as const,
+      })),
     ];
   }, [age, cargas]);
+
+  const previewPlans = useMemo(
+    () => SNAPSHOT_PLANS
+      .map((plan) => ({
+        ...plan,
+        priceUf: calcularPrecioPlanUF(plan.basePlanUf, plan.gesIsapreUf, beneficiarios),
+      }))
+      .sort((a, b) => a.priceUf - b.priceUf),
+    [beneficiarios],
+  );
 
   const seven = useMemo(
     () => calcularSeptimoLegal(salary, ufValueCLP, topeImponibleUF),
     [salary, ufValueCLP, topeImponibleUF],
   );
 
-  const hasProfile = salary > 0 && age != null;
-
-  // Vista previa: trae los planes más baratos, los valoriza al perfil y muestra el top-3.
-  useEffect(() => {
-    if (!open || !hasProfile) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      setLoading(true);
-      getPlanes({ limit: 14, sort: 'precio_asc' })
-        .then((res) => {
-          if (cancelled) return;
-          setTotal(res.total);
-          const ranked = res.items
-            .map((p) => ({ p, uf: calcularPrecioPlanUF(p.base_plan_uf, p.ges_isapre_uf, beneficiarios) }))
-            .sort((a, b) => a.uf - b.uf)
-            .slice(0, 3);
-          setPlans(ranked.map((x) => x.p));
-        })
-        .catch(() => { if (!cancelled) { setPlans([]); setTotal(null); } })
-        .finally(() => { if (!cancelled) setLoading(false); });
-    }, 400);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [open, hasProfile, salary, age, beneficiarios]);
-
   if (!open) return null;
 
-  // ── Handlers ─────────────────────────────────────────────────────
   function onSalary(raw: string) {
     const digits = raw.replace(/\D/g, '');
-    const n = digits ? Math.min(parseInt(digits, 10), 99_999_999) : 0;
-    setSalary(n);
-    setSalaryDisplay(n ? n.toLocaleString('es-CL') : '');
-  }
-  function commitAge() {
-    const v = ageInput.trim();
-    if (!v) { setAge(null); setCargas([]); return; }
-    const n = parseInt(v, 10);
-    if (Number.isFinite(n) && n >= 0 && n <= 110) setAge(n);
-  }
-  function addCarga() {
-    const n = parseInt(cargaInput, 10);
-    if (Number.isFinite(n) && n >= 0 && n <= 110) {
-      setCargas((c) => [...c, n]);
-      setCargaInput('');
-    }
+    const value = digits ? Math.min(parseInt(digits, 10), 99_999_999) : 0;
+    setSalary(value);
+    setSalaryDisplay(value ? value.toLocaleString('es-CL') : '');
   }
 
-  function dismiss() { setOpen(false); }
+  function onAge(raw: string) {
+    const digits = raw.replace(/\D/g, '').slice(0, 3);
+    setAgeInput(digits);
+    if (!digits) {
+      setAge(null);
+      setCargas([]);
+      return;
+    }
+    const value = parseInt(digits, 10);
+    setAge(value >= 0 && value <= 110 ? value : null);
+  }
+
+  function addCarga() {
+    const value = parseInt(cargaInput, 10);
+    if (!Number.isFinite(value) || value < 0 || value > 110) return;
+    setCargas((current) => [...current, value]);
+    setCargaInput('');
+  }
 
   function verPlanes() {
-    // No volver a mostrar el modal al aterrizar en el comparador (venimos de acá).
     markSeen('/comparar/isapres');
     const params = new URLSearchParams();
     if (hasProfile) {
@@ -148,247 +208,476 @@ export default function QuickStartOverlay() {
       params.set('aplicar_tope_legal', 'true');
       params.set('ben', serializeBeneficiarios(beneficiarios));
     }
-    const qs = params.toString();
-    setOpen(false);
-    router.push(qs ? `/comparar/isapres?${qs}` : '/comparar/isapres');
+    closeOverlay();
+    const query = params.toString();
+    router.push(query ? `/comparar/isapres?${query}` : '/comparar/isapres');
   }
 
   function cotizarExperto() {
-    markSeen('/buscar');
-    setOpen(false);
-    router.push('/buscar');
+    setShowLeadForm(true);
   }
-
-  const nPlanes = total ?? null;
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center overflow-y-auto px-3 py-6 sm:py-10"
+      className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-5"
       role="dialog"
       aria-modal="true"
-      aria-label="Personaliza tu búsqueda de planes"
+      aria-labelledby="quick-start-title"
     >
-      {/* Backdrop difuminado */}
-      <div
-        className="absolute inset-0 bg-[#06201d]/45 backdrop-blur-md"
-        onClick={dismiss}
-        aria-hidden
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default bg-[#06201d]/55 backdrop-blur-md"
+        onClick={closeOverlay}
+        aria-label="Cerrar vista previa"
       />
 
-      {/* Modal */}
-      <div
-        className="relative w-full max-w-[680px] rounded-[26px] bg-white shadow-[0_40px_120px_-20px_rgba(9,46,42,0.6)] border border-white/50 overflow-hidden"
-        style={{ animation: 'slide-up-fade 0.3s cubic-bezier(.2,.8,.2,1)' }}
+      <section
+        className="relative z-10 flex max-h-[calc(100dvh-24px)] w-full max-w-[900px] flex-col overflow-hidden rounded-[24px] border border-white/20 bg-white shadow-[0_30px_100px_rgba(3,32,29,0.55)] sm:max-h-[calc(100dvh-40px)]"
+        style={{ animation: 'slide-up-fade 0.24s cubic-bezier(.2,.8,.2,1)' }}
       >
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Cerrar"
-          className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-[#0f514b]/5 hover:bg-[#0f514b]/10 text-[#0f514b] transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="p-5 sm:p-7">
-          {/* Header */}
-          <div className="flex items-start gap-3 pr-8">
-            <div className="shrink-0 w-11 h-11 rounded-2xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] flex items-center justify-center shadow-[0_8px_18px_rgba(20,220,180,0.4)]">
-              <Sparkles className="w-5 h-5 text-[#0f2826]" />
-            </div>
-            <div>
-              <h2 className="text-[20px] sm:text-[22px] font-bold text-[#0f514b] leading-tight tracking-tight">
-                Mira tus planes a tu precio real
+        <header className="relative shrink-0 bg-[#0f514b] px-5 py-3 pr-16 text-white sm:px-6 sm:pr-18">
+          <button
+            type="button"
+            onClick={closeOverlay}
+            aria-label="Cerrar"
+            className="absolute right-4 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/8 text-white/85 transition-colors hover:bg-white/18 hover:text-white sm:right-5"
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
+          <div className="flex items-center gap-3">
+            {showLeadForm ? (
+              <button
+                type="button"
+                onClick={() => setShowLeadForm(false)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-[11px] font-bold text-white transition hover:bg-white/20"
+              >
+                <ArrowLeft className="h-4 w-4" /> Volver
+              </button>
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#14dcb4] text-[#073d38]">
+                <Sparkles className="h-4 w-4" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#14dcb4]">
+                {showLeadForm ? 'Asesoría gratuita' : 'Vista previa personalizada'}
+              </p>
+              <h2 id="quick-start-title" className="mt-0.5 text-lg font-extrabold leading-tight sm:text-xl">
+                {showLeadForm ? 'Recibe opciones revisadas por WhatsApp' : 'Mira planes a tu precio real'}
               </h2>
-              <p className="text-[13px] text-[#5a6b6a] mt-0.5 leading-snug">
-                Ingresa tu sueldo y tu grupo familiar y te mostramos al instante una vista previa personalizada.
+              <p className="mt-0.5 truncate text-[11px] text-white/62 sm:text-xs">
+                {showLeadForm
+                  ? 'Deja tus datos y un experto revisará alternativas para tu perfil.'
+                  : 'Ajusta edad, sueldo y grupo familiar para recalcular la muestra.'}
               </p>
             </div>
           </div>
+        </header>
 
-          {/* Mini-formulario */}
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-[1.3fr_0.7fr] gap-2.5">
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-1 block">Tu sueldo bruto</span>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[#0f514b]/55 pointer-events-none">$</span>
-                <input
-                  type="text" inputMode="numeric"
-                  value={salaryDisplay}
-                  onChange={(e) => onSalary(e.target.value)}
-                  placeholder="950.000"
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border-2 border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/12 text-[15px] font-bold text-[#0f514b] placeholder:text-slate-300 placeholder:font-normal transition-all"
-                  aria-label="Sueldo bruto"
-                />
-              </div>
-            </label>
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-1 block">Tu edad</span>
-              <div className="relative">
-                <input
-                  type="text" inputMode="numeric"
-                  value={ageInput}
-                  onChange={(e) => setAgeInput(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                  onBlur={commitAge}
-                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                  placeholder="34"
-                  className="w-full px-3.5 py-2.5 pr-12 rounded-xl border-2 border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/12 text-[15px] font-bold text-[#0f514b] tabular-nums placeholder:text-slate-300 placeholder:font-normal transition-all"
-                  aria-label="Tu edad"
-                />
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:p-6">
+          {showLeadForm ? (
+            <InlineLeadForm
+              salary={salary}
+              age={age}
+              cargas={cargas}
+              previewPlans={previewPlans}
+              onBack={() => setShowLeadForm(false)}
+              onClose={closeOverlay}
+            />
+          ) : (
+          <div className="grid gap-5 md:grid-cols-[0.82fr_1.18fr] md:gap-6">
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#0f9d8a]">Personaliza la muestra</p>
+                  <p className="mt-0.5 text-xs text-slate-500">Tus datos no se guardan.</p>
+                </div>
                 {age != null && (
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#0f9d8a] tabular-nums bg-[#14dcb4]/15 px-1.5 py-0.5 rounded">
-                    F {getFactor(age, 'cotizante').toFixed(2)}
+                  <span className="rounded-full bg-[#14dcb4]/15 px-2.5 py-1 text-[10px] font-bold text-[#08796d]">
+                    Factor {getFactor(age, 'cotizante').toFixed(2)}
                   </span>
                 )}
               </div>
-            </label>
-          </div>
 
-          {/* Cargas */}
-          <div className={`mt-2.5 ${age == null ? 'opacity-50 pointer-events-none' : ''}`}>
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-1 block">
-              Cargas <span className="font-medium normal-case tracking-normal text-slate-400">(opcional — hijos, pareja)</span>
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text" inputMode="numeric"
-                  value={cargaInput}
-                  onChange={(e) => setCargaInput(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCarga(); } }}
-                  placeholder="Edad"
-                  disabled={age == null}
-                  className="w-20 px-2.5 py-2 rounded-lg border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-2 focus:ring-[#14dcb4]/15 text-[13px] font-bold text-[#0f514b] tabular-nums placeholder:text-slate-300 transition-all"
-                  aria-label="Edad de la carga"
-                />
-                <button
-                  type="button" onClick={addCarga} disabled={!cargaInput || age == null}
-                  className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-[#14dcb4]/15 hover:bg-[#14dcb4]/25 text-[#0f9d8a] text-[11.5px] font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <UserPlus className="w-3.5 h-3.5" /> Agregar
-                </button>
+              <div className="grid grid-cols-[1.35fr_0.65fr] gap-2.5">
+                <label>
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">Sueldo bruto</span>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#0f514b]/55">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={salaryDisplay}
+                      onChange={(event) => onSalary(event.target.value)}
+                      placeholder="950.000"
+                      aria-label="Sueldo bruto"
+                      className="w-full rounded-xl border border-slate-200 py-2.5 pl-7 pr-3 text-sm font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+                    />
+                  </div>
+                </label>
+                <label>
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">Edad</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={ageInput}
+                    onChange={(event) => onAge(event.target.value)}
+                    placeholder="34"
+                    aria-label="Tu edad"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+                  />
+                </label>
               </div>
-              {cargas.map((edad, i) => (
-                <button
-                  key={`${edad}-${i}`}
-                  type="button"
-                  onClick={() => setCargas((c) => c.filter((_, idx) => idx !== i))}
-                  title="Quitar"
-                  className="inline-flex items-center gap-1.5 rounded-lg pl-2 pr-1.5 py-1.5 text-[11.5px] font-bold bg-[#14dcb4]/20 text-[#0f9d8a] hover:bg-[#14dcb4]/30 transition-colors"
-                >
-                  <span className="tabular-nums">{edad}</span>
-                  <Trash2 className="w-3 h-3 opacity-70" />
-                </button>
-              ))}
+
+              <div className="mt-3">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">
+                  Cargas <span className="font-medium normal-case tracking-normal text-slate-400">(opcional)</span>
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={cargaInput}
+                    onChange={(event) => setCargaInput(event.target.value.replace(/\D/g, '').slice(0, 3))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addCarga();
+                      }
+                    }}
+                    placeholder="Edad"
+                    aria-label="Edad de la carga"
+                    className="w-20 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-bold text-[#0f514b] outline-none focus:border-[#14dcb4]"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCarga}
+                    disabled={!cargaInput}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#14dcb4]/15 px-2.5 py-2 text-xs font-bold text-[#08796d] transition hover:bg-[#14dcb4]/25 disabled:opacity-40"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Agregar
+                  </button>
+                  {cargas.map((cargaAge, index) => (
+                    <button
+                      key={`${cargaAge}-${index}`}
+                      type="button"
+                      onClick={() => setCargas((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                      title="Quitar carga"
+                      className="rounded-lg bg-[#0f514b] px-2.5 py-2 text-xs font-bold text-white"
+                    >
+                      {cargaAge} años ×
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-[#14dcb4]/30 bg-[#e9fbf7] p-3">
+                <div className="flex items-center gap-2 text-[#0f514b]">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#14dcb4]">
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#08796d]">Tu 7% legal estimado</p>
+                    <p className="text-base font-extrabold leading-tight">
+                      {salary > 0 ? `${formatCLP(seven.montoCLP)} al mes` : 'Ingresa tu sueldo para calcularlo'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <ul className="mt-4 grid gap-1.5 text-xs text-slate-600">
+                <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0f9d8a]" /> Precio familiar, no el valor “desde”.</li>
+                <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0f9d8a]" /> Compara las siete Isapres sin costo.</li>
+                <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0f9d8a]" /> Puedes explorar sin dejar tus datos.</li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-[#fbf8f3] p-3.5 sm:p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#0f9d8a]">Muestra de planes reales</p>
+                  <h3 className="mt-0.5 text-base font-extrabold text-[#0f514b]">
+                    {age == null ? 'Ejemplo para una persona de 34 años' : 'Precio recalculado para tu perfil'}
+                  </h3>
+                </div>
+                <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                  Snapshot
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {previewPlans.map((plan) => {
+                  const priceClp = Math.round(plan.priceUf * ufValueCLP);
+                  const fits = hasProfile && seven.montoCLP > 0 && priceClp <= seven.montoCLP;
+                  return (
+                    <article key={plan.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-8 w-[78px] shrink-0">
+                          <Image src={plan.logoUrl} alt={plan.isapreName} fill sizes="78px" className="object-contain object-left" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-extrabold uppercase tracking-tight text-[#0f514b]">{plan.name}</p>
+                          <p className="mt-0.5 text-[10px] font-medium text-slate-500">{plan.isapreName}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-sm font-extrabold leading-none text-[#0f9d8a]">UF {formatUF(plan.priceUf)}</p>
+                          <p className="mt-1 text-[10px] text-slate-500">{formatCLP(priceClp)}/mes</p>
+                        </div>
+                      </div>
+                      {fits && (
+                        <p className="mt-2 border-t border-slate-100 pt-2 text-[10px] font-bold text-[#08796d]">
+                          ✓ Este valor está dentro de tu 7% estimado
+                        </p>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+
+              <p className="mt-3 text-[10px] leading-relaxed text-slate-500">
+                Muestra referencial guardada para carga instantánea. El comparador consulta precios y disponibilidad vigentes.
+              </p>
             </div>
           </div>
+          )}
+        </div>
 
-          {/* Vista previa */}
-          <div className="mt-4">
-            {!hasProfile ? (
-              <PreviewEmpty />
-            ) : (
-              <div className="rounded-2xl border border-[#0f514b]/10 bg-[#fbf8f3]/70 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#0f514b]/60">
-                    Tu vista previa {seven.montoCLP > 0 && <>· 7%: {formatCLP(seven.montoCLP)}/mes</>}
-                  </span>
-                  {loading && <span className="w-3.5 h-3.5 rounded-full border-2 border-[#14dcb4]/30 border-t-[#14dcb4] animate-spin" />}
-                </div>
-                <div className="space-y-1.5">
-                  {plans.map((p) => {
-                    const uf = calcularPrecioPlanUF(p.base_plan_uf, p.ges_isapre_uf, beneficiarios);
-                    const clp = Math.round(uf * ufValueCLP);
-                    const fits = seven.montoCLP > 0 && clp <= seven.montoCLP;
-                    const logo = p.logo_url && p.logo_url.startsWith('/') ? p.logo_url : (p.logo_url || '/logos/placeholder.png');
-                    return (
-                      <div key={p.id} className="flex items-center gap-2.5 rounded-xl bg-white border border-[#0f514b]/8 px-2.5 py-2">
-                        <div className="relative h-6 w-16 shrink-0">
-                          <Image src={logo} alt={p.isapre_name} fill className="object-contain object-left" sizes="64px" />
-                        </div>
-                        <span className="flex-1 min-w-0 truncate text-[11.5px] font-semibold text-[#0f514b] uppercase tracking-tight">{p.name}</span>
-                        {fits && (
-                          <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-[0.08em] text-[#0f9d8a] bg-[#14dcb4]/15 px-1.5 py-0.5 rounded">en tu 7%</span>
-                        )}
-                        <span className="shrink-0 text-right">
-                          <span className="block text-[13px] font-extrabold text-[#0f9d8a] tabular-nums leading-none">UF {formatUF(uf)}</span>
-                          <span className="block text-[10px] text-[#5a6b6a] tabular-nums">{formatCLP(clp)}/mes</span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {!loading && plans.length === 0 && (
-                    <div className="text-[12px] text-[#5a6b6a] py-2 text-center">No pudimos cargar la vista previa, pero igual puedes ver el comparador completo.</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Value props */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <ValueProp icon={<Sparkles className="w-3.5 h-3.5" />} title="Precio exacto" desc="Según tu edad y familia, no el 'desde'." />
-            <ValueProp icon={<Wallet className="w-3.5 h-3.5" />} title="Tu 7% legal" desc="Cuánto puedes destinar a salud." />
-            <ValueProp icon={<Users className="w-3.5 h-3.5" />} title="Incluye tu familia" desc="Precio total del grupo." />
-          </div>
-
-          {/* CTAs */}
-          <div className="mt-5 flex flex-col gap-2.5">
+        {!showLeadForm && (
+        <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative isolate flex-1">
+              <span className="pointer-events-none absolute inset-0 -z-10 rounded-2xl bg-[#14dcb4]/35 animate-[wsp-ping_1.8s_ease-out_infinite]" />
+              <button
+                type="button"
+                onClick={cotizarExperto}
+                className="group relative inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-[#14dcb4]/40 bg-[#0f514b] px-4 py-2.5 text-white shadow-[0_14px_32px_rgba(15,81,75,0.36)] transition hover:-translate-y-0.5 hover:bg-[#0b4540] hover:shadow-[0_18px_40px_rgba(15,81,75,0.46)]"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#14dcb4] text-[#062f2b] shadow-[0_8px_20px_rgba(20,220,180,0.32)]">
+                  <MessagesSquare className="h-5 w-5" strokeWidth={2.4} />
+                </span>
+                <span className="text-left">
+                  <span className="block text-[15px] font-extrabold leading-tight">Recibe asesoría de un experto</span>
+                  <span className="mt-1 block text-[10px] font-semibold text-white/68">Te contactamos inmediatamente · Sin compromiso · 24h</span>
+                </span>
+                <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
             <button
               type="button"
               onClick={verPlanes}
-              className="w-full px-5 py-3.5 rounded-2xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] font-bold text-[15px] shadow-[0_14px_30px_rgba(20,220,180,0.4)] hover:-translate-y-0.5 transition-all inline-flex items-center justify-center gap-2 group"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/70 bg-[#dff9f3] px-6 py-3 text-sm font-extrabold text-[#0f514b] shadow-[0_8px_20px_rgba(20,220,180,0.18)] transition hover:-translate-y-0.5 hover:border-[#14dcb4] hover:bg-[#c9f5eb] hover:shadow-[0_12px_26px_rgba(20,220,180,0.28)]"
             >
-              {hasProfile
-                ? `Ver mis ${nPlanes ? nPlanes.toLocaleString('es-CL') + ' ' : ''}planes personalizados`
-                : 'Ver el comparador de planes'}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              Ver comparador
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
             <button
               type="button"
-              onClick={cotizarExperto}
-              className="w-full px-5 py-3 rounded-2xl border-2 border-[#0f514b]/12 bg-white text-[#0f514b] font-bold text-[14px] hover:border-[#14dcb4]/50 hover:bg-[#14dcb4]/[0.04] transition-all inline-flex items-center justify-center gap-2"
+              onClick={closeOverlay}
+              className="px-2 py-2 text-xs font-semibold text-slate-500 hover:text-[#0f514b]"
             >
-              💬 Cotiza gratis con un experto
-            </button>
-            <button
-              type="button"
-              onClick={dismiss}
-              className="text-center text-[12.5px] font-semibold text-[#5a6b6a] hover:text-[#0f514b] transition-colors mt-0.5"
-            >
-              Explorar sin personalizar
+              Ahora no
             </button>
           </div>
+        </footer>
+        )}
+      </section>
+    </div>
+  );
+}
+
+type InlineLeadFormProps = {
+  salary: number;
+  age: number | null;
+  cargas: number[];
+  previewPlans: Array<PreviewPlan & { priceUf: number }>;
+  onBack: () => void;
+  onClose: () => void;
+};
+
+function InlineLeadForm({
+  salary,
+  age,
+  cargas,
+  previewPlans,
+  onBack,
+  onClose,
+}: InlineLeadFormProps) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  async function submitLead(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!name.trim()) {
+      setError('Ingresa tu nombre para continuar.');
+      return;
+    }
+    if (phone.replace(/\D/g, '').length < 8) {
+      setError('Ingresa un número de WhatsApp válido.');
+      return;
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Revisa el formato del correo o déjalo vacío.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+    const profileSummary = [
+      salary > 0 ? `Sueldo: ${formatCLP(salary)}` : 'Sueldo: no informado',
+      age != null ? `Edad: ${age}` : 'Edad: no informada',
+      cargas.length ? `Cargas: ${cargas.join(', ')}` : 'Sin cargas informadas',
+      `Snapshot: ${previewPlans.map((plan) => `${plan.isapreName} ${plan.name}`).join(' | ')}`,
+    ].join(' · ');
+
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        await new Promise((resolve) => window.setTimeout(resolve, 550));
+      } else {
+        await fetch(SHEETS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre: name.trim(),
+            rut: '',
+            correo: email.trim(),
+            telefono: phone.trim(),
+            region: '',
+            edad: age != null ? String(age) : '',
+            planActual: '',
+            observaciones: `Lead QuickStart Overlay · ${profileSummary}`,
+            planCotizado: 'Tres opciones personalizadas',
+          }),
+        });
+      }
+      setSubmitted(true);
+    } catch {
+      setError('No pudimos enviar tus datos. Intenta nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="mx-auto flex min-h-[330px] max-w-lg flex-col items-center justify-center py-6 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#14dcb4]/15 text-[#0f9d8a]">
+          <CheckCircle className="h-8 w-8" />
         </div>
+        <h3 className="mt-5 text-2xl font-extrabold text-[#0f514b]">¡Solicitud recibida!</h3>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-600">
+          Un experto revisará alternativas para tu perfil y te contactará por WhatsApp.
+        </p>
+        {process.env.NODE_ENV === 'development' && (
+          <p className="mt-3 rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-700">
+            Modo local: envío simulado, no se agregó a la planilla.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 rounded-xl bg-[#0f514b] px-6 py-3 text-sm font-bold text-white"
+        >
+          Seguir explorando
+        </button>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-function PreviewEmpty() {
   return (
-    <div className="rounded-2xl border border-dashed border-[#0f514b]/15 bg-[#fbf8f3]/50 p-3">
-      <div className="space-y-1.5">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="flex items-center gap-2.5 rounded-xl bg-white/70 border border-[#0f514b]/6 px-2.5 py-2 blur-[1.5px] select-none">
-            <div className="h-6 w-16 rounded bg-slate-200" />
-            <div className="flex-1 h-3 rounded bg-slate-200" />
-            <div className="h-4 w-14 rounded bg-[#14dcb4]/30" />
-          </div>
-        ))}
-      </div>
-      <p className="text-[12px] text-[#5a6b6a] text-center mt-2 font-medium">
-        Ingresa tu sueldo y edad para ver tus planes a precio real ↑
-      </p>
-    </div>
-  );
-}
+    <div className="grid gap-5 md:grid-cols-[0.8fr_1.2fr] md:gap-7">
+      <aside className="rounded-2xl bg-[#e9fbf7] p-5">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#08796d]">Lo hacemos fácil</p>
+        <h3 className="mt-2 text-xl font-extrabold leading-tight text-[#0f514b]">
+          Recibe una selección revisada para ti
+        </h3>
+        <ul className="mt-5 space-y-3 text-sm text-slate-700">
+          <li className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#0f9d8a]" /> Comparamos precio, cobertura y red.</li>
+          <li className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#0f9d8a]" /> Usamos el perfil que ya completaste.</li>
+          <li className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#0f9d8a]" /> Te contactamos por WhatsApp.</li>
+        </ul>
+        <div className="mt-5 rounded-xl border border-[#14dcb4]/30 bg-white/70 p-3 text-xs leading-relaxed text-[#0f514b]">
+          <strong>Gratis y sin compromiso.</strong><br />Respuesta estimada en menos de 24 horas.
+        </div>
+      </aside>
 
-function ValueProp({ icon, title, desc }: { icon: ReactNode; title: string; desc: string }) {
-  return (
-    <div className="rounded-xl border border-[#0f514b]/8 bg-white p-2.5">
-      <div className="w-6 h-6 rounded-lg bg-[#14dcb4]/15 text-[#0f9d8a] flex items-center justify-center mb-1.5">{icon}</div>
-      <div className="text-[11px] font-bold text-[#0f514b] leading-tight">{title}</div>
-      <div className="text-[10px] text-[#5a6b6a] leading-tight mt-0.5">{desc}</div>
+      <form onSubmit={submitLead} noValidate className="rounded-2xl border border-slate-200 bg-white p-1 sm:p-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-[#0f514b] transition hover:border-[#14dcb4] hover:bg-[#e9fbf7]"
+        >
+          <ArrowLeft className="h-4 w-4" /> Volver a los planes
+        </button>
+
+        <div className="grid gap-3">
+          <label>
+            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+              <User className="h-3.5 w-3.5" /> Tu nombre
+            </span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => { setName(event.target.value); setError(''); }}
+              placeholder="Ej: Daniela Soto"
+              autoComplete="name"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+              <Phone className="h-3.5 w-3.5" /> WhatsApp
+            </span>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(event) => { setPhone(event.target.value); setError(''); }}
+              placeholder="Ej: +56 9 8765 4321"
+              autoComplete="tel"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+              <Mail className="h-3.5 w-3.5" /> Correo <span className="font-medium text-slate-400">(opcional)</span>
+            </span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => { setEmail(event.target.value); setError(''); }}
+              placeholder="Ej: daniela@gmail.com"
+              autoComplete="email"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10"
+            />
+          </label>
+        </div>
+
+        {error && (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#14dcb4]/40 bg-[#0f514b] px-5 py-3.5 text-[15px] font-extrabold text-white shadow-[0_12px_30px_rgba(15,81,75,0.34)] transition hover:-translate-y-0.5 hover:bg-[#0b4540] hover:shadow-[0_16px_36px_rgba(15,81,75,0.44)] disabled:translate-y-0 disabled:opacity-60"
+        >
+          {submitting ? (
+            <><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#062f2b]/25 border-t-[#062f2b]" /> Enviando...</>
+          ) : (
+            <><MessagesSquare className="h-4 w-4" /> Recibe asesoría de un experto</>
+          )}
+        </button>
+        <p className="mt-3 flex items-start justify-center gap-1.5 text-center text-[10px] leading-relaxed text-slate-400">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0f9d8a]" />
+          Tus datos se usan solo para esta asesoría. Sin spam.
+        </p>
+      </form>
     </div>
   );
 }
