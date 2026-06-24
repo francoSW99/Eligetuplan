@@ -6,6 +6,7 @@ import type { Isapre, Zona, PrestadorItem } from "@/lib/api";
 import { formatCLP } from "@/lib/api";
 import { useMeta } from "@/lib/meta-context";
 import { calcularSeptimoLegal } from "@/lib/factores";
+import { buscarCiudades, ZONA_CIUDADES_EJEMPLO } from "@/lib/zonas-ciudades";
 
 function formatUF2(n: number) {
   return n.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -395,10 +396,67 @@ export function ZonasFilter({
   selected: string[];
   toggle: (id: number) => void;
 }) {
+  const [cityQuery, setCityQuery] = useState("");
+  const zonaNombre = (id: number) => zonas.find((z) => z.id === id)?.nombre ?? `Zona ${id}`;
+  const matches = useMemo(() => buscarCiudades(cityQuery), [cityQuery]);
+
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2">
-        <span className="text-[12px] font-bold text-[#0f514b]">Zonas</span>
+      {/* Buscador por ciudad/comuna: muchos saben su ciudad, no su "zona" */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6b6a] pointer-events-none" />
+        <input
+          type="text"
+          value={cityQuery}
+          onChange={(e) => setCityQuery(e.target.value)}
+          placeholder="¿En qué ciudad o comuna vives?"
+          className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-all"
+        />
+        {cityQuery && (
+          <button
+            type="button"
+            onClick={() => setCityQuery("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a] transition-colors"
+            aria-label="Limpiar"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Sugerencias en flujo (no dropdown absoluto → no se recorta dentro del sidebar) */}
+      {cityQuery.trim() && (
+        <div className="mt-2 rounded-xl border border-slate-200 bg-[#fbf8f3]/60 overflow-hidden">
+          {matches.length > 0 ? (
+            <ul className="divide-y divide-slate-100">
+              {matches.map((m) => {
+                const checked = selected.includes(String(m.zonaId));
+                return (
+                  <li key={`${m.ciudad}-${m.zonaId}`}>
+                    <button
+                      type="button"
+                      onClick={() => { toggle(m.zonaId); setCityQuery(""); }}
+                      className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-[#14dcb4]/[0.08] transition-colors"
+                    >
+                      <span className="text-[13px] font-semibold text-[#0f514b]">{m.ciudad}</span>
+                      <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.06em] text-[#0f9d8a]">
+                        {checked ? "✓ " : "→ "}{zonaNombre(m.zonaId)}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="px-3 py-2.5 text-[12px] text-[#5a6b6a] leading-snug">
+              No encontramos esa ciudad. Elige tu zona en la lista de abajo.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-baseline justify-between mt-3 mb-2">
+        <span className="text-[12px] font-bold text-[#0f514b]">O elige tu zona</span>
         {selected.length === 0 ? (
           <span className="text-[10.5px] text-[#5a6b6a] italic">Todas mostradas</span>
         ) : (
@@ -410,45 +468,34 @@ export function ZonasFilter({
       <ul className="space-y-1.5">
         {zonas.map((z) => {
           const checked = selected.includes(String(z.id));
+          const ejemplo = ZONA_CIUDADES_EJEMPLO[z.id];
           return (
             <li key={z.id}>
-              <label className="relative flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <label className="relative flex items-center justify-between gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+                <div className="flex items-start gap-2.5 min-w-0">
                   <span
-                    className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                    className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
                       checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
                     }`}
                   >
                     {checked && (
-                      <svg
-                        className="w-3 h-3 text-[#0f514b]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
+                      <svg className="w-3 h-3 text-[#0f514b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 6L9 17l-5-5" />
                       </svg>
                     )}
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggle(z.id)}
-                    className="sr-only"
-                  />
-                  <span
-                    className={`text-[13px] truncate transition-colors ${
-                      checked ? "text-[#0f514b] font-semibold" : "text-[#1e2a2a]"
-                    }`}
-                  >
-                    {z.nombre}
+                  <input type="checkbox" checked={checked} onChange={() => toggle(z.id)} className="sr-only" />
+                  <span className="min-w-0">
+                    <span className={`block text-[13px] leading-tight transition-colors ${checked ? "text-[#0f514b] font-semibold" : "text-[#1e2a2a]"}`}>
+                      {z.nombre}
+                    </span>
+                    {ejemplo && (
+                      <span className="block text-[10.5px] text-[#5a6b6a] leading-tight mt-0.5">{ejemplo}</span>
+                    )}
                   </span>
                 </div>
                 <span
-                  className={`text-[10.5px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${
+                  className={`shrink-0 self-start text-[10.5px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${
                     checked ? "bg-[#14dcb4]/15 text-[#0f9d8a]" : "bg-[#0f514b]/5 text-[#5a6b6a]"
                   }`}
                 >
