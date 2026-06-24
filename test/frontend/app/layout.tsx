@@ -6,6 +6,7 @@ import SiteHeader from "@/components/ui/site-header";
 import SiteFooter from "@/components/ui/site-footer";
 import WhatsAppFab from "@/components/ui/whatsapp-fab";
 import ScrollToTop from "@/components/ui/scroll-to-top";
+import QuickStartOverlay from "@/components/ui/quick-start-overlay";
 import { MetaProvider } from "@/lib/meta-context";
 import { getSiteMeta } from "@/lib/api";
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
@@ -121,6 +122,8 @@ export default async function RootLayout({
           <WhatsAppFab />
 
           <SiteFooter />
+
+          <QuickStartOverlay />
 
           {process.env.NEXT_PUBLIC_GA_ID && (
             <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
