@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Check,
   CheckCircle,
-  Mail,
   MessagesSquare,
   Phone,
   ShieldCheck,
@@ -24,7 +23,7 @@ import {
   serializeBeneficiarios,
   type Beneficiario,
 } from '@/lib/factores';
-import { formatCLP, formatUF } from '@/lib/api';
+import { formatCLP, formatUF, getPlanes } from '@/lib/api';
 import { useMeta } from '@/lib/meta-context';
 
 const QUALIFYING = ['/', '/comparar/isapres'];
@@ -90,6 +89,9 @@ export default function QuickStartOverlay() {
   const [cargas, setCargas] = useState<number[]>([]);
   const [cargaInput, setCargaInput] = useState('');
   const [showLeadForm, setShowLeadForm] = useState(false);
+  // Muestra de planes: arranca en SNAPSHOT_PLANS (instantáneo) y se reemplaza por planes
+  // vigentes (los más baratos) cuando el fetch responde → la vista previa nunca queda vieja.
+  const [livePlans, setLivePlans] = useState<PreviewPlan[] | null>(null);
 
   function closeOverlay() {
     // El componente vive en el layout y puede sobrevivir a una navegación. Resetear
@@ -116,6 +118,7 @@ export default function QuickStartOverlay() {
       setAgeInput('');
       setCargas([]);
       setCargaInput('');
+      setLivePlans(null);
       setOpen(true);
       markSeen(pathname);
     }, 0);
@@ -143,6 +146,31 @@ export default function QuickStartOverlay() {
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
+  // Refresca la muestra con planes vigentes (los más baratos) al abrir. Mientras carga
+  // —o si la API falla— se ve SNAPSHOT_PLANS al instante. Así no se necesita actualizar
+  // los precios hardcodeados a mano: el catálogo manda.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getPlanes({ limit: 14, sort: 'precio_asc' })
+      .then((res) => {
+        if (cancelled) return;
+        const mapped: PreviewPlan[] = res.items
+          .filter((plan) => (plan.base_plan_uf ?? plan.price_uf) != null)
+          .map((plan) => ({
+            id: plan.id,
+            name: plan.name,
+            isapreName: plan.isapre_name,
+            logoUrl: plan.logo_url && plan.logo_url.startsWith('/') ? plan.logo_url : (plan.logo_url || '/logos/placeholder.png'),
+            basePlanUf: plan.base_plan_uf ?? plan.price_uf,
+            gesIsapreUf: plan.ges_isapre_uf ?? 0,
+          }));
+        if (mapped.length >= 3) setLivePlans(mapped);
+      })
+      .catch(() => { /* se queda con el snapshot */ });
+    return () => { cancelled = true; };
+  }, [open]);
+
   const hasProfile = salary > 0 && age != null;
 
   const beneficiarios = useMemo<Beneficiario[]>(() => {
@@ -158,13 +186,14 @@ export default function QuickStartOverlay() {
   }, [age, cargas]);
 
   const previewPlans = useMemo(
-    () => SNAPSHOT_PLANS
+    () => (livePlans ?? SNAPSHOT_PLANS)
       .map((plan) => ({
         ...plan,
         priceUf: calcularPrecioPlanUF(plan.basePlanUf, plan.gesIsapreUf, beneficiarios),
       }))
-      .sort((a, b) => a.priceUf - b.priceUf),
-    [beneficiarios],
+      .sort((a, b) => a.priceUf - b.priceUf)
+      .slice(0, 3),
+    [livePlans, beneficiarios],
   );
 
   const seven = useMemo(
@@ -508,7 +537,8 @@ function InlineLeadForm({
 }: InlineLeadFormProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [rut, setRut] = useState('');
+  const [edadInput, setEdadInput] = useState(age != null ? String(age) : '');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -523,8 +553,13 @@ function InlineLeadForm({
       setError('Ingresa un número de WhatsApp válido.');
       return;
     }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Revisa el formato del correo o déjalo vacío.');
+    if (rut.replace(/[.\-\s]/g, '').length < 7) {
+      setError('Ingresa tu RUT para continuar.');
+      return;
+    }
+    const edadNum = parseInt(edadInput, 10);
+    if (!Number.isFinite(edadNum) || edadNum < 18 || edadNum > 100) {
+      setError('Ingresa una edad válida (18 a 100).');
       return;
     }
 
@@ -532,7 +567,7 @@ function InlineLeadForm({
     setError('');
     const profileSummary = [
       salary > 0 ? `Sueldo: ${formatCLP(salary)}` : 'Sueldo: no informado',
-      age != null ? `Edad: ${age}` : 'Edad: no informada',
+      `Edad: ${edadInput.trim() || (age != null ? String(age) : 'no informada')}`,
       cargas.length ? `Cargas: ${cargas.join(', ')}` : 'Sin cargas informadas',
       `Snapshot: ${previewPlans.map((plan) => `${plan.isapreName} ${plan.name}`).join(' | ')}`,
     ].join(' · ');
@@ -547,11 +582,11 @@ function InlineLeadForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             nombre: name.trim(),
-            rut: '',
-            correo: email.trim(),
+            rut: rut.trim(),
+            correo: '',
             telefono: phone.trim(),
             region: '',
-            edad: age != null ? String(age) : '',
+            edad: edadInput.trim(),
             planActual: '',
             observaciones: `Lead QuickStart Overlay · ${profileSummary}`,
             planCotizado: 'Tres opciones personalizadas',
@@ -652,19 +687,32 @@ function InlineLeadForm({
             />
           </label>
 
-          <label>
-            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-600">
-              <Mail className="h-3.5 w-3.5" /> Correo <span className="font-medium text-slate-400">(opcional)</span>
-            </span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => { setEmail(event.target.value); setError(''); }}
-              placeholder="Ej: daniela@gmail.com"
-              autoComplete="email"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
-            />
-          </label>
+          <div className="grid grid-cols-[1.4fr_0.6fr] gap-3">
+            <label>
+              <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                <ShieldCheck className="h-3.5 w-3.5" /> RUT
+              </span>
+              <input
+                type="text"
+                value={rut}
+                onChange={(event) => { setRut(event.target.value); setError(''); }}
+                placeholder="Ej: 12.345.678-9"
+                inputMode="text"
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-xs font-bold text-slate-600">Edad</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={edadInput}
+                onChange={(event) => { setEdadInput(event.target.value.replace(/\D/g, '').slice(0, 3)); setError(''); }}
+                placeholder="34"
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base font-bold tabular-nums text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
+              />
+            </label>
+          </div>
         </div>
 
         {error && (
