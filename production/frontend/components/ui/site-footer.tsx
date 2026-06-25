@@ -51,17 +51,17 @@ const COLS: FooterCol[] = [
 export default function SiteFooter() {
   return (
     <footer className="bg-[#04181a] text-white">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-10 pt-16 pb-10">
-        <div className="grid md:grid-cols-2 lg:grid-cols-[1.25fr_repeat(4,minmax(0,1fr))] gap-10 lg:gap-8 xl:gap-12">
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-10 pt-11 pb-7">
+        <div className="grid md:grid-cols-2 lg:grid-cols-[1.25fr_repeat(4,minmax(0,1fr))] gap-x-8 gap-y-8 xl:gap-x-10">
           <div>
             <Image
               src={BRAND.logo}
               alt="EligeTuPlan"
               width={1568}
               height={496}
-              className="h-9 w-auto mb-5"
+              className="h-9 w-auto mb-4"
             />
-            <p className="text-[13.5px] text-white/55 leading-relaxed max-w-[320px] mb-6">
+            <p className="text-[13.5px] text-white/55 leading-relaxed max-w-[320px] mb-5">
               La única plataforma 100% gratuita para comparar, cotizar y solicitar planes de salud de todas las Isapres de Chile.
             </p>
             <div className="space-y-2">
@@ -96,10 +96,10 @@ export default function SiteFooter() {
 
           {COLS.map((c) => (
             <div key={c.t}>
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#14dcb4] mb-5">
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#14dcb4] mb-4">
                 {c.t}
               </h4>
-              <ul className="space-y-2.5">
+              <ul className="space-y-2">
                 {c.items.map((it) =>
                   it.ext ? (
                     <li key={it.l}>
@@ -128,7 +128,7 @@ export default function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-[12px] text-white/45">
+        <div className="mt-8 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-[12px] text-white/45">
           <span>© 2026 EligeTuPlan · Todos los derechos reservados</span>
           <div className="flex items-center gap-5">
             <Link href="/privacidad" className="hover:text-white/80 transition-colors no-underline">
@@ -140,7 +140,7 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <p className="mt-5 text-[11px] text-white/30 leading-relaxed max-w-[820px]">
+        <p className="mt-4 text-[11px] text-white/30 leading-relaxed max-w-[820px]">
           Este sitio es solo para información general y orientación sobre planes de Isapre. Toda la información está destinada a guiar al usuario. Ante cualquier duda, verificar desde el sitio oficial correspondiente. Cumple con la Ley 19.628 sobre Protección de la Vida Privada y la Ley 21.719 sobre Tratamiento de Datos Personales.
         </p>
       </div>
