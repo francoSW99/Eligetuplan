@@ -342,9 +342,9 @@ export default function QuickStartOverlay() {
                       inputMode="numeric"
                       value={salaryDisplay}
                       onChange={(event) => onSalary(event.target.value)}
-                      placeholder="950.000"
+                      placeholder="Ej: 950.000"
                       aria-label="Sueldo bruto"
-                      className="w-full rounded-xl border border-slate-200 py-2.5 pl-7 pr-3 text-base font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
+                      className="w-full rounded-xl border border-slate-200 py-2.5 pl-7 pr-3 text-base font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm placeholder:font-normal placeholder:text-slate-400"
                     />
                   </div>
                 </label>
@@ -355,9 +355,9 @@ export default function QuickStartOverlay() {
                     inputMode="numeric"
                     value={ageInput}
                     onChange={(event) => onAge(event.target.value)}
-                    placeholder="34"
+                    placeholder="Ej: 34"
                     aria-label="Tu edad"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-bold text-[#0f514b] outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm placeholder:font-normal placeholder:text-slate-400"
                   />
                 </label>
               </div>
@@ -378,9 +378,9 @@ export default function QuickStartOverlay() {
                         addCarga();
                       }
                     }}
-                    placeholder="Edad"
+                    placeholder="Ej: 8"
                     aria-label="Edad de la carga"
-                    className="w-20 rounded-lg border border-slate-200 px-2.5 py-2 text-base font-bold text-[#0f514b] outline-none focus:border-[#14dcb4] sm:text-xs"
+                    className="w-20 rounded-lg border border-slate-200 px-2.5 py-2 text-base font-bold text-[#0f514b] outline-none focus:border-[#14dcb4] sm:text-xs placeholder:font-normal placeholder:text-slate-400"
                   />
                   <button
                     type="button"
@@ -712,7 +712,7 @@ function InlineLeadForm({
                 onChange={(event) => { setRut(event.target.value); setError(''); }}
                 placeholder="Ej: 12.345.678-9"
                 inputMode="text"
-                className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm placeholder:font-normal placeholder:text-slate-400"
               />
             </label>
             <label>
@@ -722,8 +722,8 @@ function InlineLeadForm({
                 inputMode="numeric"
                 value={edadInput}
                 onChange={(event) => { setEdadInput(event.target.value.replace(/\D/g, '').slice(0, 3)); setError(''); }}
-                placeholder="34"
-                className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base font-bold tabular-nums text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm"
+                placeholder="Ej: 34"
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base font-bold tabular-nums text-slate-800 outline-none transition focus:border-[#14dcb4] focus:ring-4 focus:ring-[#14dcb4]/10 sm:text-sm placeholder:font-normal placeholder:text-slate-400"
               />
             </label>
           </div>
