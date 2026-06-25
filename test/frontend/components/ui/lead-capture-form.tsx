@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { track } from '@/lib/analytics';
+import { LEAD_FORM_TOKEN } from '@/lib/lead';
 
 const SHEETS_URL ='https://script.google.com/macros/s/AKfycbxDO73TTXhYnwyeW4w_EA8fVNqg68I9PjDtO1Td50QPDhiOFkugnI1t0HPWszZGHfv5/exec';
 
@@ -98,6 +99,8 @@ export default function LeadCaptureForm({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [showOptional, setShowOptional] = useState(false);
+  // Honeypot anti-bot: oculto para humanos; si llega con valor, el Apps Script lo descarta.
+  const [hp, setHp] = useState('');
 
   const set =
     (field: keyof FormData) =>
@@ -141,6 +144,8 @@ export default function LeadCaptureForm({
         body: JSON.stringify({
           ...form,
           planCotizado: contextPlan ? `${contextPlan.isapreName} - ${contextPlan.name}` : '',
+          _token: LEAD_FORM_TOKEN,
+          _hp: hp,
         }),
       });
       setSubmitted(true);
@@ -229,6 +234,17 @@ export default function LeadCaptureForm({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
+            {/* Honeypot anti-bot: invisible para humanos; los bots que rellenan todo lo llenan */}
+            <input
+              type="text"
+              value={hp}
+              onChange={(e) => setHp(e.target.value)}
+              name="empresa"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="absolute left-[-9999px] top-0 h-0 w-0 opacity-0"
+            />
             <div className="grid sm:grid-cols-2 gap-x-4 gap-y-3.5">
               <div>
                 <label className={labelClass}>

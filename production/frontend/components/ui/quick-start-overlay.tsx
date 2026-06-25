@@ -25,6 +25,7 @@ import {
 } from '@/lib/factores';
 import { formatCLP, formatUF, getPlanes } from '@/lib/api';
 import { useMeta } from '@/lib/meta-context';
+import { LEAD_FORM_TOKEN } from '@/lib/lead';
 
 const QUALIFYING = ['/', '/comparar/isapres'];
 const seenKey = (path: string) => `etp_qs_seen:${path}`;
@@ -539,6 +540,7 @@ function InlineLeadForm({
   const [phone, setPhone] = useState('');
   const [rut, setRut] = useState('');
   const [edadInput, setEdadInput] = useState(age != null ? String(age) : '');
+  const [hp, setHp] = useState(''); // honeypot anti-bot (oculto)
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -590,6 +592,8 @@ function InlineLeadForm({
             planActual: '',
             observaciones: `Lead QuickStart Overlay · ${profileSummary}`,
             planCotizado: 'Tres opciones personalizadas',
+            _token: LEAD_FORM_TOKEN,
+            _hp: hp,
           }),
         });
       }
@@ -650,6 +654,17 @@ function InlineLeadForm({
       </aside>
 
       <form onSubmit={submitLead} noValidate className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 md:p-2">
+        {/* Honeypot anti-bot: invisible para humanos */}
+        <input
+          type="text"
+          value={hp}
+          onChange={(event) => setHp(event.target.value)}
+          name="empresa"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="absolute left-[-9999px] top-0 h-0 w-0 opacity-0"
+        />
         <button
           type="button"
           onClick={onBack}
