@@ -17,9 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { track } from '@/lib/analytics';
-import { LEAD_FORM_TOKEN } from '@/lib/lead';
-
-const SHEETS_URL ='https://script.google.com/macros/s/AKfycbxDO73TTXhYnwyeW4w_EA8fVNqg68I9PjDtO1Td50QPDhiOFkugnI1t0HPWszZGHfv5/exec';
+import { LEAD_FORM_TOKEN, LEAD_SHEETS_URL as SHEETS_URL } from '@/lib/lead';
 
 const REGIONES = [
   'Región de Arica y Parinacota',

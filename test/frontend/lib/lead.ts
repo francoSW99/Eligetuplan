@@ -16,3 +16,8 @@ export const LEAD_FORM_TOKEN = 'etp_lead_2026_a7Kq9ZpX3mTvB6';
 
 // Nombre del campo honeypot en el payload (debe coincidir con la validación del Apps Script).
 export const LEAD_HONEYPOT_FIELD = '_hp';
+
+// Endpoint del Apps Script (Google Sheets) — ÚNICA fuente de verdad de la URL para
+// TODOS los formularios. Si re-implementas el script y cambia la URL, actualízala SOLO acá.
+export const LEAD_SHEETS_URL =
+  'https://script.google.com/macros/s/AKfycbw-exDlsHZ0XhPybxEqvyBuTJmaOMYVW1LuXU3uW1jGUnzdVyMHI_wVGLGBXb2GgZ0o/exec';

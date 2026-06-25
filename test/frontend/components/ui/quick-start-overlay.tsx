@@ -25,11 +25,10 @@ import {
 } from '@/lib/factores';
 import { formatCLP, formatUF, getPlanes } from '@/lib/api';
 import { useMeta } from '@/lib/meta-context';
-import { LEAD_FORM_TOKEN } from '@/lib/lead';
+import { LEAD_FORM_TOKEN, LEAD_SHEETS_URL as SHEETS_URL } from '@/lib/lead';
 
 const QUALIFYING = ['/', '/comparar/isapres'];
 const seenKey = (path: string) => `etp_qs_seen:${path}`;
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxDO73TTXhYnwyeW4w_EA8fVNqg68I9PjDtO1Td50QPDhiOFkugnI1t0HPWszZGHfv5/exec';
 
 type PreviewPlan = {
   id: string;
