@@ -49,10 +49,28 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set +e
-          python production/backend/scripts/sync_all.py > summary.json
-          code=$?
+          # Reintento: tu7.cl a veces está lento/caído justo en el minuto del cron y
+          # tumbaba TODO el sync semanal. Reintentamos hasta 3 veces SOLO si el código
+          # es 1 (error real). El sync es idempotente, así que repetir es inofensivo.
+          # Código 0 (ok) y 2 (guardarraíl intencional) NO se reintentan.
+          attempts=3
+          code=1
+          for i in $(seq 1 "$attempts"); do
+            echo "::group::Intento $i/$attempts de sync_all.py"
+            python production/backend/scripts/sync_all.py > summary.json
+            code=$?
+            echo "intento $i → código $code"
+            echo "::endgroup::"
+            if [ "$code" != "1" ]; then
+              break
+            fi
+            if [ "$i" -lt "$attempts" ]; then
+              echo "⚠️ Código 1 (error, probable tu7.cl caído/lento). Reintento en 90s…"
+              sleep 90
+            fi
+          done
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          echo "----- summary.json -----"
+          echo "----- summary.json (último intento) -----"
           cat summary.json
 
       - name: Invalidar caché del backend (freshness inmediata)
@@ -141,7 +159,10 @@ jobs:
           fi
 
           # Propagar el código de salida del script (2 = guardarraíl, 1 = error).
+          # Surface del motivo real como anotación roja para no escarbar en los logs:
+          # si dice "403/Forbidden" → tu7.cl bloquea la IP del runner; si "timeout/reset" → transitorio.
           if [ "${{ steps.sync.outputs.exit_code }}" != "0" ]; then
-            echo "sync_all.py terminó con código ${{ steps.sync.outputs.exit_code }}"
+            echo "::error::sync_all.py terminó con código ${{ steps.sync.outputs.exit_code }} — Motivo: $reason"
+            echo "sync_all.py terminó con código ${{ steps.sync.outputs.exit_code }} — Motivo: $reason"
             exit 1
           fi
