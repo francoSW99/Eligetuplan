@@ -313,7 +313,7 @@ export default function QuickStartOverlay() {
               salary={salary}
               age={age}
               cargas={cargas}
-              previewPlans={previewPlans}
+              pagePath={pathname}
               onBack={() => setShowLeadForm(false)}
               onClose={closeOverlay}
             />
@@ -434,7 +434,7 @@ export default function QuickStartOverlay() {
                   </h3>
                 </div>
                 <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-                  Snapshot
+                  Vista previa
                 </span>
               </div>
 
@@ -522,7 +522,7 @@ type InlineLeadFormProps = {
   salary: number;
   age: number | null;
   cargas: number[];
-  previewPlans: Array<PreviewPlan & { priceUf: number }>;
+  pagePath: string;
   onBack: () => void;
   onClose: () => void;
 };
@@ -531,7 +531,7 @@ function InlineLeadForm({
   salary,
   age,
   cargas,
-  previewPlans,
+  pagePath,
   onBack,
   onClose,
 }: InlineLeadFormProps) {
@@ -566,12 +566,15 @@ function InlineLeadForm({
 
     setSubmitting(true);
     setError('');
-    const profileSummary = [
-      salary > 0 ? `Sueldo: ${formatCLP(salary)}` : 'Sueldo: no informado',
-      `Edad: ${edadInput.trim() || (age != null ? String(age) : 'no informada')}`,
-      cargas.length ? `Cargas: ${cargas.join(', ')}` : 'Sin cargas informadas',
-      `Snapshot: ${previewPlans.map((plan) => `${plan.isapreName} ${plan.name}`).join(' | ')}`,
-    ].join(' · ');
+    const cargasSummary = cargas.length
+      ? cargas.map((cargaEdad) => `${cargaEdad} años`).join(', ')
+      : 'sin cargas';
+    const advisorNotes = [
+      'Solicitud de asesoría desde la vista previa de planes',
+      `Edad titular: ${edadInput.trim() || (age != null ? String(age) : 'no informada')}`,
+      salary > 0 ? `Sueldo declarado: ${formatCLP(salary)}` : 'Sueldo declarado: no informado',
+      `Cargas: ${cargasSummary}`,
+    ].join(' | ');
 
     try {
       if (process.env.NODE_ENV === 'development') {
@@ -589,8 +592,10 @@ function InlineLeadForm({
             region: '',
             edad: edadInput.trim(),
             planActual: '',
-            observaciones: `Lead QuickStart Overlay · ${profileSummary}`,
+            observaciones: advisorNotes,
             planCotizado: 'Tres opciones personalizadas',
+            origen: 'Formulario de asesoría en vista previa de planes',
+            pagina: pagePath,
             _token: LEAD_FORM_TOKEN,
             _hp: hp,
           }),

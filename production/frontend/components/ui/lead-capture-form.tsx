@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Calendar,
@@ -74,6 +75,23 @@ type LeadCaptureFormProps = {
   formType?: 'asesor' | 'buscar' | 'newsletter';
 };
 
+function getLeadOrigin({
+  formType,
+  hasContextPlan,
+  pathname,
+}: {
+  formType: LeadCaptureFormProps['formType'];
+  hasContextPlan: boolean;
+  pathname: string;
+}) {
+  if (hasContextPlan) return 'Cotización desde un plan específico';
+  if (pathname === '/buscar') return 'Formulario principal de búsqueda';
+  if (pathname === '/comparar/isapres') return 'Formulario del comparador de planes';
+  if (formType === 'asesor') return 'Formulario de asesoría';
+  if (formType === 'newsletter') return 'Formulario de newsletter';
+  return 'Formulario de contacto del sitio';
+}
+
 const EMPTY_FORM: FormData = {
   nombre: '',
   rut: '',
@@ -92,6 +110,7 @@ export default function LeadCaptureForm({
   showHeader = true,
   formType = 'buscar',
 }: LeadCaptureFormProps) {
+  const pathname = usePathname();
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -142,6 +161,12 @@ export default function LeadCaptureForm({
         body: JSON.stringify({
           ...form,
           planCotizado: contextPlan ? `${contextPlan.isapreName} - ${contextPlan.name}` : '',
+          origen: getLeadOrigin({
+            formType,
+            hasContextPlan: Boolean(contextPlan),
+            pathname,
+          }),
+          pagina: pathname,
           _token: LEAD_FORM_TOKEN,
           _hp: hp,
         }),
