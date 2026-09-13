@@ -1145,6 +1145,25 @@ def _max_pct(cobs: list[Cobertura]) -> Optional[int]:
     return max((c.pct for c in cobs), default=None)
 
 
+def _coverage_pair(row: dict) -> tuple[Optional[float], Optional[float]]:
+    """(hospitalaria, ambulatoria) = % máximo de cobertura según tu7.
+
+    Fuente: cobertura_hosp_max / cobertura_amb_max (sync_tu7) o, si faltan, el texto
+    de tu7 parseado. NO usar hospital_coverage / ambulatory_coverage de la BD: vienen
+    del SIS, están vacías en ~65% de los planes y hosp/amb invertidas en muchos otros.
+    """
+    def pick(max_key: str, text_key: str) -> Optional[float]:
+        v = row.get(max_key)
+        if v is None and row.get(text_key):
+            v = _max_pct(_parse_coberturas(row.get(text_key)))
+        return float(v) if v is not None else None
+
+    return (
+        pick("cobertura_hosp_max", "hospitalaria_texto"),
+        pick("cobertura_amb_max", "ambulatoria_texto"),
+    )
+
+
 def _uf_to_clp(uf: Optional[float]) -> Optional[int]:
     if uf is None:
         return None
@@ -1206,6 +1225,7 @@ def _build_plan_item(row: dict) -> PlanListItem:
     hosp = _parse_coberturas(row.get("hospitalaria_texto"))
     amb = _parse_coberturas(row.get("ambulatoria_texto"))
     uf = _safe_float(row.get("base_plan_uf") or row.get("price_uf"), 0.0)
+    hosp_cov, amb_cov = _coverage_pair(row)
     return PlanListItem(
         id=str(row["id"]),
         codigo_plan=row.get("codigo_plan"),
@@ -1218,8 +1238,8 @@ def _build_plan_item(row: dict) -> PlanListItem:
         base_plan_uf=_safe_float(row.get("base_plan_uf"), 0.0) or None,
         ges_isapre_uf=_safe_float(row.get("ges_isapre_uf"), 0.0) or None,
         price_clp=_uf_to_clp(uf),
-        hospital_coverage=row.get("hospital_coverage"),
-        ambulatory_coverage=row.get("ambulatory_coverage"),
+        hospital_coverage=hosp_cov,
+        ambulatory_coverage=amb_cov,
         hospitalaria=hosp,
         ambulatoria=amb,
         con_parto=row.get("con_parto"),
@@ -1392,12 +1412,15 @@ def _get_cached_match_plan_rows() -> list[dict]:
         _MATCH_PLANS_CACHE.set("all", [])
         return []
     select_cols = (
-        "id,name,price_uf,hospital_coverage,ambulatory_coverage,"
+        "id,name,price_uf,cobertura_hosp_max,cobertura_amb_max,"
         "base_plan_uf,ges_isapre_uf,modalidad,isapre_id,"
         "isapres(id,name,slug,logo_url),plan_clinica(clinicas(region))"
     )
     query = supabase.table("planes").select(select_cols).eq("tu7_activo", True)
     rows = _fetch_filtered_plan_rows(query)
+    # El scorer lee hospital_coverage/ambulatory_coverage: se rellenan con la cobertura de tu7.
+    for r in rows:
+        r["hospital_coverage"], r["ambulatory_coverage"] = _coverage_pair(r)
     _MATCH_PLANS_CACHE.set("all", rows)
     return rows
 
@@ -1967,7 +1990,7 @@ def plans_autocomplete(
 
     query = (
         supabase.table("planes")
-        .select("id,name,codigo_plan,price_uf,base_plan_uf,ges_isapre_uf,hospital_coverage,ambulatory_coverage,modalidad")
+        .select("id,name,codigo_plan,price_uf,base_plan_uf,ges_isapre_uf,cobertura_hosp_max,cobertura_amb_max,modalidad")
         .eq("isapre_id", isapre_id)
         .eq("tu7_activo", True)
     )
@@ -1980,21 +2003,22 @@ def plans_autocomplete(
     resp = query.execute()
     rows = resp.data or []
 
-    return [
-        PlanAutocompleteItem(
+    items = []
+    for r in rows:
+        hosp_cov, amb_cov = _coverage_pair(r)
+        items.append(PlanAutocompleteItem(
             id=str(r["id"]),
             name=str(r.get("name", "")),
             codigo_plan=r.get("codigo_plan"),
             price_uf=_safe_float(r.get("price_uf"), 0.0),
             base_plan_uf=_safe_float(r.get("base_plan_uf"), 0.0) or None,
             ges_isapre_uf=_safe_float(r.get("ges_isapre_uf"), 0.0) or None,
-            hospital_coverage=r.get("hospital_coverage"),
-            ambulatory_coverage=r.get("ambulatory_coverage"),
+            hospital_coverage=hosp_cov,
+            ambulatory_coverage=amb_cov,
             modalidad=r.get("modalidad"),
             isapre_name=isapre_name,
-        )
-        for r in rows
-    ]
+        ))
+    return items
 
 
 # ── GET /api/v1/planes/{plan_id} ──────────────────────────────────────────────
