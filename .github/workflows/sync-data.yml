@@ -9,9 +9,16 @@ name: Sync de datos (tu7 + UF) → Producción
 # Los cambios se reflejan sin redeploy: tras el sync se invalida el caché del backend
 # (si CACHE_FLUSH_TOKEN está configurado) y el frontend revalida.
 #
+# DÓNDE CORRE EL SYNC: tu7.cl responde 200 con cuerpo vacío a las IPs de GitHub Actions
+# (bloqueo confirmado sep 2026), así que el sync NO corre en el runner: este workflow
+# lanza el Cloud Run Job "sync-data" (southamerica-west1, scripts/sync_job.sh), que sí
+# llega a tu7, y lee su resumen desde Cloud Logging. El resto (resumen, issue, flush) sigue acá.
+# El job toma SUPABASE_SERVICE_ROLE_KEY de Secret Manager y su imagen la actualiza
+# deploy-backend.yml en cada deploy.
+#
 # Secrets requeridos (GitHub → Settings → Secrets):
-#   SUPABASE_URL                  (la de PRODUCCIÓN — ya existe para el deploy)
-#   SUPABASE_SERVICE_ROLE_KEY     (la de PRODUCCIÓN — agregar; bypassea RLS)
+#   GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT  (los mismos del deploy)
+#   CACHE_FLUSH_TOKEN                                     (opcional, para invalidar caché)
 
 on:
   schedule:
@@ -22,6 +29,7 @@ on:
 permissions:
   contents: read
   issues: write
+  id-token: write   # Workload Identity → gcloud
 
 concurrency:
   group: sync-data
@@ -34,43 +42,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Autenticar en Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          python-version: '3.11'
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Instalar dependencias
-        run: pip install -r production/backend/requirements.txt
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: Correr sync_all.py
+      - name: Correr sync en Cloud Run Job (Santiago)
         id: sync
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          JOB: sync-data
+          JOB_REGION: southamerica-west1
         run: |
           set +e
-          # Reintento: tu7.cl a veces está lento/caído justo en el minuto del cron y
-          # tumbaba TODO el sync semanal. Reintentamos hasta 3 veces SOLO si el código
-          # es 1 (error real). El sync es idempotente, así que repetir es inofensivo.
-          # Código 0 (ok) y 2 (guardarraíl intencional) NO se reintentan.
-          attempts=3
-          code=1
-          for i in $(seq 1 "$attempts"); do
-            echo "::group::Intento $i/$attempts de sync_all.py"
-            python production/backend/scripts/sync_all.py > summary.json
-            code=$?
-            echo "intento $i → código $code"
-            echo "::endgroup::"
-            if [ "$code" != "1" ]; then
-              break
-            fi
-            if [ "$i" -lt "$attempts" ]; then
-              echo "⚠️ Código 1 (error, probable tu7.cl caído/lento). Reintento en 90s…"
-              sleep 90
-            fi
+          # El job reintenta solo (hasta 3 veces si código 1) — ver scripts/sync_job.sh.
+          exec_name=$(gcloud run jobs execute "$JOB" --region="$JOB_REGION" --async --format='value(metadata.name)')
+          if [ -z "$exec_name" ]; then
+            echo "::error::No se pudo lanzar el Cloud Run Job $JOB"
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Ejecución: $exec_name"
+
+          # Esperar a que termine (máx ~20 min; el sync tarda ~1-2 min, +3 min si reintenta).
+          for i in $(seq 1 120); do
+            done_at=$(gcloud run jobs executions describe "$exec_name" --region="$JOB_REGION" --format='value(status.completionTime)')
+            [ -n "$done_at" ] && break
+            sleep 10
           done
+
+          # Leer SYNC_SUMMARY / SYNC_EXIT desde Cloud Logging (la ingesta tarda unos segundos).
+          filter="resource.type=cloud_run_job AND labels.\"run.googleapis.com/execution_name\"=$exec_name"
+          code=""
+          for i in $(seq 1 18); do
+            gcloud logging read "$filter AND textPayload:SYNC_" --freshness=1d --limit=10 --format='value(textPayload)' > sync_lines.txt
+            code=$(sed -n 's/^SYNC_EXIT //p' sync_lines.txt | head -1)
+            [ -n "$code" ] && break
+            sleep 10
+          done
+          sed -n 's/^SYNC_SUMMARY //p' sync_lines.txt | head -1 > summary.json
+
+          echo "::group::Logs del job"
+          gcloud logging read "$filter" --freshness=1d --limit=300 --order=asc --format='value(textPayload)'
+          echo "::endgroup::"
+
+          [ -z "$code" ] && code=1
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          echo "----- summary.json (último intento) -----"
+          echo "----- summary.json -----"
           cat summary.json
 
       - name: Invalidar caché del backend (freshness inmediata)

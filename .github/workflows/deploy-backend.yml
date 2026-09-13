@@ -58,6 +58,16 @@ jobs:
             --port=8080 \
             --timeout=60
 
+      - name: Update sync-data job image
+        # El sync semanal corre como Cloud Run Job en Santiago (tu7 bloquea a GitHub, ver
+        # sync-data.yml) y usa esta misma imagen. No bloquea el deploy si el job no existe.
+        run: |
+          gcloud run jobs update sync-data \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region=southamerica-west1 \
+            --quiet \
+          || echo "::warning::No se pudo actualizar la imagen del job sync-data"
+
       - name: Show deployment URL
         id: url
         run: |

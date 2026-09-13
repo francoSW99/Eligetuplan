@@ -76,6 +76,9 @@ def fetch_tu7_planes(use_cache: bool = True) -> list[dict]:
     with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
         raw = resp.read()
     logger.info(f"Recibido: {len(raw) / 1024:.0f} KB en {time.time() - t0:.1f}s")
+    if not raw.strip():
+        # tu7 responde 200 con cuerpo vacío a IPs que filtra (p.ej. runners de GitHub).
+        raise RuntimeError("tu7.cl devolvió 0 KB: probable bloqueo de la IP de origen (no es caída del script)")
 
     cache_file.write_bytes(raw)
     return json.loads(raw.decode("utf-8"))
