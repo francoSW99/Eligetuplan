@@ -1,0 +1,62 @@
+name: Keepalive crons (evita auto-disable de GitHub)
+
+# GitHub deshabilita los workflows programados tras 60 días sin actividad en el repo
+# (pasó en ago 2026 con keep-warm, sync-uf y sync-data). Este cron lo evita en 2 capas:
+#   1. Cada semana re-habilita vía API todos los workflows con schedule (incluido este).
+#      Esto reinicia el contador de inactividad sin ensuciar el historial.
+#   2. Red de seguridad: si el último commit en main tiene más de 45 días, empuja un
+#      commit vacío. Es actividad "real" garantizada. Si pasa, hacer `git pull` antes de trabajar.
+
+on:
+  schedule:
+    - cron: '0 13 * * 3'    # miércoles 13:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Re-habilitar workflows programados
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          fail=0
+          for f in .github/workflows/*.yml; do
+            grep -q '^[[:space:]]*schedule:' "$f" || continue
+            name=$(basename "$f")
+            before=$(gh api "repos/${{ github.repository }}/actions/workflows/$name" -q .state)
+            if gh api -X PUT "repos/${{ github.repository }}/actions/workflows/$name/enable" >/dev/null; then
+              echo "✅ $name (estado previo: $before)" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "❌ $name no se pudo habilitar" | tee -a "$GITHUB_STEP_SUMMARY"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Commit vacío si main lleva >45 días sin commits
+        run: |
+          last=$(git log -1 --format=%ct)
+          days=$(( ( $(date +%s) - last ) / 86400 ))
+          echo "Último commit hace $days días" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$days" -ge 45 ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "chore(keepalive): actividad para que GitHub no apague los crons"
+            git push
+            echo "📌 Commit vacío empujado" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
