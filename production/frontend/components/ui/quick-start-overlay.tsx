@@ -33,39 +33,28 @@ const seenKey = (path: string) => `etp_qs_seen:${path}`;
 type PreviewPlan = {
   id: string;
   name: string;
+  isapreSlug: string;
   isapreName: string;
   logoUrl: string;
   basePlanUf: number;
   gesIsapreUf: number;
 };
 
-// Snapshot liviano de planes reales. Sirve solo como muestra inmediata; el comparador
-// consulta el catálogo vigente al entrar. Precios base capturados en junio de 2026.
+// La muestra muestra UN plan por Isapre (nunca 3 de la misma) y siempre incluye esta.
+const FEATURED_ISAPRE = 'consalud';
+const PREVIEW_SIZE = 3;
+
+// Snapshot liviano: el plan de menor precio base de cada Isapre (sep 2026). Dentro de una
+// Isapre el GES es el mismo, así que el más barato en base también lo es para cualquier
+// grupo familiar. Sirve para la carga instantánea; al abrir se refresca con el catálogo vigente.
 const SNAPSHOT_PLANS: PreviewPlan[] = [
-  {
-    id: '3fa805a8-c289-4fc3-92f0-df8586016cf2',
-    name: 'Salud Conecta Clásico 00/2601',
-    isapreName: 'Banmédica',
-    logoUrl: '/logos/banmedica-logo.png',
-    basePlanUf: 0.94,
-    gesIsapreUf: 0.778,
-  },
-  {
-    id: '00e7770a-bf31-498b-91fe-fd4357a950e9',
-    name: 'Core 10 01 26',
-    isapreName: 'Consalud',
-    logoUrl: '/logos/logo_consalud.png',
-    basePlanUf: 1.16,
-    gesIsapreUf: 0.731,
-  },
-  {
-    id: 'e5b87ad5-165a-4908-96b3-f4fba750a054',
-    name: 'Campus Bupa Max 100 D25',
-    isapreName: 'Cruz Blanca',
-    logoUrl: '/logos/logo_cruzblanca.png',
-    basePlanUf: 1.09,
-    gesIsapreUf: 0.971,
-  },
+  { id: '3fa805a8-c289-4fc3-92f0-df8586016cf2', name: 'Salud Conecta Clásico 00/2601', isapreSlug: 'banmedica', isapreName: 'Banmédica', logoUrl: '/logos/banmedica-logo.png', basePlanUf: 0.94, gesIsapreUf: 0.778 },
+  { id: '00e7770a-bf31-498b-91fe-fd4357a950e9', name: 'Core 10 01 26', isapreSlug: 'consalud', isapreName: 'Consalud', logoUrl: '/logos/logo_consalud.png', basePlanUf: 1.16, gesIsapreUf: 0.731 },
+  { id: '17f1c3f3-6e3e-48e5-bdec-662a6aa323bf', name: 'Plan Pleno Salud 260600', isapreSlug: 'nuevamasvida', isapreName: 'Nueva Más Vida', logoUrl: '/logos/Logo-NMV.png', basePlanUf: 1.18, gesIsapreUf: 0.854 },
+  { id: 'e5b87ad5-165a-4908-96b3-f4fba750a054', name: 'Campus Bupa Max 100 D25', isapreSlug: 'cruzblanca', isapreName: 'Cruz Blanca', logoUrl: '/logos/logo_cruzblanca.png', basePlanUf: 1.09, gesIsapreUf: 0.971 },
+  { id: '0cc99414-5319-4cea-9897-29e78f09b6b3', name: 'Vanguardia Plus Gold 00/2607', isapreSlug: 'vidatres', isapreName: 'Vida Tres', logoUrl: '/logos/vida-tres.png', basePlanUf: 1.35, gesIsapreUf: 0.712 },
+  { id: '0ef67120-4f46-4689-8a57-bae3fd312a44', name: 'Colmena Star 3264040', isapreSlug: 'colmena', isapreName: 'Colmena Golden Cross', logoUrl: '/logos/logos-col.png', basePlanUf: 1.06, gesIsapreUf: 1.036 },
+  { id: '06e377c9-1d57-44d5-9c8e-fbd96a15254f', name: 'Esencial Inicia 60H40A-0626', isapreSlug: 'esencial', isapreName: 'Isapre Esencial', logoUrl: '/logos/esencial.png', basePlanUf: 1.44, gesIsapreUf: 0.91 },
 ];
 
 function markSeen(path: string) {
@@ -89,8 +78,8 @@ export default function QuickStartOverlay() {
   const [cargas, setCargas] = useState<number[]>([]);
   const [cargaInput, setCargaInput] = useState('');
   const [showLeadForm, setShowLeadForm] = useState(false);
-  // Muestra de planes: arranca en SNAPSHOT_PLANS (instantáneo) y se reemplaza por planes
-  // vigentes (los más baratos) cuando el fetch responde → la vista previa nunca queda vieja.
+  // Muestra de planes: arranca en SNAPSHOT_PLANS (instantáneo) y se reemplaza por el plan
+  // vigente más barato de cada Isapre cuando el fetch responde → la vista previa nunca queda vieja.
   const [livePlans, setLivePlans] = useState<PreviewPlan[] | null>(null);
 
   function closeOverlay() {
@@ -146,28 +135,35 @@ export default function QuickStartOverlay() {
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
-  // Refresca la muestra con planes vigentes (los más baratos) al abrir. Mientras carga
-  // —o si la API falla— se ve SNAPSHOT_PLANS al instante. Así no se necesita actualizar
-  // los precios hardcodeados a mano: el catálogo manda.
+  // Refresca la muestra al abrir con el plan vigente más barato de CADA Isapre (una consulta
+  // liviana por Isapre, en paralelo). Mientras carga —o si alguna falla— esa Isapre se queda
+  // con su plan del snapshot. Así no hay que actualizar precios hardcodeados a mano.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    getPlanes({ limit: 14, sort: 'precio_asc' })
-      .then((res) => {
-        if (cancelled) return;
-        const mapped: PreviewPlan[] = res.items
-          .filter((plan) => (plan.base_plan_uf ?? plan.price_uf) != null)
-          .map((plan) => ({
-            id: plan.id,
-            name: plan.name,
-            isapreName: plan.isapre_name,
-            logoUrl: plan.logo_url && plan.logo_url.startsWith('/') ? plan.logo_url : (plan.logo_url || '/logos/placeholder.png'),
-            basePlanUf: plan.base_plan_uf ?? plan.price_uf,
-            gesIsapreUf: plan.ges_isapre_uf ?? 0,
-          }));
-        if (mapped.length >= 3) setLivePlans(mapped);
-      })
-      .catch(() => { /* se queda con el snapshot */ });
+    Promise.allSettled(
+      SNAPSHOT_PLANS.map((snap) => getPlanes({ isapre: snap.isapreSlug, limit: 1, sort: 'precio_asc' })),
+    ).then((results) => {
+      if (cancelled) return;
+      let anyLive = false;
+      const merged = SNAPSHOT_PLANS.map((snap, index) => {
+        const result = results[index];
+        const plan = result.status === 'fulfilled' ? result.value.items[0] : undefined;
+        const basePlanUf = plan ? plan.base_plan_uf ?? plan.price_uf : null;
+        if (!plan || basePlanUf == null) return snap;
+        anyLive = true;
+        return {
+          id: plan.id,
+          name: plan.name,
+          isapreSlug: snap.isapreSlug,
+          isapreName: plan.isapre_name,
+          logoUrl: plan.logo_url && plan.logo_url.startsWith('/') ? plan.logo_url : snap.logoUrl,
+          basePlanUf,
+          gesIsapreUf: plan.ges_isapre_uf ?? snap.gesIsapreUf,
+        };
+      });
+      if (anyLive) setLivePlans(merged);
+    });
     return () => { cancelled = true; };
   }, [open]);
 
@@ -185,16 +181,21 @@ export default function QuickStartOverlay() {
     ];
   }, [age, cargas]);
 
-  const previewPlans = useMemo(
-    () => (livePlans ?? SNAPSHOT_PLANS)
+  // Un plan por Isapre: siempre la destacada + las más convenientes para el perfil actual
+  // (el orden entre Isapres cambia con la edad y las cargas porque el GES pesa distinto).
+  const previewPlans = useMemo(() => {
+    const priced = (livePlans ?? SNAPSHOT_PLANS)
       .map((plan) => ({
         ...plan,
         priceUf: calcularPrecioPlanUF(plan.basePlanUf, plan.gesIsapreUf, beneficiarios),
       }))
-      .sort((a, b) => a.priceUf - b.priceUf)
-      .slice(0, 3),
-    [livePlans, beneficiarios],
-  );
+      .sort((a, b) => a.priceUf - b.priceUf);
+    const featured = priced.find((plan) => plan.isapreSlug === FEATURED_ISAPRE);
+    const others = priced
+      .filter((plan) => plan.isapreSlug !== FEATURED_ISAPRE)
+      .slice(0, featured ? PREVIEW_SIZE - 1 : PREVIEW_SIZE);
+    return (featured ? [featured, ...others] : others).sort((a, b) => a.priceUf - b.priceUf);
+  }, [livePlans, beneficiarios]);
 
   const seven = useMemo(
     () => calcularSeptimoLegal(salary, ufValueCLP, topeImponibleUF),
@@ -468,7 +469,7 @@ export default function QuickStartOverlay() {
               </div>
 
               <p className="mt-2.5 text-[9px] leading-relaxed text-slate-500 sm:mt-3 sm:text-[10px]">
-                Muestra referencial guardada para carga instantánea. El comparador consulta precios y disponibilidad vigentes.
+                Plan de menor precio de distintas Isapres para este perfil. El comparador muestra todos los planes vigentes.
               </p>
             </div>
           </div>
