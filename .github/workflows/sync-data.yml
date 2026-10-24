@@ -1,7 +1,10 @@
 name: Sync de datos (tu7 + UF) → Producción
 
-# Cron SEMANAL: refresca planes desde tu7.cl y la UF del día contra la base de
-# PRODUCCIÓN (Supabase). Corre TODOS LOS DOMINGOS (requisito del negocio), dos veces:
+# Cron CADA 3 DÍAS: refresca planes desde tu7.cl y la UF del día contra la base de
+# PRODUCCIÓN (Supabase). tu7 recarga su catálogo casi a diario (análisis oct-2026), así
+# que el semanal dejaba hasta 6 días de desfase. Corre los días 1, 4, 7, …, 28 (y 31) de
+# cada mes — al cambiar de mes el intervalo puede acortarse a 1-2 días, nunca pasa de 3.
+# Cada día de sync corre dos veces:
 #   - mañana (~07-08h Chile): corrida principal.
 #   - noche  (~22-23h Chile): RED DE SEGURIDAD — si la de la mañana falló (tu7 caído,
 #     GitHub saltó el cron), reintenta. El sync es idempotente, así que correr dos veces
@@ -22,8 +25,8 @@ name: Sync de datos (tu7 + UF) → Producción
 
 on:
   schedule:
-    - cron: '0 11 * * 0'      # domingo 11:00 UTC ≈ 07-08h Chile — corrida principal
-    - cron: '0 2 * * 1'       # lunes 02:00 UTC = domingo ~22-23h Chile — red de seguridad nocturna
+    - cron: '0 11 */3 * *'    # días 1,4,7…31, 11:00 UTC ≈ 07-08h Chile — corrida principal
+    - cron: '0 2 2-31/3 * *'  # días 2,5,8…29, 02:00 UTC = noche anterior en Chile — red de seguridad
   workflow_dispatch: {}        # permite correrlo a mano para probar
 
 permissions:

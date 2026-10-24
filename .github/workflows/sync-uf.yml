@@ -2,7 +2,7 @@ name: Sync UF diario → Producción
 
 # Mini-cron DIARIO: actualiza solo el valor de la UF y la fecha en app_meta.
 # La UF cambia todos los días, así que esto la mantiene siempre al día sin correr
-# los syncs pesados de planes (esos van en sync-data.yml, los días 1 y 15).
+# los syncs pesados de planes (esos van en sync-data.yml, cada 3 días).
 #
 # Secrets requeridos (los mismos que sync-data.yml):
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (de PRODUCCIÓN)
