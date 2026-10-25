@@ -6,7 +6,7 @@ import sys
 import threading
 import time
 import unicodedata
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 def _norm(s: Optional[str]) -> str:
@@ -912,6 +912,13 @@ class PriceBucket(BaseModel):
     count: int
 
 
+class ConteoPresupuesto(BaseModel):
+    """Cuántos planes caben en el presupuesto (7%) con los demás filtros aplicados."""
+    todos: int
+    dentro: int
+    fuera: int
+
+
 class PlanListResponse(BaseModel):
     items: list[PlanListItem]
     total: int
@@ -921,6 +928,7 @@ class PlanListResponse(BaseModel):
     price_min_clp: Optional[int] = None
     price_max_clp: Optional[int] = None
     price_histogram: list[PriceBucket] = []
+    conteo_presupuesto: Optional[ConteoPresupuesto] = None
 
 
 class ZonaItem(BaseModel):
@@ -1255,14 +1263,22 @@ def _build_plan_item(row: dict) -> PlanListItem:
     )
 
 
-def _sort_plan_list(plans: list["PlanListItem"], sort: str) -> list["PlanListItem"]:
+def _sort_plan_list(
+    plans: list["PlanListItem"],
+    sort: str,
+    precio_fn: Optional[Callable[["PlanListItem"], float]] = None,
+) -> list["PlanListItem"]:
     """Orden global del catálogo según el `sort` elegido por el usuario.
 
     Comparador NEUTRAL: sin prioridad por isapre — todos los planes compiten en
     igualdad de condiciones (antes Consalud se intercalaba en ~43% de los slots).
     Tie-break estable por (precio, nombre, id) → orden determinista entre páginas.
+    Con `precio_fn` (precio familiar exacto) se ordena por lo que realmente paga el
+    grupo: el GES varía por isapre, así que ordenar por precio base desordena la lista.
     """
     def price(p: "PlanListItem") -> float:
+        if precio_fn is not None:
+            return precio_fn(p)
         return p.base_plan_uf if p.base_plan_uf is not None else (p.price_uf or 0.0)
 
     def name(p: "PlanListItem") -> str:
@@ -1451,9 +1467,26 @@ def _filter_plan_items(
     prestador_plan_ids: Optional[set[str]] = None,
     prestador_names: Optional[list[str]] = None,
     search: Optional[str] = None,
+    precio_fn: Optional[Callable[[PlanListItem], float]] = None,
+    clinicas_cobertura: Optional[list[str]] = None,
 ) -> list[PlanListItem]:
-    """Filter pre-built PlanListItem objects by user-facing attributes."""
+    """Filter pre-built PlanListItem objects by user-facing attributes.
+
+    `precio_fn` define qué precio (en UF) se compara contra precio_min/max: por
+    defecto el precio base; con perfil, el precio familiar exacto.
+    `clinicas_cobertura`: si viene, cobertura_hosp_min/amb_min se exigen en ESAS
+    clínicas (basta una), con el mismo criterio de nombre que plan_clinica
+    (nombre normalizado contenido en el texto de cobertura)."""
     prestador_names_norm = [_norm(n) for n in prestador_names] if prestador_names else None
+    clinicas_cov_norm = [_norm(n) for n in clinicas_cobertura] if clinicas_cobertura else None
+
+    def _max_en_clinicas(cobs: list[Cobertura]) -> Optional[int]:
+        best: Optional[int] = None
+        for cob in cobs:
+            if any(any(n in _norm(c) for n in clinicas_cov_norm) for c in cob.clinicas):
+                best = cob.pct if best is None else max(best, cob.pct)
+        return best
+
     out: list[PlanListItem] = []
     for p in items:
         if tu7_activo and not p.tu7_activo:
@@ -1466,15 +1499,25 @@ def _filter_plan_items(
             continue
         if zona_ids and (p.id_zona is None or p.id_zona not in zona_ids):
             continue
-        bp = p.base_plan_uf if p.base_plan_uf is not None else p.price_uf
+        bp = precio_fn(p) if precio_fn is not None else (p.base_plan_uf if p.base_plan_uf is not None else p.price_uf)
         if precio_min_uf is not None and bp < precio_min_uf:
             continue
         if precio_max_uf is not None and bp > precio_max_uf:
             continue
-        if cobertura_hosp_min is not None and (p.hospital_coverage is None or p.hospital_coverage < cobertura_hosp_min):
-            continue
-        if cobertura_amb_min is not None and (p.ambulatory_coverage is None or p.ambulatory_coverage < cobertura_amb_min):
-            continue
+        if clinicas_cov_norm:
+            if cobertura_hosp_min is not None:
+                v = _max_en_clinicas(p.hospitalaria)
+                if v is None or v < cobertura_hosp_min:
+                    continue
+            if cobertura_amb_min is not None:
+                v = _max_en_clinicas(p.ambulatoria)
+                if v is None or v < cobertura_amb_min:
+                    continue
+        else:
+            if cobertura_hosp_min is not None and (p.hospital_coverage is None or p.hospital_coverage < cobertura_hosp_min):
+                continue
+            if cobertura_amb_min is not None and (p.ambulatory_coverage is None or p.ambulatory_coverage < cobertura_amb_min):
+                continue
         if prestador_q:
             q = _norm(prestador_q)
             found = False
@@ -1773,6 +1816,13 @@ _PLAN_COLUMNS = (
 )
 
 
+def _precio_familiar_uf(p: PlanListItem, factor_total: float, n_beneficiarios: int) -> float:
+    """Precio mensual del plan para un grupo (fórmula tu7, la que usan las isapres):
+    base × Σ factores + GES de la isapre × N° de beneficiarios."""
+    base = p.base_plan_uf if p.base_plan_uf is not None else (p.price_uf or 0.0)
+    return base * factor_total + (p.ges_isapre_uf or 0.0) * n_beneficiarios
+
+
 @app.get("/api/v1/planes", response_model=PlanListResponse)
 def list_planes(
     isapre: Optional[str] = Query(None, description="Slug(s) CSV — ej. banmedica,consalud"),
@@ -1790,8 +1840,28 @@ def list_planes(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     sort: str = Query("precio_asc", description="precio_asc | precio_desc | name_asc"),
+    factor_total: Optional[float] = Query(
+        None, gt=0, le=60,
+        description="Σ factores de riesgo del grupo. Junto a n_beneficiarios, los precios "
+                    "(filtro, orden e histograma) pasan a ser el precio familiar exacto.",
+    ),
+    n_beneficiarios: Optional[int] = Query(None, ge=1, le=30, description="N° de beneficiarios del grupo"),
+    presupuesto_clp: Optional[int] = Query(
+        None, ge=0,
+        description="7% legal del usuario en CLP. Si llega, la respuesta trae conteo_presupuesto "
+                    "(planes que caben / no caben, con los demás filtros y sin el de precio).",
+    ),
+    cobertura_en_clinica: bool = Query(
+        False,
+        description="Con prestador_ids: cobertura_hosp_min/amb_min se exigen EN esas clínicas "
+                    "(no como máximo del plan).",
+    ),
 ):
-    """Listado paginado de planes con filtros."""
+    """Listado paginado de planes con filtros.
+
+    Sin `factor_total`/`n_beneficiarios` los precios son el precio base (comportamiento
+    histórico, compatible hacia atrás). Con ambos, todo se calcula con el precio familiar
+    exacto: base × Σ factores + GES de la isapre × N."""
     if not supabase:
         return PlanListResponse(items=[], total=0, page=page, limit=limit, total_pages=0)
 
@@ -1816,8 +1886,19 @@ def list_planes(
     # ── 3b. Resolve prestador_ids → plan IDs or fallback to text search ─────
     prestador_plan_ids: Optional[set[str]] = None
     prestador_names: Optional[list[str]] = None
+    clinicas_cobertura: Optional[list[str]] = None
     if prestador_ids:
         clinica_ids = [cid.strip() for cid in prestador_ids.split(",") if cid.strip()]
+        if clinica_ids and supabase and cobertura_en_clinica and (
+            cobertura_hosp_min is not None or cobertura_amb_min is not None
+        ):
+            try:
+                cn = supabase.table("clinicas").select("name").in_("id", clinica_ids).execute()
+                clinicas_cobertura = [
+                    (row["name"] or "").strip() for row in (cn.data or []) if (row["name"] or "").strip()
+                ] or None
+            except Exception:
+                clinicas_cobertura = None
         if clinica_ids and supabase:
             try:
                 r = (
@@ -1845,14 +1926,16 @@ def list_planes(
     # Combine text-based prestador filters
     combined_prestador_q = prestador_q
 
-    filtered = _filter_plan_items(
-        all_items,
+    precio_fn: Optional[Callable[[PlanListItem], float]] = None
+    if factor_total is not None and n_beneficiarios is not None:
+        _ft, _nb = float(factor_total), int(n_beneficiarios)
+        precio_fn = lambda p: _precio_familiar_uf(p, _ft, _nb)  # noqa: E731
+
+    filtros_comunes = dict(
         tu7_activo=tu7_activo,
         slugs_filter=slugs_filter,
         modalidad=modalidad,
         con_parto=con_parto,
-        precio_min_uf=precio_min_uf,
-        precio_max_uf=precio_max_uf,
         zona_ids=zona_ids,
         cobertura_hosp_min=cobertura_hosp_min,
         cobertura_amb_min=cobertura_amb_min,
@@ -1860,10 +1943,29 @@ def list_planes(
         prestador_plan_ids=prestador_plan_ids,
         prestador_names=prestador_names,
         search=search,
+        precio_fn=precio_fn,
+        clinicas_cobertura=clinicas_cobertura,
+    )
+    filtered = _filter_plan_items(
+        all_items,
+        precio_min_uf=precio_min_uf,
+        precio_max_uf=precio_max_uf,
+        **filtros_comunes,
     )
 
+    # ── 3c. Conteo dentro/fuera del presupuesto (mismos filtros, sin el de precio) ──
+    conteo: Optional[ConteoPresupuesto] = None
+    if presupuesto_clp is not None:
+        sin_precio = _filter_plan_items(all_items, **filtros_comunes)
+        tope_uf = presupuesto_clp / _uf
+        dentro = sum(
+            1 for p in sin_precio
+            if (precio_fn(p) if precio_fn is not None else (p.base_plan_uf or p.price_uf or 0.0)) <= tope_uf
+        )
+        conteo = ConteoPresupuesto(todos=len(sin_precio), dentro=dentro, fuera=len(sin_precio) - dentro)
+
     # ── 4. Orden global (comparador neutral, sin prioridad por isapre), slice ──
-    ordered = _sort_plan_list(filtered, sort)
+    ordered = _sort_plan_list(filtered, sort, precio_fn)
 
     total = len(ordered)
     total_pages = math.ceil(total / limit) if limit > 0 else 0
@@ -1875,7 +1977,12 @@ def list_planes(
     price_max_clp: Optional[int] = None
     histogram: list[PriceBucket] = []
     if tu7_activo:
-        all_prices = _get_cached_prices()
+        if precio_fn is not None:
+            # Rango e histograma con el precio familiar de TODOS los planes activos
+            # (no solo los filtrados), igual que el rango por precio base de abajo.
+            all_prices = [precio_fn(p) for p in all_items if p.tu7_activo]
+        else:
+            all_prices = _get_cached_prices()
         if all_prices:
             price_min_clp = _uf_to_clp(min(all_prices))
             price_max_clp = _uf_to_clp(max(all_prices))
@@ -1890,6 +1997,7 @@ def list_planes(
         price_min_clp=price_min_clp,
         price_max_clp=price_max_clp,
         price_histogram=histogram,
+        conteo_presupuesto=conteo,
     )
 
 
@@ -2025,18 +2133,31 @@ def plans_autocomplete(
 
 @app.get("/api/v1/planes/{plan_id}", response_model=PlanListItem)
 def get_plan(plan_id: str):
-    """Detalle de un plan por ID."""
+    """Detalle de un plan por ID (lo usa la ficha "Ver detalle" con link propio).
+
+    Primero busca en el caché del listado (instantáneo); si no está (p.ej. un plan ya
+    retirado), consulta la BD. ID inexistente o inválido → 404, no 500."""
     if not supabase:
         return PlanListItem(id=plan_id, name="No disponible", isapre_name="N/A", price_uf=0)
 
-    resp = (
-        supabase.table("planes")
-        .select(_PLAN_COLUMNS)
-        .eq("id", plan_id)
-        .single()
-        .execute()
-    )
-    return _build_plan_item(resp.data)
+    for item in _get_cached_plan_items():
+        if item.id == plan_id:
+            return item
+
+    try:
+        resp = (
+            supabase.table("planes")
+            .select(_PLAN_COLUMNS)
+            .eq("id", plan_id)
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        resp = None
+    rows = (resp.data if resp is not None else None) or []
+    if not rows:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+    return _build_plan_item(rows[0])
 
 
 
