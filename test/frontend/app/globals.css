@@ -290,6 +290,62 @@
   30%           { transform: translateY(-3px); opacity: 1; }
 }
 
+/* ── Interacción y movimiento (criterios de Emil Kowalski) ─────────────────
+   Curvas fuertes: ease-out para entradas y respuestas, "drawer" para hojas. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer components {
+  /* Botones: se hunden un 3% al apretar (respuesta inmediata, también en el celular),
+     sin el destello gris del toque ni selección de texto con toque largo. */
+  .pressable {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    transition-property: scale, translate, background-color, border-color, color, box-shadow, opacity;
+    transition-duration: 160ms;
+    transition-timing-function: var(--ease-out);
+  }
+  .pressable:active:not(:disabled) {
+    scale: 0.97;
+  }
+
+  /* Filas tocables de listas (casillas de filtros): sin destello ni selección;
+     el feedback es el color de fondo en :active. */
+  .tappable-row {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Globos y menús: aparecen desde su botón (poner origin-* en el elemento). */
+  .pop-in {
+    transition-property: opacity, scale;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+  @starting-style {
+    .pop-in {
+      opacity: 0;
+      scale: 0.97;
+    }
+  }
+}
+
+/* iPhone hace zoom al enfocar un campo con letra menor a 16px y no vuelve.
+   En pantallas táctiles del comparador los campos van a 16px. */
+@media (pointer: coarse) {
+  .comparador input,
+  .comparador select,
+  .comparador textarea {
+    font-size: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

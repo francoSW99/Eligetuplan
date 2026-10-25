@@ -40,6 +40,24 @@ export function getTotalFactor(beneficiarios: Beneficiario[]): number {
   return beneficiarios.reduce((sum, b) => sum + getFactor(b.edad, b.tipo), 0);
 }
 
+// ── Perfil por defecto ─────────────────────────────────────────────────────
+// Mientras la persona no ingresa su perfil, los precios se muestran para 1 cotizante
+// de 30 años (factor 1,0): un caso típico, y el mismo ejemplo del pop-up de inicio.
+// Así nunca mostramos el "precio base" pelado, que no incluye GES ni edad y se ve
+// ~45% más barato de lo que realmente se paga.
+export const EDAD_PERFIL_POR_DEFECTO = 30;
+
+export const PERFIL_POR_DEFECTO: Beneficiario[] = [
+  { id: 'perfil-por-defecto', edad: EDAD_PERFIL_POR_DEFECTO, tipo: 'cotizante' },
+];
+
+/** Beneficiarios con los que se calcula el precio: los del usuario o el perfil por defecto. */
+export function perfilParaPrecio(beneficiarios: Beneficiario[]): Beneficiario[] {
+  return beneficiarios.length > 0 && getTotalFactor(beneficiarios) > 0
+    ? beneficiarios
+    : PERFIL_POR_DEFECTO;
+}
+
 // Compactos para URL: `c30` = cotizante 30 años, `r5` = carga 5 años.
 // Sexo opcional: `c30M`, `r5F`. Lista separada por comas: `?ben=c30M,r5F,c34`
 export function serializeBeneficiarios(arr: Beneficiario[]): string {
@@ -117,9 +135,8 @@ export function calcularSeptimoLegal(
 // Fórmula EXACTA usada por tu7.cl (extraída de su bundle JS):
 //   precio_UF = BASE_PLAN × Σ(factores) + GES_ISAPRE × N°_beneficiarios
 //
-// Caso default (0 beneficiarios): muestra el costo asumiendo 1 cotizante hipotético
-// con factor 0.9 (heurística tu7 para precio "Desde"):
-//   precio_UF = BASE_PLAN × 0.9 + GES_ISAPRE
+// Sin beneficiarios usa el PERFIL_POR_DEFECTO (1 cotizante de 30 años, factor 1,0).
+// tu7 usa 0,9 (20–24 años); elegimos 30 años porque es más representativo.
 //
 // Para CLP basta multiplicar por el valor UF del día.
 export function calcularPrecioPlanUF(
@@ -129,9 +146,6 @@ export function calcularPrecioPlanUF(
 ): number {
   const base = basePlanUf ?? 0;
   const ges = gesIsapreUf ?? 0;
-  if (beneficiarios.length === 0) {
-    return base * 0.9 + ges;
-  }
-  const sumaFactores = getTotalFactor(beneficiarios);
-  return base * sumaFactores + ges * beneficiarios.length;
+  const perfil = perfilParaPrecio(beneficiarios);
+  return base * getTotalFactor(perfil) + ges * perfil.length;
 }
