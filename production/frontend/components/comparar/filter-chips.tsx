@@ -23,7 +23,7 @@ export default function FilterChips({
         <button
           key={c.k}
           onClick={c.clear}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#14dcb4]/12 border border-[#14dcb4]/30 text-[12px] font-semibold text-[#0f514b] hover:bg-[#14dcb4]/20 transition-colors"
+          className="pressable inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#14dcb4]/12 border border-[#14dcb4]/30 text-[12px] font-semibold text-[#0f514b] hover:bg-[#14dcb4]/20"
         >
           {c.l}
           <svg
@@ -38,7 +38,7 @@ export default function FilterChips({
           </svg>
         </button>
       ))}
-      <button onClick={clearAll} className="text-[11.5px] font-bold text-[#0f9d8a] hover:underline ml-1">
+      <button onClick={clearAll} className="pressable text-[11.5px] font-bold text-[#0f9d8a] hover:underline ml-1">
         Limpiar todo
       </button>
     </div>

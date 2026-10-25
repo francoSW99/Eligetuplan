@@ -153,7 +153,7 @@ export default function CompararIsapresPage() {
             <div className="relative z-10 flex flex-col gap-2.5">
               <Link
                 href="/tu-mejor-plan"
-                className="inline-flex items-center justify-center gap-2 text-white font-bold text-base transition-all hover:-translate-y-0.5 no-underline"
+                className="inline-flex items-center justify-center gap-2 text-white font-bold text-base pressable hover:-translate-y-0.5 no-underline"
                 style={{
                   padding: '17px 28px',
                   borderRadius: 16,
@@ -168,7 +168,7 @@ export default function CompararIsapresPage() {
                 href="https://wa.me/56968319807?text=Hola%2C%20quiero%20cotizar%20un%20plan%20de%20salud."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-center text-white font-semibold text-sm transition-all hover:-translate-y-0.5 no-underline"
+                className="text-center text-white font-semibold text-sm pressable hover:-translate-y-0.5 no-underline"
                 style={{
                   padding: '15px 28px',
                   borderRadius: 16,

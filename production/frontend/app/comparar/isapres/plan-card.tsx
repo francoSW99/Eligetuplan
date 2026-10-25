@@ -1,124 +1,192 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Calculator, UserRound, Users } from 'lucide-react';
 import type { Plan, Cobertura } from '@/lib/api';
 import { formatCLP, formatUF } from '@/lib/api';
 import { useMeta } from '@/lib/meta-context';
+import { EDAD_PERFIL_POR_DEFECTO } from '@/lib/factores';
+import {
+  clinicasUnicas,
+  colorCobertura,
+  gruposPorPct,
+  rangoCobertura,
+  textoRango,
+} from '@/lib/coberturas';
 
-function coverageColor(pct: number) {
-  if (pct < 60) return { fg: '#c8401a', bg: 'rgba(200,64,26,0.10)' };
-  if (pct < 80) return { fg: '#d97706', bg: 'rgba(217,119,6,0.10)' };
-  return { fg: '#14dcb4', bg: 'rgba(20,220,180,0.10)' };
+/** Precio mensual del plan para el perfil activo (fórmula tu7). */
+export function precioPlanUF(plan: Plan, totalFactor: number, numBeneficiarios: number): number {
+  const base = plan.base_plan_uf ?? plan.price_uf;
+  const ges = plan.ges_isapre_uf ?? 0;
+  return base * totalFactor + ges * numBeneficiarios;
 }
 
-function flatClinicas(data: Cobertura[]): string[] {
-  if (!data || data.length === 0) return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const c of data) {
-    for (const clin of c.clinicas) {
-      if (!seen.has(clin)) {
-        seen.add(clin);
-        out.push(clin);
-      }
-    }
-  }
-  return out;
+/** Para quién es el precio que se muestra (lenguaje simple, sin "factor" ni "cotizante"). */
+export function etiquetaPrecio(
+  numBeneficiarios: number,
+  perfilPorDefecto: boolean,
+  edadTitular?: number | null,
+): string {
+  if (perfilPorDefecto) return `Ejemplo: 1 persona de ${EDAD_PERFIL_POR_DEFECTO} años`;
+  if (numBeneficiarios === 1) return edadTitular != null ? `Para ti · ${edadTitular} años` : 'Para ti';
+  return `Para tu familia · ${numBeneficiarios} personas`;
 }
 
-function CoverageBlock({
+// ── Columna de cobertura con globo "+N clínicas" ─────────────────────────────
+function CoberturaCol({
   title,
   data,
-  expanded,
+  align = 'left',
 }: {
   title: string;
   data: Cobertura[];
-  expanded: boolean;
+  /** Hacia qué lado se abre el globo (la columna derecha abre hacia la izquierda). */
+  align?: 'left' | 'right';
 }) {
-  if (!data || data.length === 0) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const rango = rangoCobertura(data);
+  if (!rango) {
     return (
-      <div className="rounded-xl border border-[#0f514b]/8 bg-[#fbf8f3]/60 p-3.5">
-        <div className="flex items-baseline justify-between mb-2">
+      <div className="min-w-0">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a]">{title}</span>
-          <span className="text-[12px] text-[#5a6b6a]">No disponible</span>
+          <span className="text-[11.5px] text-[#5a6b6a]">Sin datos</span>
         </div>
+        <div className="h-1.5 rounded-full bg-slate-100" />
       </div>
     );
   }
 
-  const pct = data[0].pct;
-  const { fg, bg } = coverageColor(pct);
-  const clinicas = flatClinicas(data);
-  const visibles = expanded ? clinicas : clinicas.slice(0, 2);
+  const { fg, bg } = colorCobertura(rango.max);
+  const grupos = gruposPorPct(data);
+  // Primero las clínicas con mejor cobertura.
+  const ordenadas = grupos.flatMap((g) => g.clinicas).filter((c, i, arr) => arr.indexOf(c) === i);
+  const total = clinicasUnicas(data).length;
+  const visibles = ordenadas.slice(0, 2);
+  const resto = total - visibles.length;
 
   return (
-    <div className="rounded-xl border border-[#0f514b]/8 bg-[#fbf8f3]/60 p-3.5">
-      <div className="flex items-baseline justify-between mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a]">{title}</span>
-        <span className="text-[15px] font-extrabold tabular-nums" style={{ color: fg }}>
-          {pct}%
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 mb-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5a6b6a] whitespace-nowrap">{title}</span>
+        <span
+          className="text-[12.5px] font-extrabold tabular-nums whitespace-nowrap rounded-md px-1.5 py-0.5"
+          style={{ color: fg, background: bg }}
+        >
+          {textoRango(rango)}
         </span>
       </div>
       <div className="h-1.5 rounded-full overflow-hidden mb-2.5" style={{ background: bg }}>
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, background: fg }}
-        />
+        <div className="h-full rounded-full" style={{ width: `${rango.max}%`, background: fg }} />
       </div>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         {visibles.map((c) => (
           <span
             key={c}
-            className="inline-block text-[10.5px] px-2 py-0.5 rounded-md bg-white border border-[#0f514b]/8 text-[#5a6b6a] font-medium"
+            className="inline-block text-[10.5px] px-2 py-0.5 rounded-md bg-[#fbf8f3] border border-[#0f514b]/8 text-[#5a6b6a] font-medium"
           >
             {c}
           </span>
         ))}
-        {!expanded && clinicas.length > 2 && (
-          <span className="inline-block text-[10.5px] px-2 py-0.5 rounded-md text-[#0f9d8a] font-bold">
-            +{clinicas.length - 2}
-          </span>
+        {resto > 0 && (
+          <div
+            ref={wrapRef}
+            className="relative"
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+          >
+            <button
+              type="button"
+              // Abrir (no alternar): con mouse el hover ya lo abrió y un toggle lo cerraría.
+              // Se cierra al salir con el mouse, tocando fuera o con Escape.
+              onClick={() => setOpen(true)}
+              aria-expanded={open}
+              className="pressable text-[10.5px] font-bold text-[#0f9d8a] underline underline-offset-2 decoration-[#14dcb4]/60 hover:text-[#0f514b] px-1 py-0.5"
+            >
+              +{resto} {resto === 1 ? 'clínica' : 'clínicas'}
+            </button>
+            {open && (
+              <div
+                role="tooltip"
+                className={`pop-in absolute top-full mt-1.5 z-30 w-[min(300px,80vw)] rounded-xl bg-[#092e2a] text-white p-3.5 shadow-[0_18px_40px_-12px_rgba(9,46,42,0.6)] ${
+                  align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'
+                }`}
+              >
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#8ff0db] pb-2 mb-2 border-b border-white/10">
+                  {title} · {total} {total === 1 ? 'clínica' : 'clínicas'}
+                </div>
+                <ul className="space-y-1.5">
+                  {grupos.map((g) => (
+                    <li key={g.pct} className="flex gap-2.5 text-[11.5px] leading-snug">
+                      <span className="shrink-0 w-9 font-extrabold tabular-nums text-[#14dcb4]">{g.pct}%</span>
+                      <span className="text-white/90">{g.clinicas.join(', ')}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
+// ── Tarjeta ────────────────────────────────────────────────────────────────
 export default function PlanCard({
   plan,
   onRequestPlan,
   onViewDetails,
   budgetCLP,
-  totalFactor = 0,
-  numBeneficiarios = 0,
+  totalFactor,
+  numBeneficiarios,
+  perfilPorDefecto,
+  edadTitular,
+  onEditProfile,
+  comparando = false,
+  compararLleno = false,
+  onToggleComparar,
 }: {
   plan: Plan;
   onRequestPlan: (plan: Plan) => void;
   onViewDetails: (plan: Plan) => void;
   budgetCLP?: number | null;
-  totalFactor?: number;
-  numBeneficiarios?: number;
+  /** Σ factores y N° de personas del perfil efectivo (el del usuario o el por defecto). */
+  totalFactor: number;
+  numBeneficiarios: number;
+  perfilPorDefecto: boolean;
+  edadTitular?: number | null;
+  /** Lleva al formulario "Calcula tu precio". */
+  onEditProfile?: () => void;
+  /** Comparar hasta 3 planes. */
+  comparando?: boolean;
+  compararLleno?: boolean;
+  onToggleComparar?: (plan: Plan) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const { ufValueCLP } = useMeta();
-  const hasFactor = numBeneficiarios > 0;
-  const baseUf = plan.base_plan_uf ?? plan.price_uf;
-  const gesUf = plan.ges_isapre_uf ?? 0;
-  // Fórmula exacta tu7: precio = BASE_PLAN × Σ factores + GES × N° beneficiarios
-  const displayUf = hasFactor
-    ? baseUf * totalFactor + gesUf * numBeneficiarios
-    : plan.price_uf;
-  const displayCLP = hasFactor
-    ? Math.round(displayUf * ufValueCLP)
-    : plan.price_clp;
-  const fits = !budgetCLP || (displayCLP != null && displayCLP <= budgetCLP);
-  const adicionalCLP =
-    budgetCLP && displayCLP != null && displayCLP > budgetCLP
-      ? displayCLP - budgetCLP
-      : 0;
-  const totalClinicas =
-    flatClinicas(plan.hospitalaria).length + flatClinicas(plan.ambulatoria).length;
+  const displayUf = precioPlanUF(plan, totalFactor, numBeneficiarios);
+  const displayCLP = Math.round(displayUf * ufValueCLP);
+
+  const diff = budgetCLP ? budgetCLP - displayCLP : null; // >0 sobra, <0 falta
 
   const logoSrc =
     plan.logo_url && plan.logo_url.startsWith('/')
@@ -127,136 +195,128 @@ export default function PlanCard({
 
   return (
     <article
-      className={`relative bg-white rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-12px_rgba(15,81,75,0.18)] ${
-        fits ? 'border-[#0f514b]/10 hover:border-[#14dcb4]/40' : 'border-slate-200/60 opacity-75'
+      className={`relative bg-white rounded-2xl border transition-[box-shadow,border-color] duration-200 ease-[var(--ease-out)] hover:shadow-[0_18px_36px_-14px_rgba(15,81,75,0.2)] ${
+        comparando ? 'border-[#14dcb4] shadow-[0_0_0_3px_rgba(20,220,180,0.18)]' : 'border-[#0f514b]/10 hover:border-[#14dcb4]/40'
       }`}
     >
-      {!fits && budgetCLP && (
-        <div className="absolute -top-2.5 right-5 px-2.5 py-1 rounded-full text-[10.5px] font-bold tracking-[0.12em] uppercase bg-amber-100 text-amber-800 border border-amber-200 shadow-sm z-10">
-          Fuera de tu 7%
-        </div>
-      )}
-
-      <div className="p-4 sm:p-5 md:p-6 flex flex-col gap-3.5 sm:gap-4 h-full">
-        <div className="flex items-start justify-between gap-3 sm:gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="h-9 sm:h-10 w-24 sm:w-28 mb-2 sm:mb-2.5 relative">
-              <Image
-                src={logoSrc}
-                alt={plan.isapre_name}
-                fill
-                className="object-contain object-left"
-                sizes="112px"
-              />
-            </div>
-            <h3 className="font-bold text-[13px] sm:text-[14px] text-[#0f514b] uppercase leading-tight mb-1 tracking-tight">
-              {plan.name}
-            </h3>
-            <div className="flex items-center gap-2 flex-wrap">
-              {plan.codigo_plan && (
-                <span className="text-[10.5px] text-[#5a6b6a] font-mono break-all">{plan.codigo_plan}</span>
-              )}
-              {plan.modalidad && (
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-md bg-[#14dcb4]/12 text-[#0f9d8a]">
-                  {plan.modalidad}
-                </span>
-              )}
-            </div>
+      <div className="grid lg:grid-cols-[minmax(0,210px)_minmax(0,1fr)_minmax(0,228px)]">
+        {/* Identidad del plan */}
+        <div className="p-4 sm:p-5 lg:border-r border-[#0f514b]/8 flex flex-col gap-2 min-w-0">
+          <div className="h-8 w-28 relative">
+            <Image src={logoSrc} alt={plan.isapre_name} fill className="object-contain object-left" sizes="112px" />
           </div>
-
-          <div className="shrink-0 text-right">
-            <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-0.5">
-              {hasFactor ? `Tu precio (${numBeneficiarios} ben.)` : 'Precio base'}
-            </div>
-            <div className={`text-[18px] sm:text-[22px] font-extrabold leading-none tabular-nums tracking-tight ${hasFactor ? 'text-[#0f9d8a]' : 'text-[#0f514b]'}`}>
-              UF {formatUF(displayUf)}
-            </div>
-            <div className="text-[11px] sm:text-[12px] text-[#5a6b6a] mt-1 tabular-nums">
-              {formatCLP(displayCLP)} <span className="text-[#5a6b6a]/65">/mes</span>
-            </div>
-            {hasFactor && (
-              <div className="text-[9.5px] text-[#5a6b6a]/70 mt-0.5 tabular-nums">
-                Base {formatUF(baseUf)} × {totalFactor.toFixed(2)} + GES {formatUF(gesUf)} × {numBeneficiarios}
-              </div>
+          <h3 className="font-bold text-[13px] sm:text-[13.5px] text-[#0f514b] uppercase leading-tight tracking-tight">
+            {plan.name}
+          </h3>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {plan.codigo_plan && (
+              <span className="text-[10.5px] text-[#5a6b6a] font-mono break-all">{plan.codigo_plan}</span>
+            )}
+            {plan.modalidad && (
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-md bg-[#14dcb4]/12 text-[#0f9d8a]">
+                {plan.modalidad}
+              </span>
+            )}
+            {plan.zona_nombre && (
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-md bg-[#0f514b]/5 text-[#5a6b6a]">
+                Zona {plan.zona_nombre}
+              </span>
             )}
           </div>
-        </div>
-
-        {adicionalCLP > 0 && (
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <svg className="w-3.5 h-3.5 shrink-0 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              <span className="text-[11px] font-semibold text-amber-900 truncate">
-                Pagas <strong className="font-extrabold">{formatCLP(adicionalCLP)}</strong> extra sobre tu 7%
-              </span>
-            </div>
-            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700/80">
-              /mes
-            </span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-          <CoverageBlock title="Hospitalaria" data={plan.hospitalaria} expanded={expanded} />
-          <CoverageBlock title="Ambulatoria" data={plan.ambulatoria} expanded={expanded} />
-        </div>
-
-        {totalClinicas > 4 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="self-start inline-flex items-center gap-1 text-[12px] font-semibold text-[#0f9d8a] hover:underline"
-          >
-            <svg
-              className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
+          {onToggleComparar && (
+            <label
+              className={`tappable-row lg:mt-auto self-start inline-flex items-center gap-2 py-1.5 -my-0.5 pr-1 text-[12px] font-semibold ${
+                !comparando && compararLleno ? 'text-slate-400 cursor-not-allowed' : 'text-[#5a6b6a] cursor-pointer hover:text-[#0f514b]'
+              }`}
+              title={!comparando && compararLleno ? 'Puedes comparar hasta 3 planes' : undefined}
             >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-            {expanded ? 'Ocultar clínicas' : 'Ver todas las clínicas'}
-          </button>
-        )}
+              <input
+                type="checkbox"
+                checked={comparando}
+                disabled={!comparando && compararLleno}
+                onChange={() => onToggleComparar(plan)}
+                className="w-4 h-4 rounded accent-[#0f9d8a]"
+              />
+              Comparar
+            </label>
+          )}
+        </div>
 
-        <div className="mt-auto pt-4 border-t border-[#0f514b]/8 grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onClick={() => onRequestPlan(plan)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f514b] font-bold text-[12.5px] shadow-[0_8px_18px_rgba(20,220,180,0.3)] hover:-translate-y-0.5 transition-all uppercase tracking-[0.08em]"
+        {/* Coberturas */}
+        <div className="px-4 sm:px-5 pb-4 lg:py-5 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 content-start">
+          <CoberturaCol title="Hospitalaria" data={plan.hospitalaria} />
+          <CoberturaCol title="Ambulatoria" data={plan.ambulatoria} align="right" />
+        </div>
+
+        {/* Precio + acciones: franja verde en celular, columna clara en escritorio */}
+        <div className="rounded-b-2xl lg:rounded-bl-none lg:rounded-r-2xl bg-gradient-to-br from-[#0f514b] to-[#092e2a] lg:bg-none lg:bg-[#fcfdfc] lg:border-l border-[#0f514b]/8 p-4 sm:p-5 flex flex-col gap-3 lg:text-center">
+          {/* Para quién es el precio: va ANTES del número, así se lee primero.
+              Gris = precio de ejemplo · verde = precio calculado para la persona. */}
+          <div
+            className={`self-start lg:self-stretch inline-flex items-center lg:justify-center gap-1.5 rounded-full lg:rounded-lg px-2.5 py-1 lg:py-1.5 text-[11px] font-bold leading-tight lg:text-center ${
+              perfilPorDefecto
+                ? 'bg-white/12 text-white lg:bg-[#0f514b]/7 lg:text-[#0f514b]'
+                : 'bg-[#14dcb4]/25 text-white lg:bg-[#14dcb4]/15 lg:text-[#0b7f6e]'
+            }`}
           >
-            Solicitar plan
-          </button>
-          {plan.pdf_url ? (
+            {perfilPorDefecto || numBeneficiarios === 1 ? (
+              <UserRound className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            ) : (
+              <Users className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            )}
+            <span>{etiquetaPrecio(numBeneficiarios, perfilPorDefecto, edadTitular)}</span>
+          </div>
+
+          <div className="flex items-end justify-between gap-3 lg:flex-col lg:items-center lg:gap-1">
+            <div className="min-w-0">
+              <div className="text-[22px] sm:text-[24px] font-extrabold leading-tight tabular-nums tracking-tight text-white lg:text-[#0f514b]">
+                UF {formatUF(displayUf)}
+              </div>
+              <div className="text-[12px] text-white/75 lg:text-[#5a6b6a] tabular-nums">
+                {formatCLP(displayCLP)} <span className="opacity-70">/mes</span>
+              </div>
+            </div>
+            {perfilPorDefecto && onEditProfile && (
+              <button
+                type="button"
+                onClick={onEditProfile}
+                className="pressable shrink-0 inline-flex items-center gap-1 text-[12px] font-bold underline underline-offset-2 text-[#8ff0db] hover:text-white lg:text-[#0f9d8a] lg:hover:text-[#0f514b]"
+              >
+                <Calculator className="w-3.5 h-3.5" aria-hidden />
+                Calcular el mío
+              </button>
+            )}
+          </div>
+
+          {diff != null && (
+            diff >= 0 ? (
+              <div className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold leading-snug bg-[#14dcb4]/20 text-[#bdf5e7] lg:bg-[#14dcb4]/15 lg:text-[#0b7f6e]">
+                {diff === 0 ? 'Te alcanza justo con tu 7%' : <>Te alcanza con tu 7% · te sobran {formatCLP(diff)}</>}
+              </div>
+            ) : (
+              <div className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold leading-snug bg-amber-300/15 text-amber-200 lg:bg-amber-50 lg:text-amber-800 lg:border lg:border-amber-200">
+                Pagas {formatCLP(-diff)} extra sobre tu 7%
+              </div>
+            )
+          )}
+
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+            <button
+              type="button"
+              onClick={() => onRequestPlan(plan)}
+              className="px-3 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f2826] font-extrabold text-[11.5px] shadow-[0_8px_18px_rgba(20,220,180,0.3)] pressable hover:-translate-y-0.5 uppercase tracking-[0.08em]"
+            >
+              Solicitar plan
+            </button>
             <button
               type="button"
               onClick={() => onViewDetails(plan)}
-              className="px-4 py-2.5 rounded-xl border border-[#0f514b]/15 text-[#0f514b] font-bold text-[12.5px] hover:bg-[#0f514b]/[0.03] hover:border-[#0f514b]/30 transition-all uppercase tracking-[0.08em] flex items-center justify-center gap-1.5"
+              aria-label={`Ver detalle de ${plan.name}`}
+              className="pressable px-3 py-2.5 rounded-xl border font-bold text-[11.5px] uppercase tracking-[0.08em] border-white/25 bg-white/10 text-white hover:bg-white/20 lg:border-[#0f514b]/15 lg:bg-white lg:text-[#0f514b] lg:hover:bg-[#0f514b]/[0.03] lg:hover:border-[#0f514b]/30"
             >
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-              Ver PDF
+              Ver detalle
             </button>
-          ) : (
-            <button
-              disabled
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-400 font-bold text-[12.5px] cursor-not-allowed uppercase tracking-[0.08em] flex items-center justify-center gap-1.5"
-            >
-              Sin PDF
-            </button>
-          )}
+          </div>
         </div>
       </div>
     </article>

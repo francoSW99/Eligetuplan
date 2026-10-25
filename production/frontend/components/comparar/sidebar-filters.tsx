@@ -2,31 +2,29 @@
 
 import { useState, useMemo, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
-import type { Isapre, Zona, PrestadorItem } from "@/lib/api";
+import type { Isapre, Zona, PrestadorItem, PriceBucket, ConteoPresupuesto } from "@/lib/api";
 import { formatCLP } from "@/lib/api";
-import { useMeta } from "@/lib/meta-context";
-import { calcularSeptimoLegal } from "@/lib/factores";
 import { buscarCiudades, ZONA_CIUDADES_EJEMPLO } from "@/lib/zonas-ciudades";
-
-function formatUF2(n: number) {
-  return n.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 // ── Collapsible Group ──────────────────────────────────────────────────
 export function FilterGroup({
   title,
   icon,
   activeCount = 0,
+  help,
   children,
 }: {
   title: string;
   icon: ReactNode;
   defaultOpen?: boolean; // legacy: ya no se usa — los grupos siempre están expandidos
   activeCount?: number;
+  /** Explicación en lenguaje simple ("¿Para qué sirve?"), se abre con el botón "?". */
+  help?: ReactNode;
   children: ReactNode;
 }) {
+  const [verAyuda, setVerAyuda] = useState(false);
   // No-colapsable: las opciones SIEMPRE se ven (sin desplegar). El header es solo
-  // un rótulo (icono + título + conteo), no un toggle.
+  // un rótulo (icono + título + conteo) y, si hay, el botón de ayuda.
   return (
     <div className="bg-white rounded-2xl border border-[#0f514b]/10 overflow-hidden">
       <div className="w-full px-4 py-3 flex items-center gap-3">
@@ -37,7 +35,7 @@ export function FilterGroup({
         >
           {icon}
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-[14px] font-bold text-[#0f514b] leading-tight">{title}</div>
           {activeCount > 0 && (
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#0f9d8a] mt-0.5">
@@ -45,7 +43,26 @@ export function FilterGroup({
             </div>
           )}
         </div>
+        {help && (
+          <button
+            type="button"
+            onClick={() => setVerAyuda((v) => !v)}
+            aria-expanded={verAyuda}
+            aria-label={`¿Para qué sirve ${title}?`}
+            className={`pressable shrink-0 w-6 h-6 rounded-full border-[1.5px] text-[11px] font-extrabold grid place-items-center ${
+              verAyuda ? "bg-[#0f9d8a] border-[#0f9d8a] text-white" : "border-[#0f9d8a] text-[#0f9d8a] hover:bg-[#14dcb4]/10"
+            }`}
+          >
+            ?
+          </button>
+        )}
       </div>
+      {help && verAyuda && (
+        <div className="pop-in origin-top-right mx-4 mb-3 rounded-xl bg-[#092e2a] text-white/90 px-3.5 py-3 text-[12px] leading-relaxed">
+          <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-[#8ff0db] mb-1">¿Para qué sirve?</div>
+          {help}
+        </div>
+      )}
       <div className="px-4 pb-4 pt-1 border-t border-[#0f514b]/8">
         <div className="space-y-4">{children}</div>
       </div>
@@ -53,136 +70,117 @@ export function FilterGroup({
   );
 }
 
-// ── 7% Block ───────────────────────────────────────────────────────────
-export function SevenPercentBlock({
-  salaryInput,
-  setSalaryInput,
-  applyBudget,
-  clearBudget,
-  active,
+// ── Presupuesto: histograma + línea del 7% + "Me alcanza / Pago extra" ────────
+export function PresupuestoBlock({
+  histogram,
+  floor,
+  ceiling,
+  min,
+  max,
+  setMin,
+  setMax,
+  onCommit,
+  budgetCLP,
+  conteo,
+  enPresupuesto,
+  onEnPresupuesto,
 }: {
-  salaryInput: string;
-  setSalaryInput: (v: string) => void;
-  applyBudget: () => void;
-  clearBudget: () => void;
-  active: boolean;
+  histogram: PriceBucket[];
+  floor: number;
+  ceiling: number;
+  min: number;
+  max: number;
+  setMin: (v: number) => void;
+  setMax: (v: number) => void;
+  onCommit: () => void;
+  budgetCLP: number | null;
+  conteo: ConteoPresupuesto | null | undefined;
+  enPresupuesto: "si" | "no" | null;
+  onEnPresupuesto: (v: "si" | "no" | null) => void;
 }) {
-  const { ufValueCLP, topeImponibleUF } = useMeta();
-  const salary = salaryInput ? parseInt(salaryInput, 10) : 0;
-  // 7% legal CON tope imponible (90 UF en 2026) — mismo helper que la calculadora del home,
-  // así este preview coincide con el badge real de las cards (legalBudget en isapres-client).
-  const { montoCLP: sevenPct, topeAplicado, topeCLP } = calcularSeptimoLegal(salary, ufValueCLP, topeImponibleUF);
-  const uf = ufValueCLP > 0 ? sevenPct / ufValueCLP : 0;
-
-  // Display: dígitos crudos mientras está enfocado (sin saltos de cursor); formateado
-  // con puntos cuando no. Se DERIVA en render (sin useEffect) → al resetear el padre
-  // (clearAll) el campo se limpia solo, sin el anti-patrón set-state-in-effect.
-  const [rawInput, setRawInput] = useState("");
-  const [focused, setFocused] = useState(false);
-  const inputDisplay = focused
-    ? rawInput
-    : salaryInput
-      ? parseInt(salaryInput, 10).toLocaleString("es-CL")
-      : "";
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value.replace(/\D/g, "");
-    setRawInput(raw); // raw digits → no cursor jump
-    setSalaryInput(raw);
-  }
-
-  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
-    setFocused(true);
-    setRawInput(e.target.value.replace(/\D/g, "")); // strip dots on focus
-  }
-
-  function handleBlur() {
-    setFocused(false);
-  }
+  const rango = Math.max(ceiling - floor, 1);
+  const maxCount = Math.max(1, ...histogram.map((b) => b.count));
+  const marcaPct = budgetCLP ? Math.min(100, Math.max(0, ((budgetCLP - floor) / rango) * 100)) : null;
+  // Barras en color = lo que se está mostrando (rango del slider y, si se eligió, "Me alcanza" / "Pago extra").
+  const desde = enPresupuesto === "no" && budgetCLP ? Math.max(min, budgetCLP) : min;
+  const hasta = enPresupuesto === "si" && budgetCLP ? Math.min(max, budgetCLP) : max;
 
   return (
     <div className="space-y-3">
-      <p className="text-[12px] text-[#5a6b6a] leading-snug">
-        Ingresa tu sueldo y marcamos los planes que superan tu{" "}
-        <strong className="text-[#0f514b] font-bold">7% legal</strong>.
-      </p>
-
-      <div>
-        <label className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#5a6b6a] mb-1.5 block">
-          Sueldo bruto imponible
-        </label>
-        <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[#0f514b]/55 pointer-events-none">
-            $
-          </span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={inputDisplay}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder="950.000"
-            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border-2 border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[15px] font-bold text-[#0f514b] placeholder:text-slate-300 transition-all"
-          />
-        </div>
-      </div>
-
-      {sevenPct > 0 && (
-        <div className="rounded-xl bg-gradient-to-br from-[#0f514b] to-[#092e2a] p-3.5 text-white relative overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-[#14dcb4]/15 blur-2xl pointer-events-none" />
-          <div className="relative">
-            <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#14dcb4]/85 mb-1">
-              Tu 7% disponible
+      {histogram.length > 0 && (
+        <div className="relative pt-4" aria-hidden>
+          {marcaPct != null && (
+            <div className="absolute top-0 bottom-0 w-[2px] bg-[#0f514b] z-10" style={{ left: `${marcaPct}%` }}>
+              <span
+                className={`absolute -top-0.5 whitespace-nowrap text-[9.5px] font-extrabold text-[#0f514b] ${
+                  marcaPct > 60 ? "right-1.5" : "left-1.5"
+                }`}
+              >
+                Tu 7%
+              </span>
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[24px] font-extrabold tabular-nums leading-none">{formatCLP(sevenPct)}</span>
-              <span className="text-[11px] text-white/55">/mes</span>
-            </div>
-            <div className="text-[11px] text-white/65 mt-0.5 tabular-nums">
-              ≈ <strong className="text-[#14dcb4]">UF {formatUF2(uf)}</strong>
-            </div>
-            {topeAplicado && (
-              <div className="text-[10px] text-white/45 mt-1 leading-snug">
-                Sobre el tope imponible de {topeImponibleUF} UF ({formatCLP(Math.round(topeCLP))}).
-              </div>
-            )}
+          )}
+          <div className="flex items-end gap-[2px] h-14">
+            {histogram.map((b, i) => {
+              const centro = (b.min_clp + b.max_clp) / 2;
+              const enRango = centro >= desde && centro <= hasta;
+              return (
+                <div
+                  key={i}
+                  className="flex-1 rounded-t-[3px]"
+                  style={{
+                    height: `${b.count > 0 ? Math.max(6, (b.count / maxCount) * 100) : 0}%`,
+                    background: enRango ? "linear-gradient(180deg,#14dcb4,#0f9d8a)" : "#e2e8e6",
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
       )}
 
-      <button
-        type="button"
-        disabled={!sevenPct}
-        onClick={applyBudget}
-        className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#14dcb4] to-[#0f9d8a] text-[#0f514b] font-bold text-[13px] shadow-[0_8px_20px_rgba(20,220,180,0.3)] disabled:opacity-40 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all"
-      >
-        {active ? "Actualizar mi 7%" : "Activar mi 7%"}
-      </button>
+      <PriceRange min={min} max={max} floor={floor} ceiling={ceiling} setMin={setMin} setMax={setMax} onCommit={onCommit} />
 
-      {active && (
-        <div className="rounded-xl border border-[#14dcb4]/30 bg-[#14dcb4]/8 p-3 flex items-start gap-2.5">
-          <div className="shrink-0 w-7 h-7 rounded-lg bg-[#14dcb4]/25 flex items-center justify-center mt-0.5">
-            <svg className="w-3.5 h-3.5 text-[#0f9d8a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+      {budgetCLP ? (
+        <>
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#0f514b]/5 p-1" role="radiogroup" aria-label="Planes según tu 7%">
+            {(
+              [
+                { v: null, label: "Todos", n: conteo?.todos },
+                { v: "si", label: "Me alcanza", n: conteo?.dentro },
+                { v: "no", label: "Pago extra", n: conteo?.fuera },
+              ] as const
+            ).map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                role="radio"
+                aria-checked={enPresupuesto === o.v}
+                onClick={() => onEnPresupuesto(o.v)}
+                className={`pressable rounded-lg px-1 py-1.5 text-[11px] font-bold leading-tight ${
+                  enPresupuesto === o.v ? "bg-white text-[#0f514b] shadow-sm" : "text-[#5a6b6a] hover:text-[#0f514b]"
+                }`}
+              >
+                {o.label}
+                {o.n != null && <span className="block text-[10.5px] font-semibold tabular-nums">{o.n.toLocaleString("es-CL")}</span>}
+              </button>
+            ))}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11.5px] font-bold text-[#0f514b] leading-tight">
-              7% activo como referencia
-            </div>
-            <div className="text-[10.5px] text-[#5a6b6a] mt-0.5 leading-snug">
-              Marcamos los planes que superan <strong className="tabular-nums">{formatCLP(sevenPct)}/mes</strong> con el adicional necesario.
-            </div>
-            <button
-              type="button"
-              onClick={clearBudget}
-              className="mt-1.5 text-[11px] font-semibold text-[#0f9d8a] hover:underline"
-            >
-              Quitar
-            </button>
-          </div>
-        </div>
+          {conteo && (
+            <p className="text-[11.5px] leading-snug text-[#5a6b6a]">
+              Tu 7% ({formatCLP(budgetCLP)}) alcanza para{" "}
+              <strong className="text-[#0f514b]">
+                {conteo.dentro.toLocaleString("es-CL")} de {conteo.todos.toLocaleString("es-CL")}
+              </strong>{" "}
+              planes. En el resto te mostramos cuánto pagarías extra.
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="text-[11.5px] leading-snug text-[#5a6b6a]">
+          Escribe tu sueldo en <strong className="text-[#0f514b]">Tu perfil</strong> (arriba) y te mostramos qué planes te
+          alcanzan con tu 7%.
+        </p>
       )}
     </div>
   );
@@ -272,7 +270,8 @@ export function CoverageStepper({
   value: number | null;
   onChange: (v: number | null) => void;
 }) {
-  const marks = [50, 60, 70, 80, 90, 100];
+  // Desde 40%: muchos planes tienen 40–50% y antes no se podían elegir.
+  const marks = [40, 50, 60, 70, 80, 90, 100];
   return (
     <div>
       <div className="flex items-baseline justify-between mb-2">
@@ -285,7 +284,7 @@ export function CoverageStepper({
         <button
           type="button"
           onClick={() => onChange(null)}
-          className={`text-[11px] font-bold py-1.5 px-2.5 rounded-md border transition-all ${
+          className={`pressable text-[11px] font-bold py-1.5 px-2.5 rounded-md border ${
             value === null
               ? "bg-[#0f514b] text-white border-[#0f514b]"
               : "border-slate-200 text-[#5a6b6a] hover:border-[#14dcb4] hover:text-[#0f514b]"
@@ -298,7 +297,7 @@ export function CoverageStepper({
             key={pct}
             type="button"
             onClick={() => onChange(pct)}
-            className={`text-[11px] font-bold py-1.5 flex-1 min-w-[44px] rounded-md border transition-all ${
+            className={`pressable text-[11px] font-bold py-1.5 flex-1 min-w-[44px] rounded-md border ${
               value === pct
                 ? "bg-[#0f514b] text-white border-[#0f514b]"
                 : "border-slate-200 text-[#5a6b6a] hover:border-[#14dcb4] hover:text-[#0f514b]"
@@ -340,10 +339,10 @@ export function IsapresFilter({
           const checked = selected.includes(slug);
           return (
             <li key={i.id}>
-              <label className="relative flex items-center justify-between gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+              <label className="relative flex items-center justify-between gap-2 tappable-row cursor-pointer py-2 lg:py-1 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] active:bg-[#14dcb4]/[0.1] transition-colors duration-150">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span
-                    className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                    className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-[background-color,border-color] duration-150 ${
                       checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
                     }`}
                   >
@@ -410,13 +409,13 @@ export function ZonasFilter({
           value={cityQuery}
           onChange={(e) => setCityQuery(e.target.value)}
           placeholder="¿En qué ciudad o comuna vives?"
-          className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-all"
+          className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150"
         />
         {cityQuery && (
           <button
             type="button"
             onClick={() => setCityQuery("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a] transition-colors"
+            className="pressable absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a]"
             aria-label="Limpiar"
           >
             <X className="w-3.5 h-3.5" />
@@ -436,7 +435,7 @@ export function ZonasFilter({
                     <button
                       type="button"
                       onClick={() => { toggle(m.zonaId); setCityQuery(""); }}
-                      className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-[#14dcb4]/[0.08] transition-colors"
+                      className="tappable-row w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-[#14dcb4]/[0.08] transition-colors"
                     >
                       <span className="text-[13px] font-semibold text-[#0f514b]">{m.ciudad}</span>
                       <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.06em] text-[#0f9d8a]">
@@ -471,10 +470,10 @@ export function ZonasFilter({
           const ejemplo = ZONA_CIUDADES_EJEMPLO[z.id];
           return (
             <li key={z.id}>
-              <label className="relative flex items-center justify-between gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+              <label className="relative flex items-center justify-between gap-2 tappable-row cursor-pointer py-2 lg:py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] active:bg-[#14dcb4]/[0.1] transition-colors duration-150">
                 <div className="flex items-start gap-2.5 min-w-0">
                   <span
-                    className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                    className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-[background-color,border-color] duration-150 ${
                       checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
                     }`}
                   >
@@ -531,7 +530,7 @@ export function ModalidadFilter({
         <button
           type="button"
           onClick={() => onChange("")}
-          className={`text-[11.5px] font-semibold py-2 rounded-lg border transition-all ${
+          className={`pressable text-[11.5px] font-semibold py-2 rounded-lg border ${
             !value
               ? "bg-[#0f514b] text-white border-[#0f514b]"
               : "border-slate-200 text-[#5a6b6a] hover:border-[#14dcb4] hover:text-[#0f514b]"
@@ -544,7 +543,7 @@ export function ModalidadFilter({
             key={m}
             type="button"
             onClick={() => onChange(m)}
-            className={`text-[11.5px] font-semibold py-2 rounded-lg border transition-all ${
+            className={`pressable text-[11.5px] font-semibold py-2 rounded-lg border ${
               value === m
                 ? "bg-[#0f514b] text-white border-[#0f514b]"
                 : "border-slate-200 text-[#5a6b6a] hover:border-[#14dcb4] hover:text-[#0f514b]"
@@ -600,13 +599,13 @@ export function ClinicasFilter({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar clínica u hospital..."
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-all"
+          className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-[#14dcb4] focus:outline-none focus:ring-4 focus:ring-[#14dcb4]/15 text-[13px] text-[#0f514b] placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150"
         />
         {search && (
           <button
             type="button"
             onClick={() => setSearch("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a] transition-colors"
+            className="pressable absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-[#5a6b6a]"
             aria-label="Limpiar búsqueda"
           >
             <X className="w-3.5 h-3.5" />
@@ -619,9 +618,9 @@ export function ClinicasFilter({
           const checked = selected.includes(c.id);
           return (
             <li key={c.id}>
-              <label className="relative flex items-start gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] transition-colors">
+              <label className="relative flex items-start gap-2 tappable-row cursor-pointer py-2 lg:py-1.5 px-2 rounded-lg hover:bg-[#14dcb4]/[0.05] active:bg-[#14dcb4]/[0.1] transition-colors duration-150">
                 <span
-                  className={`shrink-0 w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center transition-all ${
+                  className={`shrink-0 w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center transition-[background-color,border-color] duration-150 ${
                     checked ? "bg-[#14dcb4] border-[#14dcb4]" : "border-slate-300 bg-white"
                   }`}
                 >
@@ -663,7 +662,7 @@ export function ClinicasFilter({
         <button
           type="button"
           onClick={() => setShowAll(!showAll)}
-          className="text-[11px] font-semibold text-[#0f9d8a] hover:underline"
+          className="pressable text-[11px] font-semibold text-[#0f9d8a] hover:underline"
         >
           {showAll ? "Ver menos" : `Ver todas (${filtered.length})`}
         </button>
@@ -678,7 +677,7 @@ export function ClinicasFilter({
                 key={id}
                 type="button"
                 onClick={() => toggle(id)}
-                className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-1 rounded-lg bg-[#14dcb4]/15 text-[#0f9d8a] hover:bg-[#14dcb4]/25 transition-colors"
+                className="pressable inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-1 rounded-lg bg-[#14dcb4]/15 text-[#0f9d8a] hover:bg-[#14dcb4]/25"
               >
                 {c?.name ?? id}
                 <X className="w-3 h-3" />

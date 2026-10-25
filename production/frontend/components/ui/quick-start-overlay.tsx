@@ -27,7 +27,8 @@ import { formatCLP, formatUF, getPlanes } from '@/lib/api';
 import { useMeta } from '@/lib/meta-context';
 import { LEAD_FORM_TOKEN, LEAD_SHEETS_URL as SHEETS_URL } from '@/lib/lead';
 
-const QUALIFYING = ['/', '/comparar/isapres'];
+// En /comparar/isapres no se abre: ahí la barra "Tu perfil" pide los mismos datos.
+const QUALIFYING = ['/'];
 const seenKey = (path: string) => `etp_qs_seen:${path}`;
 
 type PreviewPlan = {
@@ -233,10 +234,12 @@ export default function QuickStartOverlay() {
   function verPlanes() {
     markSeen('/comparar/isapres');
     const params = new URLSearchParams();
-    if (hasProfile) {
+    // La edad (y las cargas) basta para mostrar el precio real; antes se perdía si no
+    // venía también el sueldo. El sueldo es opcional: solo activa la marca del 7%.
+    if (age != null) params.set('ben', serializeBeneficiarios(beneficiarios));
+    if (salary > 0) {
       params.set('sueldo_imponible_clp', String(salary));
       params.set('aplicar_tope_legal', 'true');
-      params.set('ben', serializeBeneficiarios(beneficiarios));
     }
     closeOverlay();
     const query = params.toString();

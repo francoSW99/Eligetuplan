@@ -78,6 +78,7 @@ export interface PlansResponse {
   price_min_clp: number | null;
   price_max_clp: number | null;
   price_histogram: PriceBucket[];
+  conteo_presupuesto?: ConteoPresupuesto | null;
 }
 
 export interface PlansQuery {
@@ -96,6 +97,20 @@ export interface PlansQuery {
   page?: number;
   limit?: number;
   sort?: string;
+  /** Σ factores del grupo. Con n_beneficiarios, el backend filtra, ordena y arma
+   *  el histograma con el precio familiar exacto (base × Σ + GES × N). */
+  factor_total?: number;
+  n_beneficiarios?: number;
+  /** 7% del usuario en CLP: la respuesta trae conteo_presupuesto (caben / no caben). */
+  presupuesto_clp?: number;
+  /** Con prestador_ids: el % mínimo se exige EN esas clínicas, no como máximo del plan. */
+  cobertura_en_clinica?: boolean;
+}
+
+export interface ConteoPresupuesto {
+  todos: number;
+  dentro: number;
+  fuera: number;
 }
 
 // Metadatos vivos del backend (tabla app_meta, mantenida por el cron quincenal).
@@ -182,6 +197,12 @@ export async function getPlanes(q: PlansQuery = {}): Promise<PlansResponse> {
   if (q.page) params.set("page", String(q.page));
   if (q.limit) params.set("limit", String(q.limit));
   if (q.sort) params.set("sort", q.sort);
+  if (q.factor_total != null && q.n_beneficiarios != null) {
+    params.set("factor_total", String(q.factor_total));
+    params.set("n_beneficiarios", String(q.n_beneficiarios));
+  }
+  if (q.presupuesto_clp != null && q.presupuesto_clp > 0) params.set("presupuesto_clp", String(q.presupuesto_clp));
+  if (q.cobertura_en_clinica) params.set("cobertura_en_clinica", "true");
 
   const res = await fetch(`${API_BASE}/api/v1/planes?${params}`, {
     // Cachear 5 min por combinación de filtros (la URL es la cache key). Los datos

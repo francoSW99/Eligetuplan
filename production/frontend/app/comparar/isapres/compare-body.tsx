@@ -1,12 +1,13 @@
 import { getIsapres, getPlanes, getZonas, getPrestadoresV2 } from '@/lib/api';
 import type { PlansResponse } from '@/lib/api';
+import { buildPlansQuery, PLANES_POR_PAGINA } from '@/lib/comparar-query';
 import IsapresClient from './isapres-client';
 
 const EMPTY_PLANS: PlansResponse = {
   items: [],
   total: 0,
   page: 1,
-  limit: 15,
+  limit: PLANES_POR_PAGINA,
   total_pages: 0,
   price_min_clp: null,
   price_max_clp: null,
@@ -48,7 +49,9 @@ export default async function CompareBody() {
     withRetry(() => getIsapres(), []),
     withRetry(() => getZonas(), []),
     withRetry(() => getPrestadoresV2(), []),
-    withRetry(() => getPlanes({ limit: 15 }), EMPTY_PLANS),
+    // Misma consulta que arma el cliente para la vista por defecto (perfil por defecto,
+    // 20 por página) → el snapshot ISR y el fetch en vivo devuelven lo mismo.
+    withRetry(() => getPlanes(buildPlansQuery(new URLSearchParams(), [])), EMPTY_PLANS),
   ]);
 
   const totalGlobal = isapres.reduce((sum, i) => sum + i.plan_count, 0);
